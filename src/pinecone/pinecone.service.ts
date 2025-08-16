@@ -39,7 +39,7 @@ export class PineconeService {
   private index: any;
 
   constructor() {
-    this.logger.log(`🔧 Configuration PineconeService:`);
+    this.logger.log(` Configuration PineconeService:`);
     this.logger.log(`  - Index: ${PINECONE_CONFIG.INDEX_NAME}`);
     this.logger.log(`  - Dimensions: ${PINECONE_CONFIG.DIMENSIONS}`);
     this.logger.log(`  - Environnement: ${PINECONE_CONFIG.ENVIRONMENT}`);
@@ -54,10 +54,7 @@ export class PineconeService {
         throw new Error('Pinecone API key not configured. Please set PINECONE_API_KEY in your .env file');
       }
 
-      this.pinecone = new Pinecone({
-        apiKey: API_KEY,
-      });
-
+      this.pinecone = new Pinecone({ apiKey: API_KEY });
       this.index = this.pinecone.index(INDEX_NAME);
       this.logger.log(`Pinecone initialized successfully with index: ${INDEX_NAME}`);
     } catch (error) {
@@ -82,7 +79,7 @@ export class PineconeService {
 
   async uploadDocuments(documents: VectorDocument[]): Promise<void> {
     try {
-      const vectors = documents.map(doc => ({
+      const vectors = documents.map((doc: VectorDocument) => ({
         id: doc.id,
         values: doc.values,
         metadata: doc.metadata,
@@ -98,34 +95,34 @@ export class PineconeService {
 
   async searchSimilar(queryVector: number[], topK: number = 5, filter?: any): Promise<SearchResult[]> {
     try {
-      this.logger.log(`🔍 Recherche Pinecone: topK=${topK}, dimensions=${queryVector.length}`);
+      this.logger.log(` Recherche Pinecone: topK=${topK}, dimensions=${queryVector.length}`);
       if (filter) {
-        this.logger.log(`🔧 Filtre appliqué: ${JSON.stringify(filter)}`);
+        this.logger.log(` Filtre appliqué: ${JSON.stringify(filter)}`);
       }
 
-      const queryResponse = await this.index.query({
+      const queryResponse: { matches: SearchResult[] } = await this.index.query({
         vector: queryVector,
         topK,
         includeMetadata: true,
         filter,
       });
 
-      this.logger.log(`✅ Recherche Pinecone terminée: ${queryResponse.matches.length} résultats trouvés`);
+      this.logger.log(` Recherche Pinecone terminée: ${queryResponse.matches.length} résultats trouvés`);
       
-      const results = queryResponse.matches.map((match: any) => ({
+      const results: SearchResult[] = queryResponse.matches.map((match: any) => ({
         id: match.id,
         score: match.score,
-        metadata: match.metadata as any,
+        metadata: match.metadata as SearchResult['metadata'],
       }));
 
-      // Log des résultats
-      results.forEach((result, index) => {
+      // Log des résultats avec types explicites
+      results.forEach((result: SearchResult, index: number) => {
         this.logger.log(`  📄 Résultat ${index + 1}: ID=${result.id}, Score=${(result.score * 100).toFixed(1)}%`);
       });
 
       return results;
     } catch (error) {
-      this.logger.error('❌ Erreur lors de la recherche Pinecone:', error);
+      this.logger.error(' Erreur lors de la recherche Pinecone:', error);
       throw error;
     }
   }
@@ -162,46 +159,5 @@ export class PineconeService {
 
   async parsePDF(buffer: Buffer): Promise<string> {
     try {
-      // S'assurer que le buffer est valide
       if (!buffer || buffer.length === 0) {
-        throw new Error('Invalid or empty buffer provided');
-      }
-
-      // Utiliser directement le buffer (pdf-parse accepte Buffer)
-      const data = await pdfParse(buffer);
-      return data.text;
-    } catch (error) {
-      this.logger.error('Failed to parse PDF:', error);
-      throw error;
-    }
-  }
-
-  // Méthode utilitaire pour diviser le texte en chunks
-  splitTextIntoChunks(text: string, chunkSize: number = 1000, overlap: number = 200): string[] {
-    const chunks: string[] = [];
-    let start = 0;
-
-    // Protection contre les boucles infinies
-    const maxChunks = Math.ceil(text.length / (chunkSize - overlap)) + 100;
-    let chunkCount = 0;
-
-    while (start < text.length && chunkCount < maxChunks) {
-      const end = Math.min(start + chunkSize, text.length);
-      const chunk = text.slice(start, end);
-      
-      // Ignorer les chunks vides ou trop courts
-      if (chunk.trim().length > 10) {
-        chunks.push(chunk);
-      }
-      
-      start = end - overlap;
-      chunkCount++;
-      
-      // Protection supplémentaire
-      if (start >= text.length) break;
-    }
-
-    this.logger.log(`Split text into ${chunks.length} chunks (${text.length} characters)`);
-    return chunks;
-  }
-}
+        throw new Error('Invalid or empty buffer provided
