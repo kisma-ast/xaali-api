@@ -160,4 +160,38 @@ export class PineconeService {
   async parsePDF(buffer: Buffer): Promise<string> {
     try {
       if (!buffer || buffer.length === 0) {
-        throw new Error('Invalid or empty buffer provided
+        throw new Error('Invalid or empty buffer provided');
+      }
+
+      const pdfParse = require('pdf-parse');
+      const data = await pdfParse(buffer);
+      return data.text;
+    } catch (error) {
+      this.logger.error('Error parsing PDF:', error);
+      throw new Error(`Failed to parse PDF: ${error.message}`);
+    }
+  }
+
+  splitTextIntoChunks(text: string, chunkSize: number, overlap: number): string[] {
+    if (!text || text.length === 0) {
+      return [];
+    }
+
+    const chunks: string[] = [];
+    let start = 0;
+
+    while (start < text.length) {
+      const end = Math.min(start + chunkSize, text.length);
+      const chunk = text.substring(start, end).trim();
+      
+      if (chunk.length > 0) {
+        chunks.push(chunk);
+      }
+      
+      start = end - overlap;
+      if (start >= text.length) break;
+    }
+
+    return chunks;
+  }
+}

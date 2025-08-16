@@ -13,14 +13,13 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.PineconeService = void 0;
 const common_1 = require("@nestjs/common");
 const pinecone_1 = require("@pinecone-database/pinecone");
-const pdfParse = require("pdf-parse");
 const config_1 = require("../config");
 let PineconeService = PineconeService_1 = class PineconeService {
     logger = new common_1.Logger(PineconeService_1.name);
     pinecone;
     index;
     constructor() {
-        this.logger.log(`🔧 Configuration PineconeService:`);
+        this.logger.log(` Configuration PineconeService:`);
         this.logger.log(`  - Index: ${config_1.PINECONE_CONFIG.INDEX_NAME}`);
         this.logger.log(`  - Dimensions: ${config_1.PINECONE_CONFIG.DIMENSIONS}`);
         this.logger.log(`  - Environnement: ${config_1.PINECONE_CONFIG.ENVIRONMENT}`);
@@ -32,9 +31,7 @@ let PineconeService = PineconeService_1 = class PineconeService {
             if (!API_KEY || API_KEY === 'your_pinecone_api_key_here') {
                 throw new Error('Pinecone API key not configured. Please set PINECONE_API_KEY in your .env file');
             }
-            this.pinecone = new pinecone_1.Pinecone({
-                apiKey: API_KEY,
-            });
+            this.pinecone = new pinecone_1.Pinecone({ apiKey: API_KEY });
             this.index = this.pinecone.index(INDEX_NAME);
             this.logger.log(`Pinecone initialized successfully with index: ${INDEX_NAME}`);
         }
@@ -59,7 +56,7 @@ let PineconeService = PineconeService_1 = class PineconeService {
     }
     async uploadDocuments(documents) {
         try {
-            const vectors = documents.map(doc => ({
+            const vectors = documents.map((doc) => ({
                 id: doc.id,
                 values: doc.values,
                 metadata: doc.metadata,
@@ -74,9 +71,9 @@ let PineconeService = PineconeService_1 = class PineconeService {
     }
     async searchSimilar(queryVector, topK = 5, filter) {
         try {
-            this.logger.log(`🔍 Recherche Pinecone: topK=${topK}, dimensions=${queryVector.length}`);
+            this.logger.log(` Recherche Pinecone: topK=${topK}, dimensions=${queryVector.length}`);
             if (filter) {
-                this.logger.log(`🔧 Filtre appliqué: ${JSON.stringify(filter)}`);
+                this.logger.log(` Filtre appliqué: ${JSON.stringify(filter)}`);
             }
             const queryResponse = await this.index.query({
                 vector: queryVector,
@@ -84,7 +81,7 @@ let PineconeService = PineconeService_1 = class PineconeService {
                 includeMetadata: true,
                 filter,
             });
-            this.logger.log(`✅ Recherche Pinecone terminée: ${queryResponse.matches.length} résultats trouvés`);
+            this.logger.log(` Recherche Pinecone terminée: ${queryResponse.matches.length} résultats trouvés`);
             const results = queryResponse.matches.map((match) => ({
                 id: match.id,
                 score: match.score,
@@ -96,7 +93,7 @@ let PineconeService = PineconeService_1 = class PineconeService {
             return results;
         }
         catch (error) {
-            this.logger.error('❌ Erreur lors de la recherche Pinecone:', error);
+            this.logger.error(' Erreur lors de la recherche Pinecone:', error);
             throw error;
         }
     }
@@ -135,31 +132,31 @@ let PineconeService = PineconeService_1 = class PineconeService {
             if (!buffer || buffer.length === 0) {
                 throw new Error('Invalid or empty buffer provided');
             }
+            const pdfParse = require('pdf-parse');
             const data = await pdfParse(buffer);
             return data.text;
         }
         catch (error) {
-            this.logger.error('Failed to parse PDF:', error);
-            throw error;
+            this.logger.error('Error parsing PDF:', error);
+            throw new Error(`Failed to parse PDF: ${error.message}`);
         }
     }
-    splitTextIntoChunks(text, chunkSize = 1000, overlap = 200) {
+    splitTextIntoChunks(text, chunkSize, overlap) {
+        if (!text || text.length === 0) {
+            return [];
+        }
         const chunks = [];
         let start = 0;
-        const maxChunks = Math.ceil(text.length / (chunkSize - overlap)) + 100;
-        let chunkCount = 0;
-        while (start < text.length && chunkCount < maxChunks) {
+        while (start < text.length) {
             const end = Math.min(start + chunkSize, text.length);
-            const chunk = text.slice(start, end);
-            if (chunk.trim().length > 10) {
+            const chunk = text.substring(start, end).trim();
+            if (chunk.length > 0) {
                 chunks.push(chunk);
             }
             start = end - overlap;
-            chunkCount++;
             if (start >= text.length)
                 break;
         }
-        this.logger.log(`Split text into ${chunks.length} chunks (${text.length} characters)`);
         return chunks;
     }
 };
