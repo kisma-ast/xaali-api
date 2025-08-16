@@ -88,7 +88,7 @@ export class PineconeController {
         }
         
         // Crée les documents pour ce batch
-        const batchDocuments = batch.map((chunk, batchIndex) => ({
+        const batchDocuments = batch.map((chunk: string, batchIndex: number) => ({
           id: `${file.originalname}-chunk-${i + batchIndex}`,
           values: embeddings[batchIndex],
           metadata: {

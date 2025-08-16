@@ -38,5 +38,5 @@ export declare class PineconeService {
     deleteDocuments(ids: string[]): Promise<void>;
     getIndexStats(): Promise<any>;
     parsePDF(buffer: Buffer): Promise<string>;
-    splitTextIntoChunks(text: string, chunkSize?: number, overlap?: number): string[];
+    splitTextIntoChunks(text: string, chunkSize: number, overlap: number): string[];
 }
