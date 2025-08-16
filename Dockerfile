@@ -1,51 +1,47 @@
-# Dockerfile pour le backend Xaali API
+# Stage 1: Build
 FROM node:20-alpine AS builder
 
-# Installer les dépendances de sécurité
-RUN apk add --no-cache dumb-init
+# Installer outils nécessaires pour build TypeScript et modules natifs
+RUN apk add --no-cache bash python3 make g++ git dumb-init
 
 # Créer un utilisateur non-root
-RUN addgroup -g 1001 -S nodejs && \
-    adduser -S nestjs -u 1001
+RUN addgroup -g 1001 -S nodejs && adduser -S nestjs -u 1001
 
-# Définir le répertoire de travail
 WORKDIR /app
 
-# Copier les fichiers de dépendances
+# Copier package.json + package-lock.json
 COPY package*.json ./
 
-# Installer toutes les dépendances (y compris devDependencies pour le build)
+# Installer toutes les dépendances (dev + prod)
 RUN npm ci
 
 # Copier le code source
 COPY . .
 
+# S'assurer que les scripts sont exécutables
+RUN chmod +x ./node_modules/.bin/*
+
 # Construire l'application
 RUN npm run build
 
-# Stage de production
+# Stage 2: Production
 FROM node:20-alpine AS production
 
-# Installer dumb-init pour une meilleure gestion des signaux
 RUN apk add --no-cache dumb-init
 
-# Créer un utilisateur non-root
-RUN addgroup -g 1001 -S nodejs && \
-    adduser -S nestjs -u 1001
+# Créer utilisateur non-root
+RUN addgroup -g 1001 -S nodejs && adduser -S nestjs -u 1001
 
-# Définir le répertoire de travail
 WORKDIR /app
 
-# Copier les fichiers de dépendances
+# Copier seulement les dépendances de production
 COPY package*.json ./
-
-# Installer seulement les dépendances de production
 RUN npm ci --only=production && npm cache clean --force
 
-# Copier les fichiers construits depuis le stage builder
+# Copier le build depuis le stage builder
 COPY --from=builder --chown=nestjs:nodejs /app/dist ./dist
 
-# Changer la propriété des fichiers
+# Changer les permissions
 RUN chown -R nestjs:nodejs /app
 
 # Passer à l'utilisateur non-root
@@ -54,8 +50,5 @@ USER nestjs
 # Exposer le port
 EXPOSE 3000
 
-# Utiliser dumb-init pour une meilleure gestion des signaux
 ENTRYPOINT ["dumb-init", "--"]
-
-# Commande pour démarrer l'application
-CMD ["node", "dist/main"]
+CMD ["node", "dist/main.js"]
