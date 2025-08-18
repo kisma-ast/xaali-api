@@ -38,8 +38,10 @@ WORKDIR /app
 COPY package*.json ./
 RUN npm ci --only=production && npm cache clean --force
 
-# Copier le build depuis le stage builder
-COPY --from=builder --chown=nestjs:nodejs /app/dist ./dist
+# Copier le build depuis le stage builder et réorganiser
+COPY --from=builder --chown=nestjs:nodejs /app/dist/src ./dist
+COPY --from=builder --chown=nestjs:nodejs /app/dist/data-source.js ./dist/
+COPY --from=builder --chown=nestjs:nodejs /app/dist/data-source.d.ts ./dist/
 
 # Changer les permissions
 RUN chown -R nestjs:nodejs /app

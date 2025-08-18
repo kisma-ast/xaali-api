@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getConfig = exports.checkAIConfig = exports.config = exports.PINECONE_CONFIG = exports.AI_CONFIG = void 0;
+exports.getConfig = exports.checkAIConfig = exports.config = exports.BICTORYS_CONFIG = exports.PINECONE_CONFIG = exports.AI_CONFIG = void 0;
 exports.AI_CONFIG = {
     OPENAI_API_KEY: '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',
     MODELS: {
@@ -13,6 +13,27 @@ exports.PINECONE_CONFIG = {
     ENVIRONMENT: process.env.PINECONE_ENVIRONMENT || 'us-east-1',
     INDEX_NAME: process.env.PINECONE_INDEX_NAME || 'xaali-agent',
     DIMENSIONS: 1024
+};
+exports.BICTORYS_CONFIG = {
+    SANDBOX: {
+        API_URL: 'https://sandbox.bictorys.com/api/v1',
+        MERCHANT_ID: process.env.BICTORYS_MERCHANT_ID || 'your_merchant_id_here',
+        API_KEY: process.env.BICTORYS_API_KEY || 'your_api_key_here',
+        SECRET_KEY: process.env.BICTORYS_SECRET_KEY || 'your_secret_key_here'
+    },
+    PRODUCTION: {
+        API_URL: 'https://api.bictorys.com/api/v1',
+        MERCHANT_ID: process.env.BICTORYS_PROD_MERCHANT_ID,
+        API_KEY: process.env.BICTORYS_PROD_API_KEY,
+        SECRET_KEY: process.env.BICTORYS_PROD_SECRET_KEY
+    },
+    MOBILE_MONEY_PROVIDERS: {
+        ORANGE_MONEY: 'orange_money',
+        MTN_MOBILE_MONEY: 'mtn_mobile_money',
+        MOOV_MONEY: 'moov_money',
+        WAVE: 'wave',
+        FREE_MONEY: 'free_money'
+    }
 };
 exports.config = {
     apiUrl: process.env.BACKEND_URL || 'http://localhost:3000',
@@ -38,14 +59,21 @@ exports.config = {
         environment: exports.PINECONE_CONFIG.ENVIRONMENT,
         indexName: exports.PINECONE_CONFIG.INDEX_NAME,
         dimensions: exports.PINECONE_CONFIG.DIMENSIONS
+    },
+    bictorys: {
+        isProduction: process.env.NODE_ENV === 'production',
+        config: process.env.NODE_ENV === 'production' ? exports.BICTORYS_CONFIG.PRODUCTION : exports.BICTORYS_CONFIG.SANDBOX,
+        providers: exports.BICTORYS_CONFIG.MOBILE_MONEY_PROVIDERS
     }
 };
 const checkAIConfig = () => {
     const hasOpenAI = !!exports.AI_CONFIG.OPENAI_API_KEY;
     const hasPinecone = !!exports.PINECONE_CONFIG.API_KEY && exports.PINECONE_CONFIG.API_KEY !== 'your_pinecone_api_key_here';
+    const hasBictorys = !!exports.BICTORYS_CONFIG.SANDBOX.MERCHANT_ID && exports.BICTORYS_CONFIG.SANDBOX.MERCHANT_ID !== 'your_merchant_id_here';
     console.log('🔧 Configuration IA Xaali (Backend):', {
         OpenAI: hasOpenAI ? '✅ Configuré' : '❌ Non configuré',
         Pinecone: hasPinecone ? '✅ Configuré' : '❌ Non configuré',
+        Bictorys: hasBictorys ? '✅ Configuré' : '❌ Non configuré',
         'Mode': process.env.NODE_ENV === 'development' ? '✅ Développement' : '✅ Production'
     });
     if (hasOpenAI) {
@@ -60,14 +88,21 @@ const checkAIConfig = () => {
     else {
         console.log('❌ Clé API Pinecone manquante - Créez un fichier .env avec PINECONE_API_KEY');
     }
-    return { hasOpenAI, hasPinecone };
+    if (hasBictorys) {
+        console.log('💰 Bictorys Mobile Money prêt à être utilisé');
+    }
+    else {
+        console.log('❌ Configuration Bictorys manquante - Configurez BICTORYS_MERCHANT_ID, BICTORYS_API_KEY, BICTORYS_SECRET_KEY');
+    }
+    return { hasOpenAI, hasPinecone, hasBictorys };
 };
 exports.checkAIConfig = checkAIConfig;
 const getConfig = () => {
     return {
         ...exports.config,
         ai: exports.AI_CONFIG,
-        pinecone: exports.PINECONE_CONFIG
+        pinecone: exports.PINECONE_CONFIG,
+        bictorys: exports.BICTORYS_CONFIG
     };
 };
 exports.getConfig = getConfig;
