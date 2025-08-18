@@ -21,6 +21,32 @@ export const PINECONE_CONFIG = {
   DIMENSIONS: 1024 // text-embedding-ada-002 génère des vecteurs de 1024 dimensions
 };
 
+// Configuration Bictorys Mobile Money
+export const BICTORYS_CONFIG = {
+  // Mode sandbox pour les tests
+  SANDBOX: {
+    API_URL: 'https://sandbox.bictorys.com/api/v1',
+    MERCHANT_ID: process.env.BICTORYS_MERCHANT_ID || 'your_merchant_id_here',
+    API_KEY: process.env.BICTORYS_API_KEY || 'your_api_key_here',
+    SECRET_KEY: process.env.BICTORYS_SECRET_KEY || 'your_secret_key_here'
+  },
+  // Mode production
+  PRODUCTION: {
+    API_URL: 'https://api.bictorys.com/api/v1',
+    MERCHANT_ID: process.env.BICTORYS_PROD_MERCHANT_ID,
+    API_KEY: process.env.BICTORYS_PROD_API_KEY,
+    SECRET_KEY: process.env.BICTORYS_PROD_SECRET_KEY
+  },
+  // Configuration des opérateurs mobile money supportés
+  MOBILE_MONEY_PROVIDERS: {
+    ORANGE_MONEY: 'orange_money',
+    MTN_MOBILE_MONEY: 'mtn_mobile_money',
+    MOOV_MONEY: 'moov_money',
+    WAVE: 'wave',
+    FREE_MONEY: 'free_money'
+  }
+};
+
 // Configuration de l'application (pour compatibilité avec le frontend)
 export const config = {
   // API Configuration
@@ -55,6 +81,13 @@ export const config = {
     environment: PINECONE_CONFIG.ENVIRONMENT,
     indexName: PINECONE_CONFIG.INDEX_NAME,
     dimensions: PINECONE_CONFIG.DIMENSIONS
+  },
+
+  // Bictorys Configuration
+  bictorys: {
+    isProduction: process.env.NODE_ENV === 'production',
+    config: process.env.NODE_ENV === 'production' ? BICTORYS_CONFIG.PRODUCTION : BICTORYS_CONFIG.SANDBOX,
+    providers: BICTORYS_CONFIG.MOBILE_MONEY_PROVIDERS
   }
 };
 
@@ -62,10 +95,12 @@ export const config = {
 export const checkAIConfig = () => {
   const hasOpenAI = !!AI_CONFIG.OPENAI_API_KEY;
   const hasPinecone = !!PINECONE_CONFIG.API_KEY && PINECONE_CONFIG.API_KEY !== 'your_pinecone_api_key_here';
+  const hasBictorys = !!BICTORYS_CONFIG.SANDBOX.MERCHANT_ID && BICTORYS_CONFIG.SANDBOX.MERCHANT_ID !== 'your_merchant_id_here';
   
   console.log('🔧 Configuration IA Xaali (Backend):', {
     OpenAI: hasOpenAI ? '✅ Configuré' : '❌ Non configuré',
     Pinecone: hasPinecone ? '✅ Configuré' : '❌ Non configuré',
+    Bictorys: hasBictorys ? '✅ Configuré' : '❌ Non configuré',
     'Mode': process.env.NODE_ENV === 'development' ? '✅ Développement' : '✅ Production'
   });
   
@@ -80,8 +115,14 @@ export const checkAIConfig = () => {
   } else {
     console.log('❌ Clé API Pinecone manquante - Créez un fichier .env avec PINECONE_API_KEY');
   }
+
+  if (hasBictorys) {
+    console.log('💰 Bictorys Mobile Money prêt à être utilisé');
+  } else {
+    console.log('❌ Configuration Bictorys manquante - Configurez BICTORYS_MERCHANT_ID, BICTORYS_API_KEY, BICTORYS_SECRET_KEY');
+  }
   
-  return { hasOpenAI, hasPinecone };
+  return { hasOpenAI, hasPinecone, hasBictorys };
 };
 
 // Fonction pour obtenir la configuration complète
@@ -89,6 +130,7 @@ export const getConfig = () => {
   return {
     ...config,
     ai: AI_CONFIG,
-    pinecone: PINECONE_CONFIG
+    pinecone: PINECONE_CONFIG,
+    bictorys: BICTORYS_CONFIG
   };
 };
