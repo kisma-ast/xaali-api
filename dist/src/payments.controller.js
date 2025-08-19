@@ -35,6 +35,71 @@ let PaymentsController = class PaymentsController {
     remove(id) {
         return this.paymentsService.remove(Number(id));
     }
+    async initiateBictorysPayment(body) {
+        const { phoneNumber, amount, provider } = body;
+        if (!phoneNumber) {
+            return { success: false, message: 'Numéro de téléphone requis' };
+        }
+        if (!amount || amount <= 0) {
+            return { success: false, message: 'Montant invalide' };
+        }
+        if (!provider) {
+            return { success: false, message: 'Opérateur requis' };
+        }
+        const cleanPhone = phoneNumber.replace(/[\s\-\(\)]/g, '');
+        const isValid = /^[67][0-9]{8}$/.test(cleanPhone);
+        if (!isValid) {
+            return { success: false, message: 'Format invalide. Ex: 771234567' };
+        }
+        const formattedPhone = `+221${cleanPhone}`;
+        return {
+            success: true,
+            data: {
+                transactionId: `TXN_${Date.now()}`,
+                phoneNumber: formattedPhone,
+                provider,
+                amount,
+                status: 'pending',
+                reference: `XAALI_${Date.now()}`,
+                message: 'Paiement initié avec succès'
+            }
+        };
+    }
+    getBictorysProviders() {
+        return {
+            success: true,
+            data: [
+                {
+                    id: 'orange_money',
+                    name: 'Orange Money',
+                    prefixes: ['77', '78'],
+                    logo: '🟠',
+                    description: 'Orange Money Sénégal'
+                },
+                {
+                    id: 'mtn_mobile_money',
+                    name: 'MTN Mobile Money',
+                    prefixes: ['70', '75', '76'],
+                    logo: '🟡',
+                    description: 'MTN Mobile Money Sénégal'
+                },
+                {
+                    id: 'moov_money',
+                    name: 'Moov Money',
+                    prefixes: ['60', '61'],
+                    logo: '🔵',
+                    description: 'Moov Money Sénégal'
+                },
+                {
+                    id: 'wave',
+                    name: 'Wave',
+                    prefixes: ['70', '75', '76', '77', '78'],
+                    logo: '🌊',
+                    description: 'Wave Sénégal'
+                }
+            ]
+        };
+    }
 };
 exports.PaymentsController = PaymentsController;
 __decorate([
@@ -72,6 +137,19 @@ __decorate([
     __metadata("design:paramtypes", [String]),
     __metadata("design:returntype", Promise)
 ], PaymentsController.prototype, "remove", null);
+__decorate([
+    (0, common_1.Post)('bictorys/initiate'),
+    __param(0, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", Promise)
+], PaymentsController.prototype, "initiateBictorysPayment", null);
+__decorate([
+    (0, common_1.Get)('bictorys/providers'),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", []),
+    __metadata("design:returntype", void 0)
+], PaymentsController.prototype, "getBictorysProviders", null);
 exports.PaymentsController = PaymentsController = __decorate([
     (0, common_1.Controller)('payments'),
     __metadata("design:paramtypes", [payments_service_1.PaymentsService])

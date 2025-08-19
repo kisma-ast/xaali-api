@@ -49,6 +49,43 @@ let LegalAssistantController = LegalAssistantController_1 = class LegalAssistant
             };
         }
     }
+    async searchInstant(legalQuery, res) {
+        try {
+            res.writeHead(200, {
+                'Content-Type': 'application/json',
+                'Cache-Control': 'no-cache',
+                'Connection': 'keep-alive'
+            });
+            const immediateResponse = {
+                success: true,
+                status: 'processing',
+                message: 'Analyse en cours...',
+                query: legalQuery.query
+            };
+            res.write(`data: ${JSON.stringify(immediateResponse)}\n\n`);
+            const results = await this.legalAssistantService.searchLegalDocuments(legalQuery);
+            const finalResponse = {
+                success: true,
+                status: 'completed',
+                data: {
+                    query: results.query,
+                    formattedResponse: results.formattedResponse,
+                    documentCount: results.relevantDocuments.length,
+                }
+            };
+            res.write(`data: ${JSON.stringify(finalResponse)}\n\n`);
+            res.end();
+        }
+        catch (error) {
+            const errorResponse = {
+                success: false,
+                status: 'error',
+                error: error.message
+            };
+            res.write(`data: ${JSON.stringify(errorResponse)}\n\n`);
+            res.end();
+        }
+    }
     async searchDocumentsFormatted(legalQuery) {
         try {
             this.logger.log(`Formatted search request: ${legalQuery.query}`);
@@ -129,6 +166,14 @@ __decorate([
     __metadata("design:paramtypes", [Object]),
     __metadata("design:returntype", Promise)
 ], LegalAssistantController.prototype, "searchDocuments", null);
+__decorate([
+    (0, common_1.Post)('search-instant'),
+    __param(0, (0, common_1.Body)()),
+    __param(1, (0, common_1.Res)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, Object]),
+    __metadata("design:returntype", Promise)
+], LegalAssistantController.prototype, "searchInstant", null);
 __decorate([
     (0, common_1.Post)('search-formatted'),
     __param(0, (0, common_1.Body)()),

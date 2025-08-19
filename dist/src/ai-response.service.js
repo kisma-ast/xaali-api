@@ -122,21 +122,16 @@ Réponds UNIQUEMENT en JSON valide.`;
                     messages: [
                         {
                             role: 'system',
-                            content: `Tu es Xaali, un assistant juridique IA spécialisé dans le droit sénégalais. Tu utilises un système RAG (Retrieval-Augmented Generation) qui combine:
-              - Une base de données vectorielle Pinecone contenant la législation sénégalaise
-              - L'intelligence artificielle OpenAI pour l'analyse et la synthèse
-              
-              Ton rôle est de fournir des conseils juridiques précis, accessibles et fiables aux citoyens sénégalais.
-              Tu dois TOUJOURS privilégier les informations de Pinecone et compléter avec des recherches web si nécessaire.
-              Réponds UNIQUEMENT en JSON valide avec une structure complète et professionnelle.`
+                            content: `Assistant juridique IA Xaali. Réponds en JSON concis et précis.`
                         },
                         {
                             role: 'user',
-                            content: prompt
+                            content: `Question: ${query}\nContexte: ${pineconeContext.substring(0, 1000)}\nRéponds en JSON avec: title, content (max 200 mots), summary, confidence.`
                         }
                     ],
-                    temperature: 0.2,
-                    max_tokens: 3000
+                    temperature: 0.1,
+                    max_tokens: 800,
+                    timeout: 10000
                 }),
             });
             this.logger.log(`📡 Réponse OpenAI reçue, statut: ${response.status}`);

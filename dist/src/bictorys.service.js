@@ -194,25 +194,58 @@ let BictorysService = BictorysService_1 = class BictorysService {
         const random = Math.random().toString(36).substring(2, 8).toUpperCase();
         return `${prefix}_${timestamp}_${random}`;
     }
-    validatePhoneNumber(phoneNumber, provider) {
-        const phoneRegex = /^(\+221|221)?[0-9]{9}$/;
-        if (!phoneRegex.test(phoneNumber)) {
-            return false;
+    detectProvider(phoneNumber) {
+        if (!phoneNumber) {
+            return null;
         }
-        switch (provider) {
-            case config_1.BICTORYS_CONFIG.MOBILE_MONEY_PROVIDERS.ORANGE_MONEY:
-                return phoneNumber.startsWith('+2217') || phoneNumber.startsWith('2217');
-            case config_1.BICTORYS_CONFIG.MOBILE_MONEY_PROVIDERS.MTN_MOBILE_MONEY:
-                return phoneNumber.startsWith('+2217') || phoneNumber.startsWith('2217');
-            case config_1.BICTORYS_CONFIG.MOBILE_MONEY_PROVIDERS.MOOV_MONEY:
-                return phoneNumber.startsWith('+2217') || phoneNumber.startsWith('2217');
-            case config_1.BICTORYS_CONFIG.MOBILE_MONEY_PROVIDERS.WAVE:
-                return phoneNumber.startsWith('+2217') || phoneNumber.startsWith('2217');
-            case config_1.BICTORYS_CONFIG.MOBILE_MONEY_PROVIDERS.FREE_MONEY:
-                return phoneNumber.startsWith('+2217') || phoneNumber.startsWith('2217');
-            default:
-                return true;
+        const cleanNumber = phoneNumber.replace(/[\s\-\(\)]/g, '').replace(/^(\+221|221)/, '');
+        this.logger.debug(`Detecting provider for cleaned number: ${cleanNumber}`);
+        const prefixes = {
+            [config_1.BICTORYS_CONFIG.MOBILE_MONEY_PROVIDERS.ORANGE_MONEY]: ['77', '78'],
+            [config_1.BICTORYS_CONFIG.MOBILE_MONEY_PROVIDERS.MTN_MOBILE_MONEY]: ['70', '75', '76'],
+            [config_1.BICTORYS_CONFIG.MOBILE_MONEY_PROVIDERS.MOOV_MONEY]: ['60', '61'],
+            [config_1.BICTORYS_CONFIG.MOBILE_MONEY_PROVIDERS.FREE_MONEY]: ['76']
+        };
+        for (const [provider, providerPrefixes] of Object.entries(prefixes)) {
+            if (providerPrefixes.some(prefix => cleanNumber.startsWith(prefix))) {
+                this.logger.debug(`Provider detected: ${provider} for number starting with ${cleanNumber.substring(0, 2)}`);
+                return provider;
+            }
         }
+        if (['60', '61', '70', '75', '76', '77', '78'].some(prefix => cleanNumber.startsWith(prefix))) {
+            this.logger.debug(`Using Wave as fallback provider for: ${cleanNumber.substring(0, 2)}`);
+            return config_1.BICTORYS_CONFIG.MOBILE_MONEY_PROVIDERS.WAVE;
+        }
+        this.logger.warn(`No provider found for number: ${cleanNumber}`);
+        return null;
+    }
+    validatePhoneNumber(phoneNumber) {
+        if (!phoneNumber) {
+            return { isValid: false, provider: null, formattedNumber: '' };
+        }
+        const cleanNumber = phoneNumber.replace(/[\s\-\(\)]/g, '');
+        let formattedNumber = cleanNumber;
+        if (!formattedNumber.startsWith('+221') && !formattedNumber.startsWith('221')) {
+            formattedNumber = '+221' + formattedNumber;
+        }
+        else if (formattedNumber.startsWith('221')) {
+            formattedNumber = '+' + formattedNumber;
+        }
+        const phoneRegex = /^\+221[67][0-9]{8}$/;
+        const shortRegex = /^[67][0-9]{8}$/;
+        const isValid = phoneRegex.test(formattedNumber) || shortRegex.test(cleanNumber);
+        if (!isValid) {
+            this.logger.warn(`Invalid phone format: ${phoneNumber} -> ${formattedNumber}`);
+            return { isValid: false, provider: null, formattedNumber };
+        }
+        if (shortRegex.test(cleanNumber) && !phoneRegex.test(formattedNumber)) {
+            formattedNumber = `+221${cleanNumber}`;
+        }
+        const provider = this.detectProvider(formattedNumber);
+        if (!provider) {
+            this.logger.warn(`No provider detected for: ${formattedNumber}`);
+        }
+        return { isValid: true, provider, formattedNumber };
     }
 };
 exports.BictorysService = BictorysService;

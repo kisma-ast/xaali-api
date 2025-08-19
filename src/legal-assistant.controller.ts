@@ -1,5 +1,7 @@
-import { Controller, Post, Get, Body, Query, Logger } from '@nestjs/common';
+import { Controller, Post, Get, Body, Query, Logger, Res, Sse } from '@nestjs/common';
 import { LegalAssistantService, LegalQuery } from './legal-assistant.service';
+import { Response } from 'express';
+import { Observable, interval, map } from 'rxjs';
 
 @Controller('legal-assistant')
 export class LegalAssistantController {
@@ -39,13 +41,58 @@ export class LegalAssistantController {
     }
   }
 
+  @Post('search-instant')
+  async searchInstant(@Body() legalQuery: LegalQuery, @Res() res: Response) {
+    try {
+      // Réponse immédiate avec placeholder
+      res.writeHead(200, {
+        'Content-Type': 'application/json',
+        'Cache-Control': 'no-cache',
+        'Connection': 'keep-alive'
+      });
+      
+      // Envoyer une réponse immédiate
+      const immediateResponse = {
+        success: true,
+        status: 'processing',
+        message: 'Analyse en cours...',
+        query: legalQuery.query
+      };
+      res.write(`data: ${JSON.stringify(immediateResponse)}\n\n`);
+      
+      // Traitement en arrière-plan
+      const results = await this.legalAssistantService.searchLegalDocuments(legalQuery);
+      
+      const finalResponse = {
+        success: true,
+        status: 'completed',
+        data: {
+          query: results.query,
+          formattedResponse: results.formattedResponse,
+          documentCount: results.relevantDocuments.length,
+        }
+      };
+      
+      res.write(`data: ${JSON.stringify(finalResponse)}\n\n`);
+      res.end();
+      
+    } catch (error) {
+      const errorResponse = {
+        success: false,
+        status: 'error',
+        error: error.message
+      };
+      res.write(`data: ${JSON.stringify(errorResponse)}\n\n`);
+      res.end();
+    }
+  }
+
   @Post('search-formatted')
   async searchDocumentsFormatted(@Body() legalQuery: LegalQuery) {
     try {
       this.logger.log(`Formatted search request: ${legalQuery.query}`);
       const results = await this.legalAssistantService.searchLegalDocuments(legalQuery);
       
-      // Retourner seulement la réponse formatée pour le frontend
       return {
         success: true,
         data: {

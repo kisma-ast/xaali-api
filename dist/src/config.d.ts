@@ -49,6 +49,8 @@ export declare const config: {
         model: string;
         maxTokens: number;
         temperature: number;
+        stream: boolean;
+        timeout: number;
     };
     pinecone: {
         apiKey: string;
@@ -130,5 +132,7 @@ export declare const getConfig: () => {
         model: string;
         maxTokens: number;
         temperature: number;
+        stream: boolean;
+        timeout: number;
     };
 };

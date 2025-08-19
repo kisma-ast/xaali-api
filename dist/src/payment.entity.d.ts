@@ -1,8 +1,20 @@
 export declare class Payment {
     id: number;
     amount: number;
-    date: Date;
+    currency: string;
     userId: number;
     caseId: number;
-    status: string;
+    status: 'pending' | 'success' | 'failed' | 'cancelled';
+    transactionId: string;
+    reference: string;
+    phoneNumber: string;
+    provider: string;
+    description: string;
+    paymentUrl: string;
+    qrCode: string;
+    createdAt: Date;
+    updatedAt: Date;
+    completedAt?: Date;
+    errorMessage?: string;
+    metadata: any;
 }

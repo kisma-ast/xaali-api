@@ -67,12 +67,14 @@ export const config = {
     supportEmail: 'support@xaali.sn'
   },
   
-  // OpenAI Configuration
+  // OpenAI Configuration - Optimisé pour la rapidité
   openai: {
     apiKey: AI_CONFIG.OPENAI_API_KEY,
-    model: 'gpt-4o-mini', // Modèle le plus récent et performant
-    maxTokens: 1000,
-    temperature: 0.3
+    model: 'gpt-4o-mini', // Modèle le plus rapide
+    maxTokens: 500, // Réduit pour plus de rapidité
+    temperature: 0.1, // Plus déterministe et rapide
+    stream: true, // Activer le streaming
+    timeout: 10000 // Timeout de 10 secondes
   },
 
   // Pinecone Configuration

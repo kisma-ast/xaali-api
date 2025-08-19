@@ -7,4 +7,18 @@ export declare class AppController {
         status: string;
         timestamp: string;
     };
+    testBictorys(body: any): {
+        success: boolean;
+        message: string;
+        data?: undefined;
+    } | {
+        success: boolean;
+        data: {
+            phoneNumber: any;
+            provider: string;
+            amount: any;
+            message: string;
+        };
+        message?: undefined;
+    };
 }

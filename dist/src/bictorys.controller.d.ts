@@ -1,18 +1,29 @@
-import { BictorysService, BictorysPaymentRequest } from './bictorys.service';
+import { BictorysService } from './bictorys.service';
 export declare class BictorysController {
     private readonly bictorysService;
     private readonly logger;
     constructor(bictorysService: BictorysService);
-    initiatePayment(paymentRequest: BictorysPaymentRequest): Promise<{
+    initiatePayment(body: {
+        amount: number;
+        phoneNumber: string;
+        provider: string;
+        description?: string;
+    }): Promise<{
+        success: boolean;
+        message: string;
+        data?: undefined;
+    } | {
         success: boolean;
         data: {
-            transactionId: string | undefined;
-            paymentUrl: string | undefined;
-            qrCode: string | undefined;
-            reference: string;
+            transactionId: string;
+            provider: string;
+            phoneNumber: string;
+            amount: number;
             status: string;
+            reference: string;
+            message: string;
         };
-        message: string;
+        message?: undefined;
     }>;
     checkPaymentStatus(transactionId: string): Promise<{
         success: boolean;
@@ -27,28 +38,38 @@ export declare class BictorysController {
         success: boolean;
         message: string;
     }>;
-    getProviders(): Promise<{
-        success: boolean;
-        data: {
-            providers: {
-                id: string;
-                name: string;
-                logo: string;
-                description: string;
-            }[];
-        };
-        message: string;
-    }>;
     validatePhoneNumber(body: {
         phoneNumber: string;
-        provider: string;
     }): Promise<{
         success: boolean;
         data: {
             isValid: boolean;
-            phoneNumber: string;
-            provider: string;
+            provider: string | null;
+            formattedNumber: string;
+            originalNumber: string;
         };
         message: string;
     }>;
+    debug(): Promise<{
+        success: boolean;
+        test: {
+            isValid: boolean;
+            provider: string | null;
+            formattedNumber: string;
+        };
+        message: string;
+    }>;
+    testValidation(body: {
+        phoneNumber: string;
+    }): Promise<{
+        success: boolean;
+        input: string;
+        validation: {
+            isValid: boolean;
+            provider: string | null;
+            formattedNumber: string;
+        };
+        message: string;
+    }>;
+    private getProviderName;
 }

@@ -1,4 +1,5 @@
 import { LegalAssistantService, LegalQuery } from './legal-assistant.service';
+import { Response } from 'express';
 export declare class LegalAssistantController {
     private readonly legalAssistantService;
     private readonly logger;
@@ -20,6 +21,7 @@ export declare class LegalAssistantController {
         error: any;
         data?: undefined;
     }>;
+    searchInstant(legalQuery: LegalQuery, res: Response): Promise<void>;
     searchDocumentsFormatted(legalQuery: LegalQuery): Promise<{
         success: boolean;
         data: {

@@ -23,8 +23,7 @@ const auth_module_1 = require("./auth.module");
 const webrtc_signaling_gateway_1 = require("./webrtc-signaling.gateway");
 const pinecone_1 = require("./pinecone");
 const legal_assistant_index_1 = require("./legal-assistant.index");
-const bictorys_service_1 = require("./bictorys.service");
-const bictorys_controller_1 = require("./bictorys.controller");
+const bictorys_module_1 = require("./bictorys.module");
 let AppModule = class AppModule {
 };
 exports.AppModule = AppModule;
@@ -56,9 +55,10 @@ exports.AppModule = AppModule = __decorate([
             auth_module_1.AuthModule,
             pinecone_1.PineconeModule,
             legal_assistant_index_1.LegalAssistantModule,
+            bictorys_module_1.BictorysModule,
         ],
-        controllers: [app_controller_1.AppController, bictorys_controller_1.BictorysController],
-        providers: [app_service_1.AppService, webrtc_signaling_gateway_1.WebRTCSignalingGateway, bictorys_service_1.BictorysService],
+        controllers: [app_controller_1.AppController],
+        providers: [app_service_1.AppService, webrtc_signaling_gateway_1.WebRTCSignalingGateway],
     })
 ], AppModule);
 //# sourceMappingURL=app.module.js.map

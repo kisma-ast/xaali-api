@@ -42,7 +42,19 @@ export declare class RAGController {
         citizenId?: string;
         category?: string;
         priority?: 'low' | 'medium' | 'high';
+        questionsUsed?: number;
     }): Promise<{
+        success: boolean;
+        error: string;
+        message: string;
+        data: {
+            questionsUsed: number;
+            maxFreeQuestions: number;
+            requiresPayment: boolean;
+        };
+        timestamp: string;
+        metadata?: undefined;
+    } | {
         success: boolean;
         data: {
             userFriendly: {
@@ -75,10 +87,12 @@ export declare class RAGController {
         };
         timestamp: string;
         error?: undefined;
+        message?: undefined;
     } | {
         success: boolean;
         error: string;
         timestamp: string;
+        message?: undefined;
         data?: undefined;
         metadata?: undefined;
     }>;

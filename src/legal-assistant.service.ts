@@ -32,61 +32,56 @@ export class LegalAssistantService {
     private readonly aiResponseService: AIResponseService,
   ) {}
 
+  private cache = new Map<string, { data: any; timestamp: number }>();
+  private readonly CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
   async searchLegalDocuments(legalQuery: LegalQuery): Promise<LegalResponse> {
+    const cacheKey = `${legalQuery.query}_${legalQuery.category || 'all'}`;
+    
+    // Vérifier le cache
+    const cached = this.cache.get(cacheKey);
+    if (cached && Date.now() - cached.timestamp < this.CACHE_TTL) {
+      this.logger.log(`💨 Cache hit pour: "${legalQuery.query}"`);
+      return cached.data;
+    }
+
     try {
-      this.logger.log(`🔍 Début de recherche pour: "${legalQuery.query}"`);
-      this.logger.log(`📂 Catégorie: ${legalQuery.category || 'Toutes'}`);
-      this.logger.log(`📊 Nombre de résultats demandés: ${legalQuery.topK || 5}`);
+      // Paralléliser les opérations
+      const [queryEmbedding, filter] = await Promise.all([
+        this.embeddingService.generateEmbedding(legalQuery.query),
+        Promise.resolve(legalQuery.category ? { category: legalQuery.category } : undefined)
+      ]);
 
-      // Générer l'embedding pour la requête
-      this.logger.log(`🧠 Génération de l'embedding pour la requête...`);
-      const queryEmbedding = await this.embeddingService.generateEmbedding(legalQuery.query);
-      this.logger.log(`✅ Embedding généré avec succès (${queryEmbedding.length} dimensions)`);
-
-      // Construire le filtre si une catégorie est spécifiée
-      const filter = legalQuery.category ? { category: legalQuery.category } : undefined;
-      if (filter) {
-        this.logger.log(`🔧 Filtre appliqué: ${JSON.stringify(filter)}`);
-      }
-
-      // Rechercher les documents similaires
-      this.logger.log(`🌲 Recherche dans Pinecone...`);
       const searchResults = await this.pineconeService.searchSimilar(
         queryEmbedding,
-        legalQuery.topK || 5,
+        legalQuery.topK || 3, // Réduire à 3 pour plus de rapidité
         filter,
       );
-      this.logger.log(`✅ ${searchResults.length} documents trouvés dans Pinecone`);
 
-      // Formater les résultats
-      this.logger.log(`📝 Formatage des documents trouvés...`);
       const relevantDocuments = searchResults.map(result => ({
         id: result.id,
         score: result.score,
-        text: this.aiResponseService.formatDocumentText(result.metadata.text),
+        text: result.metadata.text.substring(0, 500), // Limiter le texte
         source: result.metadata.source,
         category: result.metadata.category || 'unknown',
       }));
 
-      this.logger.log(`📊 Documents formatés: ${relevantDocuments.length} documents`);
-      relevantDocuments.forEach((doc, index) => {
-        this.logger.log(`  📄 ${index + 1}. Score: ${(doc.score * 100).toFixed(1)}%, Source: ${doc.source}`);
-      });
-
-      // Générer une réponse formatée avec l'IA
-      this.logger.log(`🤖 Génération de la réponse formatée avec l'IA...`);
+      // Générer la réponse en parallèle
       const formattedResponse = await this.aiResponseService.generateFormattedResponse(
         legalQuery.query,
         relevantDocuments
       );
-      this.logger.log(`✅ Réponse formatée générée avec succès`);
 
-      this.logger.log(`🎯 Recherche terminée avec succès pour: "${legalQuery.query}"`);
-      return {
+      const result = {
         query: legalQuery.query,
         relevantDocuments,
         formattedResponse,
       };
+
+      // Mettre en cache
+      this.cache.set(cacheKey, { data: result, timestamp: Date.now() });
+      
+      return result;
     } catch (error) {
       this.logger.error('Error searching legal documents:', error);
       throw error;
