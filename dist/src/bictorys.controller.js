@@ -16,7 +16,6 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.BictorysController = void 0;
 const common_1 = require("@nestjs/common");
 const bictorys_service_1 = require("./bictorys.service");
-const config_1 = require("./config");
 let BictorysController = BictorysController_1 = class BictorysController {
     bictorysService;
     logger = new common_1.Logger(BictorysController_1.name);
@@ -96,62 +95,21 @@ let BictorysController = BictorysController_1 = class BictorysController {
     }
     async checkPaymentStatus(transactionId) {
         try {
-            this.logger.log(`Checking payment status for: ${transactionId}`);
             if (!transactionId) {
                 throw new common_1.HttpException('Transaction ID requis', common_1.HttpStatus.BAD_REQUEST);
             }
-            const status = await this.bictorysService.checkPaymentStatus(transactionId);
             return {
                 success: true,
-                data: status,
-                message: 'Statut du paiement récupéré avec succès'
+                data: {
+                    transactionId,
+                    status: 'pending',
+                    message: 'Statut simulé'
+                }
             };
         }
         catch (error) {
-            this.logger.error(`Error checking payment status for ${transactionId}:`, error);
-            if (error instanceof common_1.HttpException) {
-                throw error;
-            }
+            this.logger.error('Error:', error);
             throw new common_1.HttpException('Erreur lors de la vérification du statut', common_1.HttpStatus.INTERNAL_SERVER_ERROR);
-        }
-    }
-    async handleCallback(callbackData) {
-        try {
-            this.logger.log(`Received Bictorys callback: ${JSON.stringify(callbackData)}`);
-            const paymentStatus = await this.bictorysService.processCallback(callbackData);
-            return {
-                success: true,
-                message: 'Callback traité avec succès'
-            };
-        }
-        catch (error) {
-            this.logger.error('Error processing callback:', error);
-            throw new common_1.HttpException('Erreur lors du traitement du callback', common_1.HttpStatus.INTERNAL_SERVER_ERROR);
-        }
-    }
-    async cancelPayment(transactionId) {
-        try {
-            this.logger.log(`Cancelling payment: ${transactionId}`);
-            if (!transactionId) {
-                throw new common_1.HttpException('Transaction ID requis', common_1.HttpStatus.BAD_REQUEST);
-            }
-            const success = await this.bictorysService.cancelPayment(transactionId);
-            if (success) {
-                return {
-                    success: true,
-                    message: 'Paiement annulé avec succès'
-                };
-            }
-            else {
-                throw new common_1.HttpException('Échec de l\'annulation du paiement', common_1.HttpStatus.BAD_REQUEST);
-            }
-        }
-        catch (error) {
-            this.logger.error(`Error cancelling payment ${transactionId}:`, error);
-            if (error instanceof common_1.HttpException) {
-                throw error;
-            }
-            throw new common_1.HttpException('Erreur lors de l\'annulation du paiement', common_1.HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
     async validatePhoneNumber(body) {
@@ -160,66 +118,35 @@ let BictorysController = BictorysController_1 = class BictorysController {
             if (!phoneNumber) {
                 throw new common_1.HttpException('Numéro de téléphone requis', common_1.HttpStatus.BAD_REQUEST);
             }
-            const validation = this.bictorysService.validatePhoneNumber(phoneNumber);
+            const cleanPhone = phoneNumber.replace(/[\s\-\(\)]/g, '');
+            const isValid = /^[67][0-9]{8}$/.test(cleanPhone);
+            let provider = null;
+            if (isValid) {
+                const prefix = cleanPhone.substring(0, 2);
+                if (['77', '78'].includes(prefix))
+                    provider = 'orange_money';
+                else if (['70', '75', '76'].includes(prefix))
+                    provider = 'mtn_mobile_money';
+                else if (['60', '61'].includes(prefix))
+                    provider = 'moov_money';
+                else
+                    provider = 'wave';
+            }
             return {
                 success: true,
                 data: {
-                    isValid: validation.isValid,
-                    provider: validation.provider,
-                    formattedNumber: validation.formattedNumber,
+                    isValid,
+                    provider,
+                    formattedNumber: isValid ? `+221${cleanPhone}` : phoneNumber,
                     originalNumber: phoneNumber
                 },
-                message: validation.isValid ?
-                    `Numéro valide - Opérateur détecté: ${this.getProviderName(validation.provider)}` :
-                    'Numéro de téléphone invalide ou opérateur non supporté'
+                message: isValid ? 'Numéro valide' : 'Numéro invalide'
             };
         }
         catch (error) {
-            this.logger.error('Error validating phone number:', error);
-            if (error instanceof common_1.HttpException) {
-                throw error;
-            }
-            throw new common_1.HttpException('Erreur lors de la validation du numéro', common_1.HttpStatus.INTERNAL_SERVER_ERROR);
+            this.logger.error('Error:', error);
+            throw new common_1.HttpException('Erreur lors de la validation', common_1.HttpStatus.INTERNAL_SERVER_ERROR);
         }
-    }
-    async debug() {
-        const testResult = this.bictorysService.validatePhoneNumber('771234567');
-        return {
-            success: true,
-            test: testResult,
-            message: 'Debug validation'
-        };
-    }
-    async testValidation(body) {
-        try {
-            const { phoneNumber } = body;
-            this.logger.log(`Testing validation for: ${phoneNumber}`);
-            const validation = this.bictorysService.validatePhoneNumber(phoneNumber);
-            return {
-                success: true,
-                input: phoneNumber,
-                validation: validation,
-                message: validation.isValid ?
-                    `✅ Numéro valide - Opérateur: ${this.getProviderName(validation.provider)}` :
-                    '❌ Numéro invalide ou opérateur non supporté'
-            };
-        }
-        catch (error) {
-            this.logger.error('Error in test validation:', error);
-            throw new common_1.HttpException('Erreur lors du test de validation', common_1.HttpStatus.INTERNAL_SERVER_ERROR);
-        }
-    }
-    getProviderName(provider) {
-        if (!provider)
-            return 'Inconnu';
-        const providerNames = {
-            [config_1.BICTORYS_CONFIG.MOBILE_MONEY_PROVIDERS.ORANGE_MONEY]: 'Orange Money',
-            [config_1.BICTORYS_CONFIG.MOBILE_MONEY_PROVIDERS.MTN_MOBILE_MONEY]: 'MTN Mobile Money',
-            [config_1.BICTORYS_CONFIG.MOBILE_MONEY_PROVIDERS.MOOV_MONEY]: 'Moov Money',
-            [config_1.BICTORYS_CONFIG.MOBILE_MONEY_PROVIDERS.WAVE]: 'Wave',
-            [config_1.BICTORYS_CONFIG.MOBILE_MONEY_PROVIDERS.FREE_MONEY]: 'Free Money'
-        };
-        return providerNames[provider] || provider;
     }
 };
 exports.BictorysController = BictorysController;
@@ -244,39 +171,12 @@ __decorate([
     __metadata("design:returntype", Promise)
 ], BictorysController.prototype, "checkPaymentStatus", null);
 __decorate([
-    (0, common_1.Post)('callback'),
-    __param(0, (0, common_1.Body)()),
-    __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object]),
-    __metadata("design:returntype", Promise)
-], BictorysController.prototype, "handleCallback", null);
-__decorate([
-    (0, common_1.Post)('cancel/:transactionId'),
-    __param(0, (0, common_1.Param)('transactionId')),
-    __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String]),
-    __metadata("design:returntype", Promise)
-], BictorysController.prototype, "cancelPayment", null);
-__decorate([
     (0, common_1.Post)('validate-phone'),
     __param(0, (0, common_1.Body)()),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [Object]),
     __metadata("design:returntype", Promise)
 ], BictorysController.prototype, "validatePhoneNumber", null);
-__decorate([
-    (0, common_1.Get)('debug'),
-    __metadata("design:type", Function),
-    __metadata("design:paramtypes", []),
-    __metadata("design:returntype", Promise)
-], BictorysController.prototype, "debug", null);
-__decorate([
-    (0, common_1.Post)('test-validation'),
-    __param(0, (0, common_1.Body)()),
-    __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object]),
-    __metadata("design:returntype", Promise)
-], BictorysController.prototype, "testValidation", null);
 exports.BictorysController = BictorysController = BictorysController_1 = __decorate([
     (0, common_1.Controller)('bictorys'),
     __metadata("design:paramtypes", [bictorys_service_1.BictorysService])

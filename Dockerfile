@@ -1,8 +1,8 @@
 # Stage 1: Build
-FROM node:20-alpine AS builder
+FROM node:22-alpine AS builder
 
-# Installer outils nécessaires pour build TypeScript et modules natifs
-RUN apk add --no-cache bash python3 make g++ git dumb-init
+# Mise à jour sécurité et installation outils
+RUN apk update && apk upgrade && apk add --no-cache bash python3 make g++ git dumb-init
 
 # Créer un utilisateur non-root
 RUN addgroup -g 1001 -S nodejs && adduser -S nestjs -u 1001
@@ -28,9 +28,9 @@ RUN chmod +x ./node_modules/.bin/*
 RUN npm run build
 
 # Stage 2: Production
-FROM node:20-alpine AS production
+FROM node:22-alpine AS production
 
-RUN apk add --no-cache dumb-init
+RUN apk update && apk upgrade && apk add --no-cache dumb-init
 
 # Créer utilisateur non-root
 RUN addgroup -g 1001 -S nodejs && adduser -S nestjs -u 1001

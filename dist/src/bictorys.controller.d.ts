@@ -37,16 +37,11 @@ export declare class BictorysController {
     };
     checkPaymentStatus(transactionId: string): Promise<{
         success: boolean;
-        data: import("./bictorys.service").BictorysPaymentStatus;
-        message: string;
-    }>;
-    handleCallback(callbackData: any): Promise<{
-        success: boolean;
-        message: string;
-    }>;
-    cancelPayment(transactionId: string): Promise<{
-        success: boolean;
-        message: string;
+        data: {
+            transactionId: string;
+            status: string;
+            message: string;
+        };
     }>;
     validatePhoneNumber(body: {
         phoneNumber: string;
@@ -60,26 +55,4 @@ export declare class BictorysController {
         };
         message: string;
     }>;
-    debug(): Promise<{
-        success: boolean;
-        test: {
-            isValid: boolean;
-            provider: string | null;
-            formattedNumber: string;
-        };
-        message: string;
-    }>;
-    testValidation(body: {
-        phoneNumber: string;
-    }): Promise<{
-        success: boolean;
-        input: string;
-        validation: {
-            isValid: boolean;
-            provider: string | null;
-            formattedNumber: string;
-        };
-        message: string;
-    }>;
-    private getProviderName;
 }

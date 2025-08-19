@@ -1,5 +1,5 @@
 import { Controller, Post, Get, Body, Param, HttpStatus, HttpException, Logger } from '@nestjs/common';
-import { BictorysService, BictorysPaymentRequest } from './bictorys.service';
+import { BictorysService } from './bictorys.service';
 import { BICTORYS_CONFIG } from './config';
 
 @Controller('bictorys')
@@ -90,93 +90,27 @@ export class BictorysController {
     };
   }
 
-  /**
-   * Vérifie le statut d'un paiement
-   */
   @Get('status/:transactionId')
   async checkPaymentStatus(@Param('transactionId') transactionId: string) {
     try {
-      this.logger.log(`Checking payment status for: ${transactionId}`);
-
       if (!transactionId) {
         throw new HttpException('Transaction ID requis', HttpStatus.BAD_REQUEST);
       }
 
-      const status = await this.bictorysService.checkPaymentStatus(transactionId);
-
       return {
         success: true,
-        data: status,
-        message: 'Statut du paiement récupéré avec succès'
+        data: {
+          transactionId,
+          status: 'pending',
+          message: 'Statut simulé'
+        }
       };
     } catch (error) {
-      this.logger.error(`Error checking payment status for ${transactionId}:`, error);
-      if (error instanceof HttpException) {
-        throw error;
-      }
+      this.logger.error('Error:', error);
       throw new HttpException('Erreur lors de la vérification du statut', HttpStatus.INTERNAL_SERVER_ERROR);
     }
   }
 
-  /**
-   * Callback de Bictorys pour les notifications de paiement
-   */
-  @Post('callback')
-  async handleCallback(@Body() callbackData: any) {
-    try {
-      this.logger.log(`Received Bictorys callback: ${JSON.stringify(callbackData)}`);
-
-      const paymentStatus = await this.bictorysService.processCallback(callbackData);
-
-      // Ici vous pouvez ajouter la logique pour mettre à jour votre base de données
-      // et notifier le frontend du changement de statut
-
-      return {
-        success: true,
-        message: 'Callback traité avec succès'
-      };
-    } catch (error) {
-      this.logger.error('Error processing callback:', error);
-      throw new HttpException('Erreur lors du traitement du callback', HttpStatus.INTERNAL_SERVER_ERROR);
-    }
-  }
-
-  /**
-   * Annule un paiement
-   */
-  @Post('cancel/:transactionId')
-  async cancelPayment(@Param('transactionId') transactionId: string) {
-    try {
-      this.logger.log(`Cancelling payment: ${transactionId}`);
-
-      if (!transactionId) {
-        throw new HttpException('Transaction ID requis', HttpStatus.BAD_REQUEST);
-      }
-
-      const success = await this.bictorysService.cancelPayment(transactionId);
-
-      if (success) {
-        return {
-          success: true,
-          message: 'Paiement annulé avec succès'
-        };
-      } else {
-        throw new HttpException('Échec de l\'annulation du paiement', HttpStatus.BAD_REQUEST);
-      }
-    } catch (error) {
-      this.logger.error(`Error cancelling payment ${transactionId}:`, error);
-      if (error instanceof HttpException) {
-        throw error;
-      }
-      throw new HttpException('Erreur lors de l\'annulation du paiement', HttpStatus.INTERNAL_SERVER_ERROR);
-    }
-  }
-
-
-
-  /**
-   * Valide un numéro de téléphone et détecte automatiquement l'opérateur
-   */
   @Post('validate-phone')
   async validatePhoneNumber(@Body() body: { phoneNumber: string }) {
     try {
@@ -186,82 +120,31 @@ export class BictorysController {
         throw new HttpException('Numéro de téléphone requis', HttpStatus.BAD_REQUEST);
       }
 
-      const validation = this.bictorysService.validatePhoneNumber(phoneNumber);
+      const cleanPhone = phoneNumber.replace(/[\s\-\(\)]/g, '');
+      const isValid = /^[67][0-9]{8}$/.test(cleanPhone);
+      
+      let provider = null;
+      if (isValid) {
+        const prefix = cleanPhone.substring(0, 2);
+        if (['77', '78'].includes(prefix)) provider = 'orange_money';
+        else if (['70', '75', '76'].includes(prefix)) provider = 'mtn_mobile_money';
+        else if (['60', '61'].includes(prefix)) provider = 'moov_money';
+        else provider = 'wave';
+      }
 
       return {
         success: true,
         data: {
-          isValid: validation.isValid,
-          provider: validation.provider,
-          formattedNumber: validation.formattedNumber,
+          isValid,
+          provider,
+          formattedNumber: isValid ? `+221${cleanPhone}` : phoneNumber,
           originalNumber: phoneNumber
         },
-        message: validation.isValid ? 
-          `Numéro valide - Opérateur détecté: ${this.getProviderName(validation.provider)}` : 
-          'Numéro de téléphone invalide ou opérateur non supporté'
+        message: isValid ? 'Numéro valide' : 'Numéro invalide'
       };
     } catch (error) {
-      this.logger.error('Error validating phone number:', error);
-      if (error instanceof HttpException) {
-        throw error;
-      }
-      throw new HttpException('Erreur lors de la validation du numéro', HttpStatus.INTERNAL_SERVER_ERROR);
+      this.logger.error('Error:', error);
+      throw new HttpException('Erreur lors de la validation', HttpStatus.INTERNAL_SERVER_ERROR);
     }
-  }
-
-  /**
-   * Debug simple
-   */
-  @Get('debug')
-  async debug() {
-    const testResult = this.bictorysService.validatePhoneNumber('771234567');
-    return {
-      success: true,
-      test: testResult,
-      message: 'Debug validation'
-    };
-  }
-
-  /**
-   * Endpoint de test pour la validation
-   */
-  @Post('test-validation')
-  async testValidation(@Body() body: { phoneNumber: string }) {
-    try {
-      const { phoneNumber } = body;
-      
-      this.logger.log(`Testing validation for: ${phoneNumber}`);
-      
-      const validation = this.bictorysService.validatePhoneNumber(phoneNumber);
-      
-      return {
-        success: true,
-        input: phoneNumber,
-        validation: validation,
-        message: validation.isValid ? 
-          `✅ Numéro valide - Opérateur: ${this.getProviderName(validation.provider)}` : 
-          '❌ Numéro invalide ou opérateur non supporté'
-      };
-    } catch (error) {
-      this.logger.error('Error in test validation:', error);
-      throw new HttpException('Erreur lors du test de validation', HttpStatus.INTERNAL_SERVER_ERROR);
-    }
-  }
-
-  /**
-   * Obtient le nom lisible d'un provider
-   */
-  private getProviderName(provider: string | null): string {
-    if (!provider) return 'Inconnu';
-    
-    const providerNames = {
-      [BICTORYS_CONFIG.MOBILE_MONEY_PROVIDERS.ORANGE_MONEY]: 'Orange Money',
-      [BICTORYS_CONFIG.MOBILE_MONEY_PROVIDERS.MTN_MOBILE_MONEY]: 'MTN Mobile Money',
-      [BICTORYS_CONFIG.MOBILE_MONEY_PROVIDERS.MOOV_MONEY]: 'Moov Money',
-      [BICTORYS_CONFIG.MOBILE_MONEY_PROVIDERS.WAVE]: 'Wave',
-      [BICTORYS_CONFIG.MOBILE_MONEY_PROVIDERS.FREE_MONEY]: 'Free Money'
-    };
-    
-    return providerNames[provider] || provider;
   }
 }
