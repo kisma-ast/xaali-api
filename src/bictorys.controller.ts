@@ -172,51 +172,7 @@ export class BictorysController {
     }
   }
 
-  /**
-   * Récupère les informations sur les opérateurs supportés
-   */
-  @Get('providers')
-  async getProviders() {
-    try {
-      return {
-        success: true,
-        data: {
-          message: 'Détection automatique de l\'opérateur basée sur le numéro de téléphone',
-          supportedOperators: [
-            {
-              name: 'Orange Money',
-              prefixes: ['77', '78'],
-              description: 'Numéros commençant par 77 ou 78'
-            },
-            {
-              name: 'MTN Mobile Money',
-              prefixes: ['70', '75', '76'],
-              description: 'Numéros commençant par 70, 75 ou 76'
-            },
-            {
-              name: 'Moov Money',
-              prefixes: ['60', '61'],
-              description: 'Numéros commençant par 60 ou 61'
-            },
-            {
-              name: 'Wave',
-              prefixes: ['77', '78', '70', '75', '76'],
-              description: 'Compatible avec tous les numéros mobiles'
-            },
-            {
-              name: 'Free Money',
-              prefixes: ['76'],
-              description: 'Numéros commençant par 76'
-            }
-          ]
-        },
-        message: 'Informations sur les opérateurs supportés'
-      };
-    } catch (error) {
-      this.logger.error('Error getting providers info:', error);
-      throw new HttpException('Erreur lors de la récupération des informations', HttpStatus.INTERNAL_SERVER_ERROR);
-    }
-  }
+
 
   /**
    * Valide un numéro de téléphone et détecte automatiquement l'opérateur

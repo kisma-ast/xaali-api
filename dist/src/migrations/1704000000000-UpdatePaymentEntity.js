@@ -6,7 +6,7 @@ class UpdatePaymentEntity1704000000000 {
     name = 'UpdatePaymentEntity1704000000000';
     async up(queryRunner) {
         const hasCurrency = await queryRunner.hasColumn('payment', 'currency');
-        if (!hasurrency) {
+        if (!hasCurrency) {
             await queryRunner.addColumn('payment', new typeorm_1.TableColumn({
                 name: 'currency',
                 type: 'varchar',
