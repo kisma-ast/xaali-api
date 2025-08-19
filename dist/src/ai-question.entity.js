@@ -17,6 +17,7 @@ let AiQuestion = class AiQuestion {
     question;
     answer;
     citizenId;
+    metadata;
     createdAt;
     citizen;
 };
@@ -37,6 +38,10 @@ __decorate([
     (0, typeorm_1.Column)(),
     __metadata("design:type", String)
 ], AiQuestion.prototype, "citizenId", void 0);
+__decorate([
+    (0, typeorm_1.Column)('json', { nullable: true }),
+    __metadata("design:type", Object)
+], AiQuestion.prototype, "metadata", void 0);
 __decorate([
     (0, typeorm_1.CreateDateColumn)(),
     __metadata("design:type", Date)

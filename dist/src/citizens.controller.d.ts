@@ -12,6 +12,7 @@ export declare class CitizensController {
     getCitizen(id: string): Promise<Citizen>;
     askQuestion(citizenId: string, body: {
         question: string;
+        category?: string;
     }): Promise<AiQuestion>;
     getQuestionsHistory(citizenId: string): Promise<AiQuestion[]>;
     createCase(citizenId: string, body: {
@@ -24,4 +25,13 @@ export declare class CitizensController {
         message: string;
     }>;
     getCitizenCases(citizenId: string): Promise<Case[]>;
+    getPersonalizedAdvice(citizenId: string, body: {
+        situation: string;
+    }): Promise<any>;
+    askSmartQuestion(body: {
+        question: string;
+        citizenId?: string;
+        category?: string;
+        priority?: 'low' | 'medium' | 'high';
+    }): Promise<any>;
 }

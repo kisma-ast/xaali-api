@@ -15,6 +15,9 @@ export class AiQuestion {
   @Column()
   citizenId: string;
 
+  @Column('json', { nullable: true })
+  metadata?: any;
+
   @CreateDateColumn()
   createdAt: Date;
 

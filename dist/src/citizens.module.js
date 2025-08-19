@@ -14,12 +14,16 @@ const citizens_service_1 = require("./citizens.service");
 const citizen_entity_1 = require("./citizen.entity");
 const ai_question_entity_1 = require("./ai-question.entity");
 const case_entity_1 = require("./case.entity");
+const legal_assistant_module_1 = require("./legal-assistant.module");
 let CitizensModule = class CitizensModule {
 };
 exports.CitizensModule = CitizensModule;
 exports.CitizensModule = CitizensModule = __decorate([
     (0, common_1.Module)({
-        imports: [typeorm_1.TypeOrmModule.forFeature([citizen_entity_1.Citizen, ai_question_entity_1.AiQuestion, case_entity_1.Case])],
+        imports: [
+            typeorm_1.TypeOrmModule.forFeature([citizen_entity_1.Citizen, ai_question_entity_1.AiQuestion, case_entity_1.Case]),
+            legal_assistant_module_1.LegalAssistantModule,
+        ],
         controllers: [citizens_controller_1.CitizensController],
         providers: [citizens_service_1.CitizensService],
         exports: [citizens_service_1.CitizensService],

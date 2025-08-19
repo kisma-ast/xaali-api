@@ -4,6 +4,7 @@ export declare class AiQuestion {
     question: string;
     answer: string;
     citizenId: string;
+    metadata?: any;
     createdAt: Date;
     citizen: Citizen;
 }

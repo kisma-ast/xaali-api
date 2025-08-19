@@ -3,7 +3,7 @@
 
 export const AI_CONFIG = {
   // Token OpenAI - Clé API directe
-  OPENAI_API_KEY: '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',
+  OPENAI_API_KEY: process.env.OPENAI_API_KEY || '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',
   
   // Configuration des modèles
   MODELS: {
@@ -26,9 +26,9 @@ export const BICTORYS_CONFIG = {
   // Mode sandbox pour les tests
   SANDBOX: {
     API_URL: 'https://sandbox.bictorys.com/api/v1',
-    MERCHANT_ID: process.env.BICTORYS_MERCHANT_ID || 'your_merchant_id_here',
-    API_KEY: process.env.BICTORYS_API_KEY || 'your_api_key_here',
-    SECRET_KEY: process.env.BICTORYS_SECRET_KEY || 'your_secret_key_here'
+    MERCHANT_ID: process.env.BICTORYS_MERCHANT_ID || 'test_merchant_id',
+    API_KEY: process.env.BICTORYS_API_KEY || 'test_public-acbd9255-4dd3-4867-898d-5c0bf9bf7472.tDVidwjy7iTtlkcwWNaMg5MBhY1znxQzcgEBs9ZPU8kiFjPce06lb4t3x90WtWH8',
+    SECRET_KEY: process.env.BICTORYS_SECRET_KEY || 'test_secret-acbd9255-4dd3-4867-898d-5c0bf9bf7472.G4NyseVBvFdn2tRaK73DudOy0Q0mXkWzp5JcGamV6E32es7h3CufcBTUAcOuSVyP'
   },
   // Mode production
   PRODUCTION: {
@@ -91,6 +91,29 @@ export const config = {
   }
 };
 
+// Fonction pour tester la clé API OpenAI
+export const testOpenAIKey = async () => {
+  try {
+    const response = await fetch('https://api.openai.com/v1/models', {
+      headers: {
+        'Authorization': `Bearer ${AI_CONFIG.OPENAI_API_KEY}`,
+        'Content-Type': 'application/json'
+      }
+    });
+    
+    if (response.ok) {
+      console.log('✅ Clé API OpenAI valide');
+      return true;
+    } else {
+      console.log('❌ Clé API OpenAI invalide');
+      return false;
+    }
+  } catch (error) {
+    console.log('❌ Erreur lors du test de la clé API OpenAI:', error);
+    return false;
+  }
+};
+
 // Fonction pour vérifier si les tokens sont configurés
 export const checkAIConfig = () => {
   const hasOpenAI = !!AI_CONFIG.OPENAI_API_KEY;
@@ -106,6 +129,8 @@ export const checkAIConfig = () => {
   
   if (hasOpenAI) {
     console.log('🚀 OpenAI API prête à être utilisée');
+    // Tester la clé API
+    testOpenAIKey();
   } else {
     console.log('❌ Clé API OpenAI manquante');
   }

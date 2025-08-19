@@ -54,52 +54,62 @@ let AIResponseService = AIResponseService_1 = class AIResponseService {
                 this.logger.log(`ℹ️ Tous les articles nécessaires trouvés dans Pinecone`);
             }
             const prompt = `
-En tant qu'expert juridique sénégalais, génère une réponse PRÉCISE et SPÉCIFIQUE à la question suivante.
+Tu es un assistant juridique expert du droit sénégalais utilisant un système RAG (Retrieval-Augmented Generation).
 
-Question: ${query}
+QUESTION DU CITOYEN: ${query}
 
-Documents de référence (Pinecone + Web):
-${fullContext}
+CONTEXTE RÉCUPÉRÉ DE PINECONE (Base de données juridique):
+${pineconeContext}
 
-Instructions CRITIQUES:
-1. RÉPONDS UNIQUEMENT à la question posée - ne donne pas d'informations générales
-2. Si la question porte sur des documents, liste-les de manière détaillée
-3. Si la question porte sur des procédures, détaille-les étape par étape
-4. Si la question porte sur des délais, donne des dates précises
-5. Si la question porte sur des coûts, donne des montants approximatifs
-6. PRIORITÉ ABSOLUE: Utilise d'abord les articles trouvés dans les documents Pinecone
-7. Si un article n'existe pas dans Pinecone, utilise les informations web
-8. Mette en évidence les articles de loi avec un formatage spécial
-9. Utilise un langage accessible mais professionnel
-10. Ajoute un résumé et un avertissement légal
-11. Cite clairement les sources (Pinecone vs Web)
+${missingArticles.length > 0 ? `INFORMATIONS COMPLÉMENTAIRES WEB:
+${missingArticles.join('\n\n')}` : ''}
 
-IMPORTANT: 
-- Les articles de Pinecone ont priorité sur ceux du web
-- Indique toujours la source de chaque article (Pinecone ou Web)
-- Si un article existe dans Pinecone, utilise-le même s'il existe aussi sur le web
-- ÉVITE les réponses génériques - sois SPÉCIFIQUE et PRÉCIS
-- Si tu ne trouves pas d'information spécifique, dis-le clairement
+INSTRUCTIONS RAG OPTIMISÉES:
 
-Format de réponse souhaité (JSON):
+🎯 ANALYSE DE LA QUESTION:
+- Identifie le type de demande (procédure, documents, délais, coûts, droits)
+- Détermine le domaine juridique concerné
+- Évalue la complexité de la réponse nécessaire
+
+📊 UTILISATION DES SOURCES:
+1. PRIORITÉ ABSOLUE: Documents Pinecone (score de similarité élevé)
+2. COMPLÉMENTS: Informations web uniquement si nécessaire
+3. SYNTHÈSE: Combine intelligemment les sources pour une réponse complète
+
+✅ CRITÈRES DE QUALITÉ:
+- Réponse DIRECTE et ACTIONNABLE
+- Citations précises avec scores de pertinence
+- Langage accessible aux citoyens
+- Structure logique et progressive
+- Avertissements appropriés
+
+🔍 TRAÇABILITÉ:
+- Indique clairement la source de chaque information
+- Mentionne les scores de similarité Pinecone
+- Signale les lacunes d'information
+
+FORMAT JSON REQUIS:
 {
-  "title": "Titre spécifique à la question",
-  "content": "Contenu PRÉCIS répondant directement à la question",
+  "title": "Titre précis et actionnable",
+  "content": "Réponse structurée et complète",
   "articles": [
     {
-      "number": "Article 1",
-      "title": "Titre de l'article",
-      "content": "Contenu de l'article",
-      "highlight": true,
-      "source": "Pinecone" // ou "Web"
+      "number": "Référence légale",
+      "title": "Titre explicite",
+      "content": "Contenu pertinent",
+      "highlight": true/false,
+      "source": "Pinecone"|"Web",
+      "relevanceScore": "Score de pertinence si Pinecone"
     }
   ],
-  "summary": "Résumé en 2-3 phrases",
-  "disclaimer": "Avertissement légal",
-  "sources": ["Source 1", "Source 2"]
+  "summary": "Synthèse en 2-3 phrases",
+  "disclaimer": "Avertissement légal adapté",
+  "confidence": "Niveau de confiance (Élevé/Moyen/Faible)",
+  "nextSteps": ["Action 1", "Action 2"],
+  "relatedTopics": ["Sujet connexe 1", "Sujet connexe 2"]
 }
 
-Réponds uniquement en JSON valide.`;
+Réponds UNIQUEMENT en JSON valide.`;
             this.logger.log(`🤖 Appel à l'API OpenAI avec le modèle: ${config_1.AI_CONFIG.MODELS.OPENAI}`);
             const response = await fetch('https://api.openai.com/v1/chat/completions', {
                 method: 'POST',
@@ -112,15 +122,21 @@ Réponds uniquement en JSON valide.`;
                     messages: [
                         {
                             role: 'system',
-                            content: 'Tu es un expert juridique sénégalais spécialisé dans l\'analyse du droit sénégalais. Réponds toujours en JSON valide.'
+                            content: `Tu es Xaali, un assistant juridique IA spécialisé dans le droit sénégalais. Tu utilises un système RAG (Retrieval-Augmented Generation) qui combine:
+              - Une base de données vectorielle Pinecone contenant la législation sénégalaise
+              - L'intelligence artificielle OpenAI pour l'analyse et la synthèse
+              
+              Ton rôle est de fournir des conseils juridiques précis, accessibles et fiables aux citoyens sénégalais.
+              Tu dois TOUJOURS privilégier les informations de Pinecone et compléter avec des recherches web si nécessaire.
+              Réponds UNIQUEMENT en JSON valide avec une structure complète et professionnelle.`
                         },
                         {
                             role: 'user',
                             content: prompt
                         }
                     ],
-                    temperature: 0.3,
-                    max_tokens: 2000
+                    temperature: 0.2,
+                    max_tokens: 3000
                 }),
             });
             this.logger.log(`📡 Réponse OpenAI reçue, statut: ${response.status}`);
@@ -179,7 +195,16 @@ Réponds uniquement en JSON valide.`;
                 source: 'Pinecone'
             })),
             summary: `Nous avons trouvé ${documents.length} document(s) pertinent(s) pour répondre à votre question spécifique.`,
-            disclaimer: 'Cette information est fournie à titre indicatif et ne constitue pas un conseil juridique professionnel. Consultez un avocat pour des conseils spécifiques.'
+            disclaimer: 'Cette information est fournie à titre indicatif et ne constitue pas un conseil juridique professionnel. Consultez un avocat pour des conseils spécifiques.',
+            confidence: 'Moyen',
+            nextSteps: ['Consulter un professionnel du droit'],
+            relatedTopics: [],
+            ragMetadata: {
+                poweredBy: 'Xaali-AI',
+                systemVersion: 'Xaali RAG v1.0',
+                processingMode: 'FALLBACK',
+                timestamp: new Date().toISOString(),
+            },
         };
     }
     extractArticlesFromDocuments(documents) {
