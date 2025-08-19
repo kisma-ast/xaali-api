@@ -2,14 +2,14 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.getConfig = exports.checkAIConfig = exports.testOpenAIKey = exports.config = exports.BICTORYS_CONFIG = exports.PINECONE_CONFIG = exports.AI_CONFIG = void 0;
 exports.AI_CONFIG = {
-    OPENAI_API_KEY: process.env.OPENAI_API_KEY || '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',
+    OPENAI_API_KEY: process.env.OPENAI_API_KEY || 'your_openai_api_key_here',
     MODELS: {
         OPENAI: 'gpt-4o-mini',
         EMBEDDING: 'text-embedding-ada-002'
     }
 };
 exports.PINECONE_CONFIG = {
-    API_KEY: process.env.PINECONE_API_KEY || 'pcsk_6nJG4B_ULWywbvyUGWAjGP3YNGVTeXDenrDSX9EsmPiRm9usaaiAgPs9q4jK9uH2b44C9B',
+    API_KEY: process.env.PINECONE_API_KEY || 'your_pinecone_api_key_here',
     ENVIRONMENT: process.env.PINECONE_ENVIRONMENT || 'us-east-1',
     INDEX_NAME: process.env.PINECONE_INDEX_NAME || 'xaali-agent',
     DIMENSIONS: 1024
@@ -18,8 +18,8 @@ exports.BICTORYS_CONFIG = {
     SANDBOX: {
         API_URL: 'https://sandbox.bictorys.com/api/v1',
         MERCHANT_ID: process.env.BICTORYS_MERCHANT_ID || 'test_merchant_id',
-        API_KEY: process.env.BICTORYS_API_KEY || 'test_public-acbd9255-4dd3-4867-898d-5c0bf9bf7472.tDVidwjy7iTtlkcwWNaMg5MBhY1znxQzcgEBs9ZPU8kiFjPce06lb4t3x90WtWH8',
-        SECRET_KEY: process.env.BICTORYS_SECRET_KEY || 'test_secret-acbd9255-4dd3-4867-898d-5c0bf9bf7472.G4NyseVBvFdn2tRaK73DudOy0Q0mXkWzp5JcGamV6E32es7h3CufcBTUAcOuSVyP'
+        API_KEY: process.env.BICTORYS_API_KEY || 'your_bictorys_api_key_here',
+        SECRET_KEY: process.env.BICTORYS_SECRET_KEY || 'your_bictorys_secret_key_here'
     },
     PRODUCTION: {
         API_URL: 'https://api.bictorys.com/api/v1',
