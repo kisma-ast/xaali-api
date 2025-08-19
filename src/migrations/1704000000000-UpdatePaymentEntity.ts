@@ -6,7 +6,7 @@ export class UpdatePaymentEntity1704000000000 implements MigrationInterface {
   public async up(queryRunner: QueryRunner): Promise<void> {
     // Ajouter la colonne currency si elle n'existe pas
     const hasCurrency = await queryRunner.hasColumn('payment', 'currency');
-    if (!hasurrency) {
+    if (!hasCurrency) {
       await queryRunner.addColumn('payment', new TableColumn({
         name: 'currency',
         type: 'varchar',

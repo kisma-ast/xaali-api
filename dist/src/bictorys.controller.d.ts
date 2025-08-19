@@ -25,6 +25,16 @@ export declare class BictorysController {
         };
         message?: undefined;
     }>;
+    getProviders(): {
+        success: boolean;
+        data: {
+            id: string;
+            name: string;
+            prefixes: string[];
+            logo: string;
+            description: string;
+        }[];
+    };
     checkPaymentStatus(transactionId: string): Promise<{
         success: boolean;
         data: import("./bictorys.service").BictorysPaymentStatus;
