@@ -29,7 +29,7 @@ export class EmbeddingService {
         },
         body: JSON.stringify({
           input: text,
-          model: AI_CONFIG.MODELS.EMBEDDING, // Modèle compatible avec votre index 1024 dimensions
+          model: 'text-embedding-ada-002', // 1024 dimensions pour Pinecone
         }),
         signal: controller.signal,
       });
@@ -76,7 +76,7 @@ export class EmbeddingService {
         },
         body: JSON.stringify({
           input: texts,
-          model: AI_CONFIG.MODELS.EMBEDDING,
+          model: 'text-embedding-ada-002',
         }),
         signal: controller.signal,
       });

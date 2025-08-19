@@ -18,6 +18,9 @@ RUN npm ci
 # Copier le code source
 COPY . .
 
+# Copier le fichier .env.docker comme .env pour Docker
+COPY .env.docker .env
+
 # S'assurer que les scripts sont exécutables
 RUN chmod +x ./node_modules/.bin/*
 

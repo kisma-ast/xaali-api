@@ -35,7 +35,7 @@ let EmbeddingService = EmbeddingService_1 = class EmbeddingService {
                 },
                 body: JSON.stringify({
                     input: text,
-                    model: config_1.AI_CONFIG.MODELS.EMBEDDING,
+                    model: 'text-embedding-ada-002',
                 }),
                 signal: controller.signal,
             });
@@ -72,7 +72,7 @@ let EmbeddingService = EmbeddingService_1 = class EmbeddingService {
                 },
                 body: JSON.stringify({
                     input: texts,
-                    model: config_1.AI_CONFIG.MODELS.EMBEDDING,
+                    model: 'text-embedding-ada-002',
                 }),
                 signal: controller.signal,
             });

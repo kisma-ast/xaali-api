@@ -29,17 +29,17 @@ export class CitizensController {
   @Post(':id/questions')
   async askQuestion(
     @Param('id') citizenId: string,
-    @Body() body: { question: string },
+    @Body() body: { question: string; category?: string },
   ): Promise<AiQuestion> {
     const canAsk = await this.citizensService.canAskQuestion(citizenId);
     if (!canAsk) {
       throw new HttpException(
-        'You have reached the limit of 2 free questions. Please pay to continue.',
+        'Vous avez atteint la limite de 2 questions gratuites. Veuillez payer pour continuer.',
         HttpStatus.FORBIDDEN,
       );
     }
 
-    return await this.citizensService.askQuestion(citizenId, body.question);
+    return await this.citizensService.askQuestion(citizenId, body.question, body.category);
   }
 
   @Get(':id/questions')
@@ -67,5 +67,53 @@ export class CitizensController {
   @Get(':id/cases')
   async getCitizenCases(@Param('id') citizenId: string): Promise<Case[]> {
     return await this.citizensService.getCitizenCases(citizenId);
+  }
+
+  @Post(':id/advice')
+  async getPersonalizedAdvice(
+    @Param('id') citizenId: string,
+    @Body() body: { situation: string },
+  ): Promise<any> {
+    try {
+      return await this.citizensService.getPersonalizedAdvice(citizenId, body.situation);
+    } catch (error) {
+      throw new HttpException(
+        'Impossible de générer un conseil personnalisé',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @Post('smart-question')
+  async askSmartQuestion(
+    @Body() body: { 
+      question: string; 
+      citizenId?: string;
+      category?: string;
+      priority?: 'low' | 'medium' | 'high';
+    },
+  ): Promise<any> {
+    try {
+      // Utiliser directement le RAG sans limite de questions
+      const ragQuery = {
+        question: body.question,
+        userId: body.citizenId,
+        context: body.category,
+        maxResults: body.priority === 'high' ? 8 : 5,
+        minScore: 0.7,
+      };
+
+      // Cette méthode pourrait être ajoutée au service
+      return {
+        success: true,
+        message: 'Utilisez l\'endpoint /rag/citizen-question pour des réponses optimisées',
+        redirectTo: '/rag/citizen-question',
+      };
+    } catch (error) {
+      throw new HttpException(
+        'Erreur lors du traitement de votre question',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
   }
 } 

@@ -37,9 +37,9 @@ let CitizensController = class CitizensController {
     async askQuestion(citizenId, body) {
         const canAsk = await this.citizensService.canAskQuestion(citizenId);
         if (!canAsk) {
-            throw new common_1.HttpException('You have reached the limit of 2 free questions. Please pay to continue.', common_1.HttpStatus.FORBIDDEN);
+            throw new common_1.HttpException('Vous avez atteint la limite de 2 questions gratuites. Veuillez payer pour continuer.', common_1.HttpStatus.FORBIDDEN);
         }
-        return await this.citizensService.askQuestion(citizenId, body.question);
+        return await this.citizensService.askQuestion(citizenId, body.question, body.category);
     }
     async getQuestionsHistory(citizenId) {
         return await this.citizensService.getQuestionsHistory(citizenId);
@@ -53,6 +53,33 @@ let CitizensController = class CitizensController {
     }
     async getCitizenCases(citizenId) {
         return await this.citizensService.getCitizenCases(citizenId);
+    }
+    async getPersonalizedAdvice(citizenId, body) {
+        try {
+            return await this.citizensService.getPersonalizedAdvice(citizenId, body.situation);
+        }
+        catch (error) {
+            throw new common_1.HttpException('Impossible de générer un conseil personnalisé', common_1.HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+    async askSmartQuestion(body) {
+        try {
+            const ragQuery = {
+                question: body.question,
+                userId: body.citizenId,
+                context: body.category,
+                maxResults: body.priority === 'high' ? 8 : 5,
+                minScore: 0.7,
+            };
+            return {
+                success: true,
+                message: 'Utilisez l\'endpoint /rag/citizen-question pour des réponses optimisées',
+                redirectTo: '/rag/citizen-question',
+            };
+        }
+        catch (error) {
+            throw new common_1.HttpException('Erreur lors du traitement de votre question', common_1.HttpStatus.INTERNAL_SERVER_ERROR);
+        }
     }
 };
 exports.CitizensController = CitizensController;
@@ -107,6 +134,21 @@ __decorate([
     __metadata("design:paramtypes", [String]),
     __metadata("design:returntype", Promise)
 ], CitizensController.prototype, "getCitizenCases", null);
+__decorate([
+    (0, common_1.Post)(':id/advice'),
+    __param(0, (0, common_1.Param)('id')),
+    __param(1, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, Object]),
+    __metadata("design:returntype", Promise)
+], CitizensController.prototype, "getPersonalizedAdvice", null);
+__decorate([
+    (0, common_1.Post)('smart-question'),
+    __param(0, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", Promise)
+], CitizensController.prototype, "askSmartQuestion", null);
 exports.CitizensController = CitizensController = __decorate([
     (0, common_1.Controller)('citizens'),
     __metadata("design:paramtypes", [citizens_service_1.CitizensService])

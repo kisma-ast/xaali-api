@@ -7,9 +7,19 @@ export interface FormattedResponse {
         content: string;
         highlight: boolean;
         source: 'Pinecone' | 'Web';
+        relevanceScore?: string;
     }>;
     summary: string;
     disclaimer: string;
+    confidence: 'Élevé' | 'Moyen' | 'Faible';
+    nextSteps: string[];
+    relatedTopics: string[];
+    ragMetadata: {
+        poweredBy: string;
+        systemVersion: string;
+        processingMode: 'RAG_ENHANCED' | 'FALLBACK';
+        timestamp: string;
+    };
 }
 export declare class AIResponseService {
     private readonly logger;
