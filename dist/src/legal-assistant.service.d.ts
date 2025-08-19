@@ -24,6 +24,8 @@ export declare class LegalAssistantService {
     private readonly aiResponseService;
     private readonly logger;
     constructor(pineconeService: PineconeService, embeddingService: EmbeddingService, aiResponseService: AIResponseService);
+    private cache;
+    private readonly CACHE_TTL;
     searchLegalDocuments(legalQuery: LegalQuery): Promise<LegalResponse>;
     getLegalAdvice(query: string, category?: string): Promise<LegalResponse>;
     searchByCategory(category: string, query?: string, topK?: number): Promise<LegalResponse>;

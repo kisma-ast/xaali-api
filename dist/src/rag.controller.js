@@ -86,6 +86,23 @@ let RAGController = RAGController_1 = class RAGController {
         this.logger.log(`👤 Question citoyen: "${body.question}"`);
         this.logger.log(`📂 Catégorie: ${body.category || 'Générale'}`);
         this.logger.log(`⚡ Priorité: ${body.priority || 'medium'}`);
+        this.logger.log(`📊 Questions utilisées: ${body.questionsUsed || 0}`);
+        const maxFreeQuestions = 2;
+        const questionsUsed = body.questionsUsed || 0;
+        if (questionsUsed >= maxFreeQuestions) {
+            this.logger.log(`❌ Limite de questions gratuites atteinte pour ${body.citizenId}`);
+            return {
+                success: false,
+                error: 'QUESTIONS_LIMIT_REACHED',
+                message: 'Vous avez atteint la limite de 2 questions gratuites. Veuillez payer pour continuer.',
+                data: {
+                    questionsUsed,
+                    maxFreeQuestions,
+                    requiresPayment: true
+                },
+                timestamp: new Date().toISOString(),
+            };
+        }
         const query = {
             question: body.question,
             userId: body.citizenId,

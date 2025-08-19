@@ -25,42 +25,36 @@ let LegalAssistantService = LegalAssistantService_1 = class LegalAssistantServic
         this.embeddingService = embeddingService;
         this.aiResponseService = aiResponseService;
     }
+    cache = new Map();
+    CACHE_TTL = 5 * 60 * 1000;
     async searchLegalDocuments(legalQuery) {
+        const cacheKey = `${legalQuery.query}_${legalQuery.category || 'all'}`;
+        const cached = this.cache.get(cacheKey);
+        if (cached && Date.now() - cached.timestamp < this.CACHE_TTL) {
+            this.logger.log(`💨 Cache hit pour: "${legalQuery.query}"`);
+            return cached.data;
+        }
         try {
-            this.logger.log(`🔍 Début de recherche pour: "${legalQuery.query}"`);
-            this.logger.log(`📂 Catégorie: ${legalQuery.category || 'Toutes'}`);
-            this.logger.log(`📊 Nombre de résultats demandés: ${legalQuery.topK || 5}`);
-            this.logger.log(`🧠 Génération de l'embedding pour la requête...`);
-            const queryEmbedding = await this.embeddingService.generateEmbedding(legalQuery.query);
-            this.logger.log(`✅ Embedding généré avec succès (${queryEmbedding.length} dimensions)`);
-            const filter = legalQuery.category ? { category: legalQuery.category } : undefined;
-            if (filter) {
-                this.logger.log(`🔧 Filtre appliqué: ${JSON.stringify(filter)}`);
-            }
-            this.logger.log(`🌲 Recherche dans Pinecone...`);
-            const searchResults = await this.pineconeService.searchSimilar(queryEmbedding, legalQuery.topK || 5, filter);
-            this.logger.log(`✅ ${searchResults.length} documents trouvés dans Pinecone`);
-            this.logger.log(`📝 Formatage des documents trouvés...`);
+            const [queryEmbedding, filter] = await Promise.all([
+                this.embeddingService.generateEmbedding(legalQuery.query),
+                Promise.resolve(legalQuery.category ? { category: legalQuery.category } : undefined)
+            ]);
+            const searchResults = await this.pineconeService.searchSimilar(queryEmbedding, legalQuery.topK || 3, filter);
             const relevantDocuments = searchResults.map(result => ({
                 id: result.id,
                 score: result.score,
-                text: this.aiResponseService.formatDocumentText(result.metadata.text),
+                text: result.metadata.text.substring(0, 500),
                 source: result.metadata.source,
                 category: result.metadata.category || 'unknown',
             }));
-            this.logger.log(`📊 Documents formatés: ${relevantDocuments.length} documents`);
-            relevantDocuments.forEach((doc, index) => {
-                this.logger.log(`  📄 ${index + 1}. Score: ${(doc.score * 100).toFixed(1)}%, Source: ${doc.source}`);
-            });
-            this.logger.log(`🤖 Génération de la réponse formatée avec l'IA...`);
             const formattedResponse = await this.aiResponseService.generateFormattedResponse(legalQuery.query, relevantDocuments);
-            this.logger.log(`✅ Réponse formatée générée avec succès`);
-            this.logger.log(`🎯 Recherche terminée avec succès pour: "${legalQuery.query}"`);
-            return {
+            const result = {
                 query: legalQuery.query,
                 relevantDocuments,
                 formattedResponse,
             };
+            this.cache.set(cacheKey, { data: result, timestamp: Date.now() });
+            return result;
         }
         catch (error) {
             this.logger.error('Error searching legal documents:', error);

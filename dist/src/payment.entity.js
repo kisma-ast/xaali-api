@@ -14,10 +14,22 @@ const typeorm_1 = require("typeorm");
 let Payment = class Payment {
     id;
     amount;
-    date;
+    currency;
     userId;
     caseId;
     status;
+    transactionId;
+    reference;
+    phoneNumber;
+    provider;
+    description;
+    paymentUrl;
+    qrCode;
+    createdAt;
+    updatedAt;
+    completedAt;
+    errorMessage;
+    metadata;
 };
 exports.Payment = Payment;
 __decorate([
@@ -25,25 +37,77 @@ __decorate([
     __metadata("design:type", Number)
 ], Payment.prototype, "id", void 0);
 __decorate([
-    (0, typeorm_1.Column)('decimal'),
+    (0, typeorm_1.Column)('decimal', { precision: 10, scale: 2 }),
     __metadata("design:type", Number)
 ], Payment.prototype, "amount", void 0);
 __decorate([
-    (0, typeorm_1.Column)(),
-    __metadata("design:type", Date)
-], Payment.prototype, "date", void 0);
+    (0, typeorm_1.Column)({ default: 'XOF' }),
+    __metadata("design:type", String)
+], Payment.prototype, "currency", void 0);
 __decorate([
-    (0, typeorm_1.Column)(),
+    (0, typeorm_1.Column)({ nullable: true }),
     __metadata("design:type", Number)
 ], Payment.prototype, "userId", void 0);
 __decorate([
-    (0, typeorm_1.Column)(),
+    (0, typeorm_1.Column)({ nullable: true }),
     __metadata("design:type", Number)
 ], Payment.prototype, "caseId", void 0);
 __decorate([
-    (0, typeorm_1.Column)(),
+    (0, typeorm_1.Column)({
+        type: 'enum',
+        enum: ['pending', 'success', 'failed', 'cancelled'],
+        default: 'pending'
+    }),
     __metadata("design:type", String)
 ], Payment.prototype, "status", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ nullable: true }),
+    __metadata("design:type", String)
+], Payment.prototype, "transactionId", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ nullable: true }),
+    __metadata("design:type", String)
+], Payment.prototype, "reference", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ nullable: true }),
+    __metadata("design:type", String)
+], Payment.prototype, "phoneNumber", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ nullable: true }),
+    __metadata("design:type", String)
+], Payment.prototype, "provider", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ nullable: true }),
+    __metadata("design:type", String)
+], Payment.prototype, "description", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ nullable: true }),
+    __metadata("design:type", String)
+], Payment.prototype, "paymentUrl", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ nullable: true }),
+    __metadata("design:type", String)
+], Payment.prototype, "qrCode", void 0);
+__decorate([
+    (0, typeorm_1.CreateDateColumn)(),
+    __metadata("design:type", Date)
+], Payment.prototype, "createdAt", void 0);
+__decorate([
+    (0, typeorm_1.UpdateDateColumn)(),
+    __metadata("design:type", Date)
+], Payment.prototype, "updatedAt", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ nullable: true }),
+    __metadata("design:type", Date)
+], Payment.prototype, "completedAt", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ type: 'text', nullable: true }),
+    __metadata("design:type", String)
+], Payment.prototype, "errorMessage", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ type: 'json', nullable: true }),
+    __metadata("design:type", Object)
+], Payment.prototype, "metadata", void 0);
 exports.Payment = Payment = __decorate([
     (0, typeorm_1.Entity)()
 ], Payment);

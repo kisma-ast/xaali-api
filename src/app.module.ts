@@ -14,8 +14,7 @@ import { AuthModule } from './auth.module';
 import { WebRTCSignalingGateway } from './webrtc-signaling.gateway';
 import { PineconeModule } from './pinecone';
 import { LegalAssistantModule } from './legal-assistant.index';
-import { BictorysService } from './bictorys.service';
-import { BictorysController } from './bictorys.controller';
+import { BictorysModule } from './bictorys.module';
 
 @Module({
   imports: [
@@ -44,8 +43,9 @@ import { BictorysController } from './bictorys.controller';
     AuthModule,
     PineconeModule,
     LegalAssistantModule,
+    BictorysModule,
   ],
-  controllers: [AppController, BictorysController],
-  providers: [AppService, WebRTCSignalingGateway, BictorysService],
+  controllers: [AppController],
+  providers: [AppService, WebRTCSignalingGateway],
 })
 export class AppModule {}

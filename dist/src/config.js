@@ -51,8 +51,10 @@ exports.config = {
     openai: {
         apiKey: exports.AI_CONFIG.OPENAI_API_KEY,
         model: 'gpt-4o-mini',
-        maxTokens: 1000,
-        temperature: 0.3
+        maxTokens: 500,
+        temperature: 0.1,
+        stream: true,
+        timeout: 10000
     },
     pinecone: {
         apiKey: exports.PINECONE_CONFIG.API_KEY,

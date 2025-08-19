@@ -36,5 +36,10 @@ export declare class BictorysService {
     private mapBictorysStatus;
     private verifyCallbackSignature;
     generateReference(prefix?: string): string;
-    validatePhoneNumber(phoneNumber: string, provider: string): boolean;
+    detectProvider(phoneNumber: string): string | null;
+    validatePhoneNumber(phoneNumber: string): {
+        isValid: boolean;
+        provider: string | null;
+        formattedNumber: string;
+    };
 }
