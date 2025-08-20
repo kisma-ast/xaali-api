@@ -51,7 +51,8 @@ export class PineconeService {
       const { API_KEY, ENVIRONMENT, INDEX_NAME } = PINECONE_CONFIG;
 
       if (!API_KEY || API_KEY === 'your_pinecone_api_key_here') {
-        throw new Error('Pinecone API key not configured. Please set PINECONE_API_KEY in your .env file');
+        this.logger.warn('Pinecone API key not configured. Service will run in limited mode.');
+        return;
       }
 
       this.pinecone = new Pinecone({ apiKey: API_KEY });
@@ -59,7 +60,7 @@ export class PineconeService {
       this.logger.log(`Pinecone initialized successfully with index: ${INDEX_NAME}`);
     } catch (error) {
       this.logger.error('Failed to initialize Pinecone:', error);
-      throw error;
+      this.logger.warn('Continuing without Pinecone...');
     }
   }
 
@@ -95,6 +96,11 @@ export class PineconeService {
 
   async searchSimilar(queryVector: number[], topK: number = 5, filter?: any): Promise<SearchResult[]> {
     try {
+      if (!this.index) {
+        this.logger.warn('Pinecone not initialized, returning empty results');
+        return [];
+      }
+
       this.logger.log(` Recherche Pinecone: topK=${topK}, dimensions=${queryVector.length}`);
       if (filter) {
         this.logger.log(` Filtre appliqué: ${JSON.stringify(filter)}`);
