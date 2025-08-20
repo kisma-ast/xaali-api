@@ -41,10 +41,9 @@ WORKDIR /app
 COPY package*.json ./
 RUN npm ci --only=production && npm cache clean --force
 
-# Copier le build depuis le stage builder et réorganiser
-COPY --from=builder --chown=nestjs:nodejs /app/dist/src ./dist
-COPY --from=builder --chown=nestjs:nodejs /app/dist/data-source.js ./dist/
-COPY --from=builder --chown=nestjs:nodejs /app/dist/data-source.d.ts ./dist/
+# Copier le build complet depuis le stage builder
+COPY --from=builder --chown=nestjs:nodejs /app/dist ./dist
+COPY --from=builder --chown=nestjs:nodejs /app/.env.docker ./.env
 
 # Changer les permissions
 RUN chown -R nestjs:nodejs /app
@@ -56,4 +55,4 @@ USER nestjs
 EXPOSE 3000
 
 ENTRYPOINT ["dumb-init", "--"]
-CMD ["node", "dist/main.js"]
+CMD ["node", "dist/src/main.js"]
