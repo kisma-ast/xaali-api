@@ -4,7 +4,7 @@ exports.getConfig = exports.checkAIConfig = exports.testOpenAIKey = exports.conf
 exports.AI_CONFIG = {
     OPENAI_API_KEY: process.env.OPENAI_API_KEY || 'your_openai_api_key_here',
     MODELS: {
-        OPENAI: 'gpt-4o-mini',
+        OPENAI: 'gpt-3.5-turbo',
         EMBEDDING: 'text-embedding-ada-002'
     }
 };
@@ -50,7 +50,7 @@ exports.config = {
     },
     openai: {
         apiKey: exports.AI_CONFIG.OPENAI_API_KEY,
-        model: 'gpt-4o-mini',
+        model: 'gpt-3.5-turbo',
         maxTokens: 500,
         temperature: 0.1,
         stream: true,
@@ -69,26 +69,47 @@ exports.config = {
     }
 };
 const testOpenAIKey = async () => {
-    try {
-        const response = await fetch('https://api.openai.com/v1/models', {
-            headers: {
-                'Authorization': `Bearer ${exports.AI_CONFIG.OPENAI_API_KEY}`,
-                'Content-Type': 'application/json'
-            }
-        });
-        if (response.ok) {
-            console.log('✅ Clé API OpenAI valide');
-            return true;
+    return new Promise((resolve) => {
+        try {
+            const https = require('https');
+            const options = {
+                hostname: 'api.openai.com',
+                port: 443,
+                path: '/v1/models',
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${exports.AI_CONFIG.OPENAI_API_KEY}`,
+                    'Content-Type': 'application/json'
+                },
+                timeout: 5000
+            };
+            const req = https.request(options, (res) => {
+                if (res.statusCode === 200) {
+                    console.log('✅ Clé API OpenAI valide');
+                    resolve(true);
+                }
+                else {
+                    console.log('❌ Clé API OpenAI invalide - Status:', res.statusCode);
+                    console.log('🔍 Clé utilisée:', exports.AI_CONFIG.OPENAI_API_KEY?.substring(0, 20) + '...');
+                    resolve(false);
+                }
+            });
+            req.on('error', (error) => {
+                console.log('❌ Erreur lors du test de la clé API OpenAI:', error.message);
+                resolve(false);
+            });
+            req.on('timeout', () => {
+                console.log('❌ Timeout lors du test de la clé API OpenAI');
+                req.destroy();
+                resolve(false);
+            });
+            req.end();
         }
-        else {
-            console.log('❌ Clé API OpenAI invalide');
-            return false;
+        catch (error) {
+            console.log('❌ Erreur lors du test de la clé API OpenAI:', error.message);
+            resolve(false);
         }
-    }
-    catch (error) {
-        console.log('❌ Erreur lors du test de la clé API OpenAI:', error);
-        return false;
-    }
+    });
 };
 exports.testOpenAIKey = testOpenAIKey;
 const checkAIConfig = () => {
@@ -103,7 +124,7 @@ const checkAIConfig = () => {
     });
     if (hasOpenAI) {
         console.log('🚀 OpenAI API prête à être utilisée');
-        (0, exports.testOpenAIKey)();
+        setTimeout(() => (0, exports.testOpenAIKey)(), 1000);
     }
     else {
         console.log('❌ Clé API OpenAI manquante');
