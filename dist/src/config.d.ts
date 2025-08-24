@@ -75,7 +75,7 @@ export declare const config: {
         };
     };
 };
-export declare const testOpenAIKey: () => Promise<boolean>;
+export declare const testOpenAIKey: () => Promise<unknown>;
 export declare const checkAIConfig: () => {
     hasOpenAI: boolean;
     hasPinecone: boolean;

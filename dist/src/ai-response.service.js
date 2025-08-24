@@ -130,8 +130,7 @@ Réponds UNIQUEMENT en JSON valide.`;
                         }
                     ],
                     temperature: 0.1,
-                    max_tokens: 800,
-                    timeout: 10000
+                    max_tokens: 800
                 }),
             });
             this.logger.log(`📡 Réponse OpenAI reçue, statut: ${response.status}`);

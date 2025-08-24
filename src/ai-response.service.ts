@@ -161,8 +161,7 @@ Réponds UNIQUEMENT en JSON valide.`;
             }
           ],
           temperature: 0.1,
-          max_tokens: 800, // Réduit pour plus de rapidité
-          timeout: 10000
+          max_tokens: 800 // Réduit pour plus de rapidité
         }),
       });
 

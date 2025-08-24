@@ -196,28 +196,28 @@ let BictorysService = BictorysService_1 = class BictorysService {
     }
     detectProvider(phoneNumber) {
         if (!phoneNumber) {
-            return null;
+            return config_1.BICTORYS_CONFIG.MOBILE_MONEY_PROVIDERS.ORANGE_MONEY;
         }
         const cleanNumber = phoneNumber.replace(/[\s\-\(\)]/g, '').replace(/^(\+221|221)/, '');
-        this.logger.debug(`Detecting provider for cleaned number: ${cleanNumber}`);
-        const prefixes = {
-            [config_1.BICTORYS_CONFIG.MOBILE_MONEY_PROVIDERS.ORANGE_MONEY]: ['77', '78'],
-            [config_1.BICTORYS_CONFIG.MOBILE_MONEY_PROVIDERS.MTN_MOBILE_MONEY]: ['70', '75', '76'],
-            [config_1.BICTORYS_CONFIG.MOBILE_MONEY_PROVIDERS.MOOV_MONEY]: ['60', '61'],
-            [config_1.BICTORYS_CONFIG.MOBILE_MONEY_PROVIDERS.FREE_MONEY]: ['76']
-        };
-        for (const [provider, providerPrefixes] of Object.entries(prefixes)) {
-            if (providerPrefixes.some(prefix => cleanNumber.startsWith(prefix))) {
-                this.logger.debug(`Provider detected: ${provider} for number starting with ${cleanNumber.substring(0, 2)}`);
-                return provider;
-            }
+        const prefix = cleanNumber.substring(0, 2);
+        switch (prefix) {
+            case '77':
+            case '78':
+                return config_1.BICTORYS_CONFIG.MOBILE_MONEY_PROVIDERS.ORANGE_MONEY;
+            case '70':
+            case '75':
+            case '76':
+                return config_1.BICTORYS_CONFIG.MOBILE_MONEY_PROVIDERS.MTN_MOBILE_MONEY;
+            case '60':
+            case '61':
+                return config_1.BICTORYS_CONFIG.MOBILE_MONEY_PROVIDERS.MOOV_MONEY;
+            case '73':
+            case '74':
+            case '79':
+                return config_1.BICTORYS_CONFIG.MOBILE_MONEY_PROVIDERS.WAVE;
+            default:
+                return config_1.BICTORYS_CONFIG.MOBILE_MONEY_PROVIDERS.ORANGE_MONEY;
         }
-        if (['60', '61', '70', '75', '76', '77', '78'].some(prefix => cleanNumber.startsWith(prefix))) {
-            this.logger.debug(`Using Wave as fallback provider for: ${cleanNumber.substring(0, 2)}`);
-            return config_1.BICTORYS_CONFIG.MOBILE_MONEY_PROVIDERS.WAVE;
-        }
-        this.logger.warn(`No provider found for number: ${cleanNumber}`);
-        return null;
     }
     validatePhoneNumber(phoneNumber) {
         if (!phoneNumber) {
@@ -231,21 +231,12 @@ let BictorysService = BictorysService_1 = class BictorysService {
         else if (formattedNumber.startsWith('221')) {
             formattedNumber = '+' + formattedNumber;
         }
-        const phoneRegex = /^\+221[67][0-9]{8}$/;
-        const shortRegex = /^[67][0-9]{8}$/;
-        const isValid = phoneRegex.test(formattedNumber) || shortRegex.test(cleanNumber);
-        if (!isValid) {
-            this.logger.warn(`Invalid phone format: ${phoneNumber} -> ${formattedNumber}`);
-            return { isValid: false, provider: null, formattedNumber };
-        }
-        if (shortRegex.test(cleanNumber) && !phoneRegex.test(formattedNumber)) {
-            formattedNumber = `+221${cleanNumber}`;
-        }
-        const provider = this.detectProvider(formattedNumber);
+        const isValid = cleanNumber.length >= 8;
+        let provider = this.detectProvider(formattedNumber);
         if (!provider) {
-            this.logger.warn(`No provider detected for: ${formattedNumber}`);
+            provider = config_1.BICTORYS_CONFIG.MOBILE_MONEY_PROVIDERS.ORANGE_MONEY;
         }
-        return { isValid: true, provider, formattedNumber };
+        return { isValid, provider, formattedNumber };
     }
 };
 exports.BictorysService = BictorysService;

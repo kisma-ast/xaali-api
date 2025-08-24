@@ -254,53 +254,48 @@ export class BictorysService {
   }
 
   /**
-   * Détecte automatiquement l'opérateur basé sur le numéro de téléphone
+   * Détecte automatiquement l'opérateur basé sur le numéro de téléphone (sans filtres)
    */
   detectProvider(phoneNumber: string): string | null {
     if (!phoneNumber) {
-      return null;
+      return BICTORYS_CONFIG.MOBILE_MONEY_PROVIDERS.ORANGE_MONEY;
     }
 
     // Nettoyer le numéro
     const cleanNumber = phoneNumber.replace(/[\s\-\(\)]/g, '').replace(/^(\+221|221)/, '');
+    const prefix = cleanNumber.substring(0, 2);
     
-    this.logger.debug(`Detecting provider for cleaned number: ${cleanNumber}`);
-    
-    // Préfixes des opérateurs au Sénégal
-    const prefixes = {
-      [BICTORYS_CONFIG.MOBILE_MONEY_PROVIDERS.ORANGE_MONEY]: ['77', '78'],
-      [BICTORYS_CONFIG.MOBILE_MONEY_PROVIDERS.MTN_MOBILE_MONEY]: ['70', '75', '76'],
-      [BICTORYS_CONFIG.MOBILE_MONEY_PROVIDERS.MOOV_MONEY]: ['60', '61'],
-      [BICTORYS_CONFIG.MOBILE_MONEY_PROVIDERS.FREE_MONEY]: ['76']
-    };
-
-    // Détecter l'opérateur principal
-    for (const [provider, providerPrefixes] of Object.entries(prefixes)) {
-      if (providerPrefixes.some(prefix => cleanNumber.startsWith(prefix))) {
-        this.logger.debug(`Provider detected: ${provider} for number starting with ${cleanNumber.substring(0, 2)}`);
-        return provider;
-      }
+    // Détection simple par préfixe
+    switch (prefix) {
+      case '77':
+      case '78':
+        return BICTORYS_CONFIG.MOBILE_MONEY_PROVIDERS.ORANGE_MONEY;
+      case '70':
+      case '75':
+      case '76':
+        return BICTORYS_CONFIG.MOBILE_MONEY_PROVIDERS.MTN_MOBILE_MONEY;
+      case '60':
+      case '61':
+        return BICTORYS_CONFIG.MOBILE_MONEY_PROVIDERS.MOOV_MONEY;
+      case '73':
+      case '74':
+      case '79':
+        return BICTORYS_CONFIG.MOBILE_MONEY_PROVIDERS.WAVE;
+      default:
+        // TOUJOURS retourner Orange Money par défaut
+        return BICTORYS_CONFIG.MOBILE_MONEY_PROVIDERS.ORANGE_MONEY;
     }
-
-    // Si aucun opérateur spécifique n'est détecté, utiliser Wave comme fallback pour les numéros valides
-    if (['60', '61', '70', '75', '76', '77', '78'].some(prefix => cleanNumber.startsWith(prefix))) {
-      this.logger.debug(`Using Wave as fallback provider for: ${cleanNumber.substring(0, 2)}`);
-      return BICTORYS_CONFIG.MOBILE_MONEY_PROVIDERS.WAVE;
-    }
-
-    this.logger.warn(`No provider found for number: ${cleanNumber}`);
-    return null;
   }
 
   /**
-   * Valide un numéro de téléphone et retourne l'opérateur détecté
+   * Valide un numéro de téléphone et retourne l'opérateur détecté (sans contrôles stricts)
    */
   validatePhoneNumber(phoneNumber: string): { isValid: boolean; provider: string | null; formattedNumber: string } {
     if (!phoneNumber) {
       return { isValid: false, provider: null, formattedNumber: '' };
     }
 
-    // Nettoyer et formater le numéro
+    // Nettoyer le numéro
     const cleanNumber = phoneNumber.replace(/[\s\-\(\)]/g, '');
     let formattedNumber = cleanNumber;
     
@@ -311,28 +306,15 @@ export class BictorysService {
       formattedNumber = '+' + formattedNumber;
     }
 
-    // Validation du format - numéros sénégalais: 9 chiffres (7X XXXXXXX ou 6X XXXXXXX)
-    const phoneRegex = /^\+221[67][0-9]{8}$/;
-    const shortRegex = /^[67][0-9]{8}$/; // Format court sans préfixe
-    const isValid = phoneRegex.test(formattedNumber) || shortRegex.test(cleanNumber);
+    // AUCUNE VALIDATION - Accepter tous les numéros
+    const isValid = cleanNumber.length >= 8; // Minimum 8 chiffres
     
-    if (!isValid) {
-      this.logger.warn(`Invalid phone format: ${phoneNumber} -> ${formattedNumber}`);
-      return { isValid: false, provider: null, formattedNumber };
-    }
-    
-    // Si format court valide, utiliser le numéro formaté
-    if (shortRegex.test(cleanNumber) && !phoneRegex.test(formattedNumber)) {
-      formattedNumber = `+221${cleanNumber}`;
-    }
-
-    // Détecter l'opérateur
-    const provider = this.detectProvider(formattedNumber);
-    
+    // Détecter l'opérateur (ou utiliser Orange par défaut)
+    let provider = this.detectProvider(formattedNumber);
     if (!provider) {
-      this.logger.warn(`No provider detected for: ${formattedNumber}`);
+      provider = BICTORYS_CONFIG.MOBILE_MONEY_PROVIDERS.ORANGE_MONEY; // Défaut
     }
     
-    return { isValid: true, provider, formattedNumber };
+    return { isValid, provider, formattedNumber };
   }
 }
