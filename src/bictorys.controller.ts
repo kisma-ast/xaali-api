@@ -9,6 +9,17 @@ export class BictorysController {
 
   constructor(private readonly bictorysService: BictorysService) {}
 
+  private getPaymentType(provider: string): string {
+    const paymentTypes: { [key: string]: string } = {
+      'orange_money': 'orange_money',
+      'wave': 'wave',
+      'mtn_mobile_money': 'mtn_mobile_money',
+      'moov_money': 'moov_money',
+      'mobile_money': 'orange_money'
+    };
+    return paymentTypes[provider] || 'orange_money';
+  }
+
   @Post('initiate')
   async initiatePayment(@Body() body: { amount: number; phoneNumber: string; provider: string; description?: string }) {
     try {
@@ -40,7 +51,7 @@ export class BictorysController {
       
       // Vérifier si les clés sont configurées et fonctionnelles
       if (!config.MERCHANT_ID || config.MERCHANT_ID === 'test_merchant_id' || config.MERCHANT_ID === 'your_real_merchant_id_here') {
-        this.logger.warn('⚠️ Clés Bictorys non configurées - Mode simulation');
+        this.logger.warn('Clés Bictorys non configurées - Mode simulation');
         // Mode démo avec interface de paiement simulée
         const demoUrl = `http://localhost:3001/payment/demo?amount=${amount}&provider=${provider}&phone=${encodeURIComponent(formattedPhone)}&reference=${reference}&transaction=${transactionId}`;
         
@@ -55,73 +66,59 @@ export class BictorysController {
             status: 'redirect',
             reference,
             description: description || 'Paiement Xaali',
-            message: 'Mode démo - Contactez Bictorys pour activer vos clés API',
+            message: 'Mode démo - Compte développeur en attente d’activation',
             isSimulated: true
           }
         };
       }
 
       try {
-        // Essayer plusieurs formats selon la documentation Bictorys
-        const endpoints = [
-          `${config.API_URL}/payment/initialize`,
-          `${config.API_URL}/payments/initiate`,
-          'https://api.bictorys.com/v1/payment/initialize'
-        ];
-
-        const paymentData = {
-          merchant_id: config.MERCHANT_ID,
+        // Direct API pour Mobile Money (Orange Money, Wave)
+        const paymentType = this.getPaymentType(provider);
+        const endpoint = `${config.API_URL}/charges?payment_type=${paymentType}`;
+        
+        const chargesData = {
           amount,
           currency: 'XOF',
-          customer_phone: formattedPhone,
-          payment_method: 'mobile_money',
-          provider,
-          reference,
-          description: description || 'Paiement Xaali',
-          return_url: `${process.env.FRONTEND_URL || 'http://localhost:3001'}/?payment=success`,
-          cancel_url: `${process.env.FRONTEND_URL || 'http://localhost:3001'}/?payment=cancelled`,
-          webhook_url: `${process.env.BACKEND_URL || 'http://localhost:3000'}/bictorys/callback`
+          phone: formattedPhone,
+          paymentReference: reference,
+          merchantReference: transactionId,
+          successRedirectUrl: `${process.env.FRONTEND_URL || 'http://localhost:3001'}/?payment=success&transaction=${transactionId}`,
+          errorRedirectUrl: `${process.env.FRONTEND_URL || 'http://localhost:3001'}/?payment=cancelled&transaction=${transactionId}`,
+          customerObject: {
+            name: 'Client Xaali',
+            phone: formattedPhone,
+            email: 'client@xaali.sn',
+            city: 'Dakar',
+            country: 'SN',
+            locale: 'fr-FR'
+          },
+          allowUpdateCustomer: false
         };
 
-        let bictorysResponse = null;
-        let lastError = null;
-
-        for (const endpoint of endpoints) {
-          try {
-            this.logger.log(`🔄 Tentative: ${endpoint}`);
-            bictorysResponse = await axios.post(endpoint, paymentData, {
-              headers: {
-                'Authorization': `Bearer ${config.API_KEY}`,
-                'Content-Type': 'application/json',
-                'Accept': 'application/json',
-                'X-API-Key': config.API_KEY,
-                'X-Merchant-Id': config.MERCHANT_ID
-              },
-              timeout: 15000
-            });
-            this.logger.log(`✅ Succès avec: ${endpoint}`);
-            break;
-          } catch (endpointError) {
-            lastError = endpointError;
-            this.logger.warn(`❌ Échec ${endpoint}: ${endpointError.response?.status}`);
-          }
-        }
-
-        if (!bictorysResponse) {
-          throw lastError;
-        }
+        this.logger.log(`Appel Direct API Bictorys: ${endpoint}`);
+        this.logger.log(`Type de paiement: ${paymentType}`);
+        
+        const bictorysResponse = await axios.post(endpoint, chargesData, {
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Api-Key': config.API_KEY
+          },
+          timeout: 30000
+        });
 
         const responseData = bictorysResponse.data;
-        const paymentUrl = responseData.data?.payment_url || responseData.payment_url || responseData.checkout_url;
-        const txId = responseData.data?.transaction_id || responseData.transaction_id || transactionId;
+        const checkoutUrl = responseData.checkoutUrl || responseData.checkout_url || responseData.redirectUrl;
+        const chargeId = responseData.id || responseData.chargeId || transactionId;
 
-        this.logger.log(`✅ Paiement Bictorys initié: ${paymentUrl}`);
+        this.logger.log(`Charge Bictorys créée: ${chargeId}`);
+        this.logger.log(`URL checkout: ${checkoutUrl}`);
 
         return {
           success: true,
           data: {
-            transactionId: txId,
-            checkoutUrl: paymentUrl,
+            transactionId: chargeId,
+            checkoutUrl,
             provider,
             phoneNumber: formattedPhone,
             amount,
@@ -133,16 +130,17 @@ export class BictorysController {
           }
         };
       } catch (bictorysError) {
-        this.logger.error('❌ Erreur API Bictorys:', bictorysError.response?.data || bictorysError.message);
+        this.logger.error('Erreur API Bictorys:', bictorysError.response?.data || bictorysError.message);
         
-        this.logger.error('❌ API Bictorys inaccessible:', {
+        this.logger.error('API Bictorys Charges inaccessible:', {
           status: bictorysError.response?.status,
-          message: bictorysError.message,
-          merchant: config.MERCHANT_ID
+          endpoint: `${config.API_URL}/charges`,
+          apiKey: config.API_KEY?.substring(0, 20) + '...'
         });
         
-        // Mode démo avec interface locale
-        const demoUrl = `http://localhost:3001/payment/demo?amount=${amount}&provider=${provider}&phone=${encodeURIComponent(formattedPhone)}&reference=${reference}&transaction=${transactionId}`;
+        // Fallback: Mode démo avec simulation Direct API
+        const fallbackPaymentType = this.getPaymentType(provider);
+        const demoUrl = `http://localhost:3001/payment/demo?amount=${amount}&provider=${provider}&phone=${encodeURIComponent(formattedPhone)}&reference=${reference}&transaction=${transactionId}&payment_type=${fallbackPaymentType}`;
         
         return {
           success: true,
@@ -155,7 +153,7 @@ export class BictorysController {
             status: 'redirect',
             reference,
             description: description || 'Paiement Xaali',
-            message: 'Mode démo - API Bictorys inaccessible (403 Forbidden)',
+            message: 'Mode démo - Contactez Bictorys pour activer votre compte',
             isSimulated: true
           }
         };
@@ -175,28 +173,28 @@ export class BictorysController {
           id: 'orange_money',
           name: 'Orange Money',
           prefixes: ['77', '78'],
-          logo: '🟠',
+          logo: 'orange',
           description: 'Orange Money Sénégal'
         },
         {
           id: 'mtn_mobile_money',
           name: 'MTN Mobile Money',
           prefixes: ['70', '75', '76'],
-          logo: '🟡',
+          logo: 'yellow',
           description: 'MTN Mobile Money Sénégal'
         },
         {
           id: 'moov_money',
           name: 'Moov Money',
           prefixes: ['60', '61'],
-          logo: '🔵',
+          logo: 'blue',
           description: 'Moov Money Sénégal'
         },
         {
           id: 'wave',
           name: 'Wave',
           prefixes: ['70', '75', '76', '77', '78'],
-          logo: '🌊',
+          logo: 'wave',
           description: 'Wave Sénégal'
         }
       ]
@@ -293,12 +291,12 @@ export class BictorysController {
   @Post('callback')
   async handleCallback(@Body() body: any) {
     try {
-      this.logger.log('🔔 Callback Bictorys reçu:', JSON.stringify(body, null, 2));
+      this.logger.log('Callback Bictorys reçu:', JSON.stringify(body, null, 2));
       
       // Traiter le callback de Bictorys
       const { transaction_id, status, amount, phone_number } = body;
       
-      this.logger.log(`💰 Transaction ${transaction_id}: ${status}`);
+      this.logger.log(`Transaction ${transaction_id}: ${status}`);
       
       // Ici vous pouvez mettre à jour votre base de données
       // ou notifier votre frontend via WebSocket

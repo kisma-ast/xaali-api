@@ -25,14 +25,14 @@ export const PINECONE_CONFIG = {
 export const BICTORYS_CONFIG = {
   // Mode sandbox pour les tests
   SANDBOX: {
-    API_URL: 'https://sandbox.bictorys.com/api/v1',
+    API_URL: 'https://api.test.bictorys.com/pay/v1',
     MERCHANT_ID: process.env.BICTORYS_MERCHANT_ID || 'test_merchant_id',
     API_KEY: process.env.BICTORYS_API_KEY || 'your_bictorys_api_key_here',
     SECRET_KEY: process.env.BICTORYS_SECRET_KEY || 'your_bictorys_secret_key_here'
   },
   // Mode production
   PRODUCTION: {
-    API_URL: 'https://api.bictorys.com/api/v1',
+    API_URL: 'https://api.bictorys.com/pay/v1',
     MERCHANT_ID: process.env.BICTORYS_PROD_MERCHANT_ID,
     API_KEY: process.env.BICTORYS_PROD_API_KEY,
     SECRET_KEY: process.env.BICTORYS_PROD_SECRET_KEY
@@ -112,29 +112,29 @@ export const testOpenAIKey = async () => {
 
       const req = https.request(options, (res: any) => {
         if (res.statusCode === 200) {
-          console.log('✅ Clé API OpenAI valide');
+          console.log('Clé API OpenAI valide');
           resolve(true);
         } else {
-          console.log('❌ Clé API OpenAI invalide - Status:', res.statusCode);
-          console.log('🔍 Clé utilisée:', AI_CONFIG.OPENAI_API_KEY?.substring(0, 20) + '...');
+          console.log('Clé API OpenAI invalide - Status:', res.statusCode);
+          console.log('Clé utilisée:', AI_CONFIG.OPENAI_API_KEY?.substring(0, 20) + '...');
           resolve(false);
         }
       });
 
       req.on('error', (error: any) => {
-        console.log('❌ Erreur lors du test de la clé API OpenAI:', error.message);
+        console.log('Erreur lors du test de la clé API OpenAI:', error.message);
         resolve(false);
       });
 
       req.on('timeout', () => {
-        console.log('❌ Timeout lors du test de la clé API OpenAI');
+        console.log('Timeout lors du test de la clé API OpenAI');
         req.destroy();
         resolve(false);
       });
 
       req.end();
     } catch (error: any) {
-      console.log('❌ Erreur lors du test de la clé API OpenAI:', error.message);
+      console.log('Erreur lors du test de la clé API OpenAI:', error.message);
       resolve(false);
     }
   });
@@ -146,31 +146,31 @@ export const checkAIConfig = () => {
   const hasPinecone = !!PINECONE_CONFIG.API_KEY && PINECONE_CONFIG.API_KEY !== 'your_pinecone_api_key_here';
   const hasBictorys = !!BICTORYS_CONFIG.SANDBOX.MERCHANT_ID && BICTORYS_CONFIG.SANDBOX.MERCHANT_ID !== 'your_merchant_id_here';
   
-  console.log('🔧 Configuration IA Xaali (Backend):', {
-    OpenAI: hasOpenAI ? '✅ Configuré' : '❌ Non configuré',
-    Pinecone: hasPinecone ? '✅ Configuré' : '❌ Non configuré',
-    Bictorys: hasBictorys ? '✅ Configuré' : '❌ Non configuré',
-    'Mode': process.env.NODE_ENV === 'development' ? '✅ Développement' : '✅ Production'
+  console.log('Configuration IA Xaali (Backend):', {
+    OpenAI: hasOpenAI ? 'Configuré' : 'Non configuré',
+    Pinecone: hasPinecone ? 'Configuré' : 'Non configuré',
+    Bictorys: hasBictorys ? 'Configuré' : 'Non configuré',
+    'Mode': process.env.NODE_ENV === 'development' ? 'Développement' : 'Production'
   });
   
   if (hasOpenAI) {
-    console.log('🚀 OpenAI API prête à être utilisée');
+    console.log('OpenAI API prête à être utilisée');
     // Tester la clé API de manière asynchrone
     setTimeout(() => testOpenAIKey(), 1000);
   } else {
-    console.log('❌ Clé API OpenAI manquante');
+    console.log('Clé API OpenAI manquante');
   }
 
   if (hasPinecone) {
-    console.log('🌲 Pinecone prêt à être utilisé');
+    console.log('Pinecone prêt à être utilisé');
   } else {
-    console.log('❌ Clé API Pinecone manquante - Créez un fichier .env avec PINECONE_API_KEY');
+    console.log('Clé API Pinecone manquante - Créez un fichier .env avec PINECONE_API_KEY');
   }
 
   if (hasBictorys) {
-    console.log('💰 Bictorys Mobile Money prêt à être utilisé');
+    console.log('Bictorys Mobile Money prêt à être utilisé');
   } else {
-    console.log('❌ Configuration Bictorys manquante - Configurez BICTORYS_MERCHANT_ID, BICTORYS_API_KEY, BICTORYS_SECRET_KEY');
+    console.log('Configuration Bictorys manquante - Configurez BICTORYS_MERCHANT_ID, BICTORYS_API_KEY, BICTORYS_SECRET_KEY');
   }
   
   return { hasOpenAI, hasPinecone, hasBictorys };

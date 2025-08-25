@@ -3,6 +3,7 @@ export declare class BictorysController {
     private readonly bictorysService;
     private readonly logger;
     constructor(bictorysService: BictorysService);
+    private getPaymentType;
     initiatePayment(body: {
         amount: number;
         phoneNumber: string;
