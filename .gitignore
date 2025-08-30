@@ -5,10 +5,8 @@ yarn-debug.log*
 yarn-error.log*
 
 # Environment variables
-.env
-.env.local
-.env.docker
-.env.production
+.env*
+!.env.example
 
 # Build outputs
 dist/
