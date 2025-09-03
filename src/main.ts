@@ -14,8 +14,17 @@ async function bootstrap() {
   
   // Configuration CORS pour permettre les requêtes depuis le frontend
   app.enableCors({
-    origin: ['http://localhost:5173', 'http://localhost:3000', 'http://localhost:4173'],
+    origin: [
+      'http://localhost:5173',
+      'http://localhost:4173', 
+      'https://xaali-1tneyr.live.cloudoor.com',
+      'https://xaali-q6q6bc.live.cloudoor.com',
+      'https://xaali-w0ilbs.live.cloudoor.com',
+      /\.cloudoor\.com$/
+    ],
     credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
   });
   
   const port = process.env.PORT || 3000;

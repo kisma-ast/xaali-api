@@ -10,7 +10,7 @@ async function bootstrap() {
     (0, config_1.checkAIConfig)();
     const app = await core_1.NestFactory.create(app_module_1.AppModule);
     app.enableCors({
-        origin: ['http://localhost:5173', 'http://localhost:3000', 'http://localhost:4173'],
+        origin: [ * ],
         credentials: true,
     });
     const port = process.env.PORT || 3000;
