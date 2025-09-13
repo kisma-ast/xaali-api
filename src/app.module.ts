@@ -15,6 +15,7 @@ import { WebRTCSignalingGateway } from './webrtc-signaling.gateway';
 import { PineconeModule } from './pinecone';
 import { LegalAssistantModule } from './legal-assistant.index';
 import { BictorysModule } from './bictorys.module';
+import { FineTuningService } from './fine-tuning.service'; // Add this import
 
 @Module({
   imports: [
@@ -22,14 +23,12 @@ import { BictorysModule } from './bictorys.module';
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
       useFactory: (configService: ConfigService) => ({
-        type: 'postgres',
-        host: configService.get<string>('DB_HOST', 'localhost'),
-        port: +configService.get<number>('DB_PORT', 5432),
-        username: configService.get<string>('DB_USERNAME', 'postgres'),
-        password: configService.get<string>('DB_PASSWORD', '1107'),
-        database: configService.get<string>('DB_DATABASE', 'xaali'),
-        autoLoadEntities: true,
+        type: 'mongodb',
+        url: configService.get<string>('MONGODB_URI'),
+        database: 'xaali-db',
+        entities: [__dirname + '/**/*.entity{.ts,.js}'],
         synchronize: true,
+        logging: false,
       }),
       inject: [ConfigService],
     }),
@@ -46,6 +45,6 @@ import { BictorysModule } from './bictorys.module';
     BictorysModule,
   ],
   controllers: [AppController],
-  providers: [AppService, WebRTCSignalingGateway],
+  providers: [AppService, WebRTCSignalingGateway, FineTuningService], // Add FineTuningService here
 })
 export class AppModule {}

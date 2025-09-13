@@ -94,20 +94,11 @@ export class CitizensController {
     },
   ): Promise<any> {
     try {
-      // Utiliser directement le RAG sans limite de questions
-      const ragQuery = {
-        question: body.question,
-        userId: body.citizenId,
-        context: body.category,
-        maxResults: body.priority === 'high' ? 8 : 5,
-        minScore: 0.7,
-      };
-
-      // Cette méthode pourrait être ajoutée au service
+      // Use fine-tuning instead of RAG
       return {
         success: true,
-        message: 'Utilisez l\'endpoint /rag/citizen-question pour des réponses optimisées',
-        redirectTo: '/rag/citizen-question',
+        message: 'Utilisez l\'endpoint /fine-tuning/ask pour des réponses optimisées',
+        redirectTo: '/fine-tuning/ask',
       };
     } catch (error) {
       throw new HttpException(
@@ -116,4 +107,4 @@ export class CitizensController {
       );
     }
   }
-} 
+}

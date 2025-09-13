@@ -1,7 +1,6 @@
-import { Controller, Post, Get, Body, Query, Logger, Res, Sse } from '@nestjs/common';
+import { Controller, Post, Get, Body, Query, Logger, Res } from '@nestjs/common';
 import { LegalAssistantService, LegalQuery } from './legal-assistant.service';
 import { Response } from 'express';
-import { Observable, interval, map } from 'rxjs';
 
 @Controller('legal-assistant')
 export class LegalAssistantController {
@@ -176,8 +175,3 @@ export class LegalAssistantController {
     }
   }
 }
-
-
-
-
-

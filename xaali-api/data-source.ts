@@ -3,13 +3,10 @@ import { DataSource } from 'typeorm';
 import { join } from 'path';
 
 export const AppDataSource = new DataSource({
-  type: 'postgres',
-  host: process.env.DB_HOST || 'localhost',
-  port: +(process.env.DB_PORT || 5432),
-  username: process.env.DB_USERNAME || 'postgres',
-  password: process.env.DB_PASSWORD || '1107',
-  database: process.env.DB_DATABASE || 'xaali',
-  entities: [join(__dirname, 'src/**/*.entity.{ts,js}')],
-  migrations: [join(__dirname, 'src/migrations/*.{ts,js}')],
+  type: 'mongodb',
+  url: process.env.MONGODB_URI,
+  database: 'xaali-db',
+  entities: [join(__dirname, '**/*.entity.{js,ts}')],
+  migrations: [join(__dirname, 'migrations/*.{js,ts}')],
   synchronize: false,
-}); 
+});

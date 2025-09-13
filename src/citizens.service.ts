@@ -2,7 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Citizen } from './citizen.entity';
-import { RAGOrchestratorService, RAGQuery } from './rag-orchestrator.service';
+import { FineTuningService, FineTuningQuery } from './fine-tuning.service'; // Changed import
 import { AiQuestion } from './ai-question.entity';
 import { Case } from './case.entity';
 
@@ -17,9 +17,9 @@ export class CitizensService {
     private aiQuestionsRepository: Repository<AiQuestion>,
     @InjectRepository(Case)
     private casesRepository: Repository<Case>,
-    private readonly ragService: RAGOrchestratorService,
+    private readonly fineTuningService: FineTuningService, // Changed to fine-tuning service
   ) {
-    this.logger.log('🏛️ CitizensService initialisé avec RAG');
+    this.logger.log('🏛️ CitizensService initialisé avec Fine-Tuning'); // Updated log
   }
 
   async createCitizen(): Promise<Citizen> {
@@ -48,28 +48,27 @@ export class CitizensService {
     this.logger.log(`👤 Question citoyen ${citizenId}: "${question}"`);
 
     try {
-      // Utiliser le RAG pour générer une réponse optimisée
-      const ragQuery: RAGQuery = {
+      // Use fine-tuning instead of RAG
+      const fineTuningQuery: FineTuningQuery = {
         question,
         userId: citizenId,
         context: category,
-        maxResults: 5,
-        minScore: 0.7,
+        category,
       };
 
-      const ragResponse = await this.ragService.processRAGQuery(ragQuery);
+      const fineTuningResponse = await this.fineTuningService.processFineTunedQuery(fineTuningQuery);
       
-      // Formater la réponse pour les citoyens
-      const citizenFriendlyResponse = this.formatResponseForCitizen(ragResponse);
+      // Formater la réponse
+      const citizenFriendlyResponse = this.formatResponseForCitizen(fineTuningResponse);
 
       const aiQuestion = this.aiQuestionsRepository.create({
         question,
         answer: citizenFriendlyResponse,
         citizenId,
         metadata: {
-          confidence: ragResponse.confidence,
-          processingTime: ragResponse.processingTime,
-          sourcesCount: ragResponse.sources.length,
+          confidence: fineTuningResponse.confidence,
+          processingTime: fineTuningResponse.processingTime,
+          sourcesCount: 0, // No sources in fine-tuning
         },
       });
 
@@ -77,11 +76,11 @@ export class CitizensService {
       citizen.questionsAsked += 1;
       await this.citizensRepository.save(citizen);
 
-      this.logger.log(`✅ Réponse RAG générée pour citoyen ${citizenId}`);
+      this.logger.log(`✅ Réponse fine-tuning générée pour citoyen ${citizenId}`);
       return await this.aiQuestionsRepository.save(aiQuestion);
 
     } catch (error) {
-      this.logger.error(`❌ Erreur RAG pour citoyen ${citizenId}:`, error);
+      this.logger.error(`❌ Erreur fine-tuning pour citoyen ${citizenId}:`, error);
       
       // Fallback: réponse basique
       const fallbackResponse = `Je rencontre des difficultés techniques pour répondre à votre question "${question}". Veuillez consulter un avocat ou réessayer plus tard.`;
@@ -147,25 +146,21 @@ export class CitizensService {
     this.logger.log(`🎯 Conseil personnalisé pour citoyen ${citizenId}`);
 
     try {
-      const ragQuery: RAGQuery = {
+      const fineTuningQuery: FineTuningQuery = {
         question: `Conseil juridique pour la situation suivante: ${situation}`,
         userId: citizenId,
         context: 'conseil_personnalise',
-        maxResults: 8,
-        minScore: 0.6,
+        category: 'conseil_personnalise',
       };
 
-      const ragResponse = await this.ragService.processRAGQuery(ragQuery);
+      const fineTuningResponse = await this.fineTuningService.processFineTunedQuery(fineTuningQuery);
       
       return {
-        advice: ragResponse.answer,
-        confidence: ragResponse.confidence,
-        sources: ragResponse.sources.map(s => ({
-          title: s.source,
-          relevance: (s.score * 100).toFixed(1) + '%',
-        })),
-        nextSteps: ragResponse.answer.nextSteps || [],
-        relatedTopics: ragResponse.answer.relatedTopics || [],
+        advice: fineTuningResponse.answer,
+        confidence: fineTuningResponse.confidence,
+        sources: [], // No sources in fine-tuning
+        nextSteps: fineTuningResponse.answer.nextSteps || [],
+        relatedTopics: fineTuningResponse.answer.relatedTopics || [],
       };
 
     } catch (error) {
@@ -174,26 +169,16 @@ export class CitizensService {
     }
   }
 
-  // Méthode pour formater la réponse RAG pour les citoyens
-  private formatResponseForCitizen(ragResponse: any): string {
-    const answer = ragResponse.answer;
+  // Méthode pour formater la réponse fine-tuning pour les citoyens
+  private formatResponseForCitizen(fineTuningResponse: any): string {
+    const answer = fineTuningResponse.answer;
     
-    // En-tête RAG visible
-    let formattedResponse = `🤖 **Réponse générée par Xaali-AI**\n`;
-    formattedResponse += `🌐 *Powered by: ${answer.ragMetadata?.poweredBy || 'Xaali-AI'}*\n\n`;
+    // En-tête fine-tuning visible
+    let formattedResponse = `🤖 **Réponse générée par Xaali-AI (Modèle Fine-Tuned)**\n`;
+    formattedResponse += `🌐 *Powered by: Fine-Tuned Model*\n\n`;
     
     formattedResponse += `📋 **${answer.title}**\n\n`;
     formattedResponse += `${answer.content}\n\n`;
-    
-    if (answer.articles && answer.articles.length > 0) {
-      formattedResponse += `📚 **Sources juridiques (${answer.articles.length}):**\n`;
-      answer.articles.forEach((article: any, index: number) => {
-        const sourceIcon = article.source === 'Pinecone' ? '🌲' : '🌐';
-        const relevance = article.relevanceScore ? ` (${article.relevanceScore})` : '';
-        formattedResponse += `${index + 1}. ${sourceIcon} ${article.title}${relevance}\n`;
-      });
-      formattedResponse += `\n`;
-    }
     
     if (answer.nextSteps && answer.nextSteps.length > 0) {
       formattedResponse += `✅ **Prochaines étapes:**\n`;
@@ -203,16 +188,14 @@ export class CitizensService {
       formattedResponse += `\n`;
     }
     
-    // Métadonnées RAG visibles
+    // Métadonnées fine-tuning visibles
     formattedResponse += `💡 **Résumé:** ${answer.summary}\n\n`;
-    formattedResponse += `🎯 **Confiance RAG:** ${answer.confidence}\n`;
-    formattedResponse += `⏱️ **Temps de traitement:** ${ragResponse.processingTime}ms\n`;
-    formattedResponse += `🔍 **Sources Pinecone:** ${ragResponse.sources?.filter((s: any) => s.type === 'pinecone').length || 0}\n`;
-    formattedResponse += `🌐 **Sources Web:** ${ragResponse.sources?.filter((s: any) => s.type === 'web').length || 0}\n\n`;
+    formattedResponse += `🎯 **Confiance:** ${answer.confidence}\n`;
+    formattedResponse += `⏱️ **Temps de traitement:** ${fineTuningResponse.processingTime}ms\n\n`;
     
-    formattedResponse += `⚠️ **Important:** ${answer.disclaimer}\n\n`;
-    formattedResponse += `🔄 *Généré le ${new Date().toLocaleString('fr-FR')} par ${answer.ragMetadata?.systemVersion || 'Xaali RAG'}*`;
+    formattedResponse += `⚠️ **Important:** Cette réponse est générée par un modèle d'intelligence artificielle spécialement entraîné sur le droit sénégalais. Pour des conseils juridiques précis adaptés à votre situation spécifique, nous vous recommandons de consulter un avocat.\n\n`;
+    formattedResponse += `🔄 *Généré le ${new Date().toLocaleString('fr-FR')} par Xaali Fine-Tuning Model*`;
     
     return formattedResponse;
   }
-} 
+}

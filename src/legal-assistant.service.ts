@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { PineconeService } from './pinecone/pinecone.service';
 import { EmbeddingService } from './pinecone/embedding.service';
 import { AIResponseService, FormattedResponse } from './ai-response.service';
+import { FineTuningService } from './fine-tuning.service'; // Add this import
 
 export interface LegalQuery {
   query: string;
@@ -30,6 +31,7 @@ export class LegalAssistantService {
     private readonly pineconeService: PineconeService,
     private readonly embeddingService: EmbeddingService,
     private readonly aiResponseService: AIResponseService,
+    private readonly fineTuningService: FineTuningService, // Add this
   ) {}
 
   private cache = new Map<string, { data: any; timestamp: number }>();
@@ -46,36 +48,18 @@ export class LegalAssistantService {
     }
 
     try {
-      // Paralléliser les opérations
-      const [queryEmbedding, filter] = await Promise.all([
-        this.embeddingService.generateEmbedding(legalQuery.query),
-        Promise.resolve(legalQuery.category ? { category: legalQuery.category } : undefined)
-      ]);
-
-      const searchResults = await this.pineconeService.searchSimilar(
-        queryEmbedding,
-        legalQuery.topK || 3, // Réduire à 3 pour plus de rapidité
-        filter,
-      );
-
-      const relevantDocuments = searchResults.map(result => ({
-        id: result.id,
-        score: result.score,
-        text: result.metadata.text.substring(0, 500), // Limiter le texte
-        source: result.metadata.source,
-        category: result.metadata.category || 'unknown',
-      }));
-
-      // Générer la réponse en parallèle
-      const formattedResponse = await this.aiResponseService.generateFormattedResponse(
-        legalQuery.query,
-        relevantDocuments
-      );
+      // Use fine-tuning instead of RAG
+      this.logger.log(`🚀 Utilisation du modèle fine-tuned pour: "${legalQuery.query}"`);
+      
+      const fineTuningResponse = await this.fineTuningService.processFineTunedQuery({
+        question: legalQuery.query,
+        category: legalQuery.category,
+      });
 
       const result = {
         query: legalQuery.query,
-        relevantDocuments,
-        formattedResponse,
+        relevantDocuments: [], // Empty since we're not using retrieval
+        formattedResponse: fineTuningResponse.answer,
       };
 
       // Mettre en cache
@@ -92,16 +76,17 @@ export class LegalAssistantService {
     try {
       this.logger.log(`Getting legal advice for: ${query}`);
 
-      // Rechercher des documents pertinents
-      const searchResult = await this.searchLegalDocuments({
-        query,
-        category,
-        topK: 3,
+      // Use fine-tuning instead of RAG
+      const fineTuningResponse = await this.fineTuningService.processFineTunedQuery({
+        question: query,
+        category: category,
       });
 
       return {
-        ...searchResult,
-        summary: `Trouvé ${searchResult.relevantDocuments.length} document(s) pertinent(s) pour votre question.`,
+        query: query,
+        relevantDocuments: [],
+        formattedResponse: fineTuningResponse.answer,
+        summary: `Réponse générée par le modèle fine-tuned.`,
       };
     } catch (error) {
       this.logger.error('Error getting legal advice:', error);
@@ -111,33 +96,18 @@ export class LegalAssistantService {
 
   async searchByCategory(category: string, query?: string, topK: number = 10): Promise<LegalResponse> {
     try {
-      this.logger.log(`Searching documents in category: ${category}`);
+      this.logger.log(`Searching with fine-tuned model in category: ${category}`);
 
-      let queryEmbedding: number[] | undefined;
-      if (query) {
-        queryEmbedding = await this.embeddingService.generateEmbedding(query);
-      } else {
-        // Si pas de requête spécifique, utiliser un vecteur neutre ou chercher tous les documents
-        queryEmbedding = Array.from({ length: 1024 }, () => 0);
-      }
-
-      const searchResults = await this.pineconeService.searchSimilar(
-        queryEmbedding,
-        topK,
-        { category },
-      );
-
-      const relevantDocuments = searchResults.map(result => ({
-        id: result.id,
-        score: result.score,
-        text: result.metadata.text,
-        source: result.metadata.source,
-        category: result.metadata.category || 'unknown',
-      }));
+      // Use fine-tuning instead of RAG
+      const fineTuningResponse = await this.fineTuningService.processFineTunedQuery({
+        question: query || `Documents in category: ${category}`,
+        category: category,
+      });
 
       return {
         query: query || `Documents in category: ${category}`,
-        relevantDocuments,
+        relevantDocuments: [],
+        formattedResponse: fineTuningResponse.answer,
       };
     } catch (error) {
       this.logger.error('Error searching by category:', error);
@@ -147,12 +117,13 @@ export class LegalAssistantService {
 
   async getDocumentStats(): Promise<any> {
     try {
-      const stats = await this.pineconeService.getIndexStats();
+      // Return stats for fine-tuned model instead of Pinecone
       return {
-        totalDocuments: stats.totalVectorCount || 0,
-        indexDimension: stats.dimension || 1024,
-        indexName: stats.indexName || 'xaali-agent',
-        namespaces: stats.namespaces || {},
+        totalDocuments: 0,
+        indexDimension: 0,
+        indexName: 'fine-tuned-model',
+        namespaces: {},
+        modelType: 'fine-tuned',
       };
     } catch (error) {
       this.logger.error('Error getting document stats:', error);

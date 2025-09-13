@@ -1,7 +1,6 @@
 # Stage 1: Build
 FROM node:22-alpine AS builder
 
-# Mise à jour sécurité et installation outils
 RUN apk update && apk upgrade && apk add --no-cache bash python3 make g++ git dumb-init
 
 # Créer un utilisateur non-root
@@ -9,17 +8,14 @@ RUN addgroup -g 1001 -S nodejs && adduser -S nestjs -u 1001
 
 WORKDIR /app
 
-# Copier package.json + package-lock.json
+# Copier package.json et package-lock.json
 COPY package*.json ./
 
 # Installer toutes les dépendances (dev + prod)
-RUN npm ci
+RUN npm install
 
-# Copier le code source
+# Copier tout le code source
 COPY . .
-
-# Copier le fichier .env.docker comme .env pour Docker
-COPY .env.docker .env
 
 # S'assurer que les scripts sont exécutables
 RUN chmod +x ./node_modules/.bin/*
@@ -37,21 +33,21 @@ RUN addgroup -g 1001 -S nodejs && adduser -S nestjs -u 1001
 
 WORKDIR /app
 
-# Copier seulement les dépendances de production
+# Copier uniquement les dépendances de production
 COPY package*.json ./
-RUN npm ci --only=production && npm cache clean --force
+RUN npm install --only=production && npm cache clean --force
 
-# Copier le build complet depuis le stage builder
+# Copier le build et le .env
 COPY --from=builder --chown=nestjs:nodejs /app/dist ./dist
-COPY --from=builder --chown=nestjs:nodejs /app/.env.docker ./.env
+# Créer un fichier .env vide si nécessaire pour éviter les erreurs
+RUN touch .env
+COPY --from=builder --chown=nestjs:nodejs /app/.env ./
 
-# Changer les permissions
+# Vérification des permissions
 RUN chown -R nestjs:nodejs /app
 
-# Passer à l'utilisateur non-root
 USER nestjs
 
-# Exposer le port
 EXPOSE 3000
 
 ENTRYPOINT ["dumb-init", "--"]
