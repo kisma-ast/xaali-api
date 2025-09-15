@@ -40,8 +40,8 @@ RUN npm install --only=production && npm cache clean --force
 # Copier le build et le .env
 COPY --from=builder --chown=nestjs:nodejs /app/dist ./dist
 # Créer un fichier .env vide si nécessaire pour éviter les erreurs
-RUN touch .env
-COPY --from=builder --chown=nestjs:nodejs /.env ./
+#RUN touch .env
+#COPY --from=builder --chown=nestjs:nodejs /.env ./
 
 # Vérification des permissions
 RUN chown -R nestjs:nodejs /app
