@@ -17,4 +17,6 @@ Object.defineProperty(exports, "__esModule", { value: true });
 __exportStar(require("./legal-assistant.module"), exports);
 __exportStar(require("./legal-assistant.controller"), exports);
 __exportStar(require("./legal-assistant.service"), exports);
+__exportStar(require("./fine-tuning.service"), exports);
+__exportStar(require("./fine-tuning.controller"), exports);
 //# sourceMappingURL=legal-assistant.index.js.map

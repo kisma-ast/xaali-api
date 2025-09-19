@@ -1,15 +1,15 @@
 import { Repository } from 'typeorm';
 import { Citizen } from './citizen.entity';
-import { RAGOrchestratorService } from './rag-orchestrator.service';
+import { FineTuningService } from './fine-tuning.service';
 import { AiQuestion } from './ai-question.entity';
 import { Case } from './case.entity';
 export declare class CitizensService {
     private citizensRepository;
     private aiQuestionsRepository;
     private casesRepository;
-    private readonly ragService;
+    private readonly fineTuningService;
     private readonly logger;
-    constructor(citizensRepository: Repository<Citizen>, aiQuestionsRepository: Repository<AiQuestion>, casesRepository: Repository<Case>, ragService: RAGOrchestratorService);
+    constructor(citizensRepository: Repository<Citizen>, aiQuestionsRepository: Repository<AiQuestion>, casesRepository: Repository<Case>, fineTuningService: FineTuningService);
     createCitizen(): Promise<Citizen>;
     getCitizen(id: string): Promise<Citizen | null>;
     canAskQuestion(citizenId: string): Promise<boolean>;

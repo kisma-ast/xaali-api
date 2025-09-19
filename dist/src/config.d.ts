@@ -5,6 +5,11 @@ export declare const AI_CONFIG: {
         EMBEDDING: string;
     };
 };
+export declare const PAYTECH_CONFIG: {
+    API_KEY: string;
+    SECRET_KEY: string;
+    BASE_URL: string;
+};
 export declare const PINECONE_CONFIG: {
     API_KEY: string;
     ENVIRONMENT: string;
@@ -74,6 +79,11 @@ export declare const config: {
             FREE_MONEY: string;
         };
     };
+    paytech: {
+        apiKey: string;
+        secretKey: string;
+        baseUrl: string;
+    };
 };
 export declare const testOpenAIKey: () => Promise<unknown>;
 export declare const checkAIConfig: () => {
@@ -115,6 +125,11 @@ export declare const getConfig: () => {
             WAVE: string;
             FREE_MONEY: string;
         };
+    };
+    paytech: {
+        API_KEY: string;
+        SECRET_KEY: string;
+        BASE_URL: string;
     };
     apiUrl: string;
     webrtc: {

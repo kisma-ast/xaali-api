@@ -24,6 +24,7 @@ const webrtc_signaling_gateway_1 = require("./webrtc-signaling.gateway");
 const pinecone_1 = require("./pinecone");
 const legal_assistant_index_1 = require("./legal-assistant.index");
 const bictorys_module_1 = require("./bictorys.module");
+const fine_tuning_service_1 = require("./fine-tuning.service");
 let AppModule = class AppModule {
 };
 exports.AppModule = AppModule;
@@ -34,14 +35,12 @@ exports.AppModule = AppModule = __decorate([
             typeorm_1.TypeOrmModule.forRootAsync({
                 imports: [config_1.ConfigModule],
                 useFactory: (configService) => ({
-                    type: 'postgres',
-                    host: configService.get('DB_HOST', 'localhost'),
-                    port: +configService.get('DB_PORT', 5432),
-                    username: configService.get('DB_USERNAME', 'postgres'),
-                    password: configService.get('DB_PASSWORD', '1107'),
-                    database: configService.get('DB_DATABASE', 'xaali'),
-                    autoLoadEntities: true,
+                    type: 'mongodb',
+                    url: configService.get('MONGODB_URI'),
+                    database: 'xaali-db',
+                    entities: [__dirname + '/**/*.entity{.ts,.js}'],
                     synchronize: true,
+                    logging: false,
                 }),
                 inject: [config_1.ConfigService],
             }),
@@ -58,7 +57,7 @@ exports.AppModule = AppModule = __decorate([
             bictorys_module_1.BictorysModule,
         ],
         controllers: [app_controller_1.AppController],
-        providers: [app_service_1.AppService, webrtc_signaling_gateway_1.WebRTCSignalingGateway],
+        providers: [app_service_1.AppService, webrtc_signaling_gateway_1.WebRTCSignalingGateway, fine_tuning_service_1.FineTuningService],
     })
 ], AppModule);
 //# sourceMappingURL=app.module.js.map

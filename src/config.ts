@@ -12,6 +12,13 @@ export const AI_CONFIG = {
   }
 };
 
+// Configuration PayTech
+export const PAYTECH_CONFIG = {
+  API_KEY: process.env.PAYTECH_API_KEY || '0a7be2ae03fbde423658f6a677dfafceb2c9019afff79cbe831106353e2281e9',
+  SECRET_KEY: process.env.PAYTECH_SECRET_KEY || '25e90fec5ff9717a863d2a5323153fa7ca821ee741b2ca6a16b258fa5f64ef4d',
+  BASE_URL: 'https://paytech.sn/api/payment/request-payment'
+};
+
 // Configuration Pinecone
 export const PINECONE_CONFIG = {
   // Clé API Pinecone - Utiliser les variables d'environnement
@@ -90,6 +97,13 @@ export const config = {
     isProduction: process.env.NODE_ENV === 'production',
     config: process.env.NODE_ENV === 'production' ? BICTORYS_CONFIG.PRODUCTION : BICTORYS_CONFIG.SANDBOX,
     providers: BICTORYS_CONFIG.MOBILE_MONEY_PROVIDERS
+  },
+  
+  // PayTech Configuration
+  paytech: {
+    apiKey: PAYTECH_CONFIG.API_KEY,
+    secretKey: PAYTECH_CONFIG.SECRET_KEY,
+    baseUrl: PAYTECH_CONFIG.BASE_URL
   }
 };
 
@@ -182,6 +196,7 @@ export const getConfig = () => {
     ...config,
     ai: AI_CONFIG,
     pinecone: PINECONE_CONFIG,
-    bictorys: BICTORYS_CONFIG
+    bictorys: BICTORYS_CONFIG,
+    paytech: PAYTECH_CONFIG
   };
 };

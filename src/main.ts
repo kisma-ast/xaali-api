@@ -16,7 +16,8 @@ async function bootstrap() {
   // Ajout du support pour Render deployment
   const allowedOrigins = [
     'http://localhost:5173',
-    'http://localhost:4173', 
+    'http://localhost:4173',
+    'http://localhost:3001', // Au cas où le frontend utilise ce port
     'https://xaali-1tneyr.live.cloudoor.com',
     'https://xaali-q6q6bc.live.cloudoor.com',
     'https://xaali-w0ilbs.live.cloudoor.com',
@@ -28,32 +29,45 @@ async function bootstrap() {
     /\.onrender\.com$/
   ];
   
-  app.enableCors({
-    origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
-      // Allow requests with no origin (like mobile apps or curl requests)
-      if (!origin) return callback(null, true);
-      
-      if (allowedOrigins.some(allowedOrigin => 
-        typeof allowedOrigin === 'string' 
-          ? origin === allowedOrigin 
-          : allowedOrigin.test(origin)
-      )) {
-        callback(null, true);
-      } else {
-        callback(new Error('Not allowed by CORS'));
-      }
-    },
-    credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
+  // Configuration CORS simplifiée pour le développement
+  console.log('🔧 Configuration CORS - Mode:', process.env.NODE_ENV);
+  
+  if (process.env.NODE_ENV === 'development') {
+    console.log('🔓 CORS: Mode développement - Toutes origines autorisées');
+    app.enableCors({
+      origin: true, // Permet toutes les origines en développement
+      credentials: true,
+      methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+      allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
+    });
+  } else {
+    console.log('🔒 CORS: Mode production - Origines restreintes:', allowedOrigins);
+    app.enableCors({
+      origin: allowedOrigins,
+      credentials: true,
+      methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+      allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
+    });
+  }
+  
+  // Middleware pour logger toutes les requêtes
+  app.use((req: any, res: any, next: any) => {
+    console.log(`📥 ${new Date().toISOString()} - ${req.method} ${req.url}`);
+    console.log('📋 Headers:', JSON.stringify(req.headers, null, 2));
+    console.log('🌐 Origin:', req.headers.origin || 'Aucune origine');
+    next();
   });
   
   const port = process.env.PORT || 3000;
   await app.listen(port);
   
-  console.log(`Serveur Xaali démarré sur http://localhost:${port}`);
-  console.log('Documentation: http://localhost:3000/api');
-  console.log('Pinecone endpoints: http://localhost:3000/pinecone');
-  console.log('Legal Assistant: http://localhost:3000/legal-assistant');
+  console.log(`🚀 Serveur Xaali démarré sur http://localhost:${port}`);
+  console.log('📚 Documentation: http://localhost:3000/api');
+  console.log('🌲 Pinecone endpoints: http://localhost:3000/pinecone');
+  console.log('⚖️ Legal Assistant: http://localhost:3000/legal-assistant');
+  console.log('🔍 Health Check: http://localhost:3000/health');
+  console.log('🤖 Fine-Tuning: http://localhost:3000/fine-tuning/ask');
+  console.log('📊 Environnement:', process.env.NODE_ENV || 'development');
+  console.log('🔗 CORS activé pour toutes les origines en mode développement');
 }
 bootstrap();

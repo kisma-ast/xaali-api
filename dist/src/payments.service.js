@@ -19,13 +19,16 @@ const typeorm_1 = require("@nestjs/typeorm");
 const typeorm_2 = require("typeorm");
 const payment_entity_1 = require("./payment.entity");
 const bictorys_service_1 = require("./bictorys.service");
+const paytech_service_1 = require("./paytech.service");
 let PaymentsService = PaymentsService_1 = class PaymentsService {
     paymentsRepository;
     bictorysService;
+    payTechService;
     logger = new common_1.Logger(PaymentsService_1.name);
-    constructor(paymentsRepository, bictorysService) {
+    constructor(paymentsRepository, bictorysService, payTechService) {
         this.paymentsRepository = paymentsRepository;
         this.bictorysService = bictorysService;
+        this.payTechService = payTechService;
     }
     findAll() {
         return this.paymentsRepository.find();
@@ -78,12 +81,41 @@ let PaymentsService = PaymentsService_1 = class PaymentsService {
         await this.paymentsRepository.update(payment.id, updateData);
         return this.findOne(payment.id);
     }
+    async createFromPayTech(paytechResponse, userId) {
+        const payment = this.paymentsRepository.create({
+            amount: paytechResponse.amount || 0,
+            currency: paytechResponse.currency || 'XOF',
+            userId,
+            status: 'pending',
+            transactionId: paytechResponse.transactionId,
+            reference: paytechResponse.reference,
+            description: paytechResponse.description || 'Paiement Xaali via PayTech',
+            paymentUrl: paytechResponse.redirectUrl,
+            metadata: paytechResponse
+        });
+        return this.paymentsRepository.save(payment);
+    }
+    async updateFromPayTechStatus(paymentStatus) {
+        const payment = await this.findByTransactionId(paymentStatus.transactionId);
+        if (!payment) {
+            this.logger.warn(`Payment not found for transaction ID: ${paymentStatus.transactionId}`);
+            return null;
+        }
+        const updateData = {
+            status: paymentStatus.status,
+            errorMessage: paymentStatus.status === 'failed' ? paymentStatus.message : undefined,
+            completedAt: ['success', 'failed', 'cancelled'].includes(paymentStatus.status) ? new Date() : undefined
+        };
+        await this.paymentsRepository.update(payment.id, updateData);
+        return this.findOne(payment.id);
+    }
 };
 exports.PaymentsService = PaymentsService;
 exports.PaymentsService = PaymentsService = PaymentsService_1 = __decorate([
     (0, common_1.Injectable)(),
     __param(0, (0, typeorm_1.InjectRepository)(payment_entity_1.Payment)),
     __metadata("design:paramtypes", [typeorm_2.Repository,
-        bictorys_service_1.BictorysService])
+        bictorys_service_1.BictorysService,
+        paytech_service_1.PayTechService])
 ], PaymentsService);
 //# sourceMappingURL=payments.service.js.map

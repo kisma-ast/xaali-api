@@ -15,10 +15,13 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.PaymentsController = void 0;
 const common_1 = require("@nestjs/common");
 const payments_service_1 = require("./payments.service");
+const paytech_service_1 = require("./paytech.service");
 let PaymentsController = class PaymentsController {
     paymentsService;
-    constructor(paymentsService) {
+    payTechService;
+    constructor(paymentsService, payTechService) {
         this.paymentsService = paymentsService;
+        this.payTechService = payTechService;
     }
     findAll() {
         return this.paymentsService.findAll();
@@ -100,6 +103,56 @@ let PaymentsController = class PaymentsController {
             ]
         };
     }
+    async initiatePayTechPayment(body) {
+        const { amount, currency, customerEmail, customerName, description, commandeId } = body;
+        if (!amount || amount <= 0) {
+            return { success: false, message: 'Montant invalide' };
+        }
+        if (!description) {
+            return { success: false, message: 'Description requise' };
+        }
+        const reference = this.payTechService.generateReference('XAALI');
+        const paymentRequest = {
+            amount,
+            currency: currency || 'XOF',
+            customerEmail,
+            customerName,
+            description,
+            reference,
+            commandeId
+        };
+        const result = await this.payTechService.initiatePayment(paymentRequest);
+        if (result.success) {
+            const paymentRecord = await this.paymentsService.createFromPayTech({
+                ...result,
+                amount,
+                currency: currency || 'XOF',
+                description,
+                commandeId
+            });
+            return {
+                success: true,
+                data: {
+                    ...result,
+                    paymentId: paymentRecord.id
+                }
+            };
+        }
+        return result;
+    }
+    getPayTechProviders() {
+        return {
+            success: true,
+            data: [
+                {
+                    id: 'paytech',
+                    name: 'PayTech',
+                    logo: '💳',
+                    description: 'Paiement par carte via PayTech'
+                }
+            ]
+        };
+    }
 };
 exports.PaymentsController = PaymentsController;
 __decorate([
@@ -150,8 +203,23 @@ __decorate([
     __metadata("design:paramtypes", []),
     __metadata("design:returntype", void 0)
 ], PaymentsController.prototype, "getBictorysProviders", null);
+__decorate([
+    (0, common_1.Post)('paytech/initiate'),
+    __param(0, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", Promise)
+], PaymentsController.prototype, "initiatePayTechPayment", null);
+__decorate([
+    (0, common_1.Get)('paytech/providers'),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", []),
+    __metadata("design:returntype", void 0)
+], PaymentsController.prototype, "getPayTechProviders", null);
 exports.PaymentsController = PaymentsController = __decorate([
     (0, common_1.Controller)('payments'),
-    __metadata("design:paramtypes", [payments_service_1.PaymentsService])
+    __param(1, (0, common_1.Inject)(paytech_service_1.PayTechService)),
+    __metadata("design:paramtypes", [payments_service_1.PaymentsService,
+        paytech_service_1.PayTechService])
 ], PaymentsController);
 //# sourceMappingURL=payments.controller.js.map

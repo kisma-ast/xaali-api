@@ -9,10 +9,10 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.LegalAssistantModule = void 0;
 const common_1 = require("@nestjs/common");
 const legal_assistant_controller_1 = require("./legal-assistant.controller");
-const rag_controller_1 = require("./rag.controller");
+const fine_tuning_controller_1 = require("./fine-tuning.controller");
 const legal_assistant_service_1 = require("./legal-assistant.service");
 const ai_response_service_1 = require("./ai-response.service");
-const rag_orchestrator_service_1 = require("./rag-orchestrator.service");
+const fine_tuning_service_1 = require("./fine-tuning.service");
 const pinecone_1 = require("./pinecone");
 let LegalAssistantModule = class LegalAssistantModule {
 };
@@ -20,13 +20,13 @@ exports.LegalAssistantModule = LegalAssistantModule;
 exports.LegalAssistantModule = LegalAssistantModule = __decorate([
     (0, common_1.Module)({
         imports: [pinecone_1.PineconeModule],
-        controllers: [legal_assistant_controller_1.LegalAssistantController, rag_controller_1.RAGController],
+        controllers: [legal_assistant_controller_1.LegalAssistantController, fine_tuning_controller_1.FineTuningController],
         providers: [
             legal_assistant_service_1.LegalAssistantService,
             ai_response_service_1.AIResponseService,
-            rag_orchestrator_service_1.RAGOrchestratorService
+            fine_tuning_service_1.FineTuningService
         ],
-        exports: [legal_assistant_service_1.LegalAssistantService, rag_orchestrator_service_1.RAGOrchestratorService],
+        exports: [legal_assistant_service_1.LegalAssistantService, fine_tuning_service_1.FineTuningService],
     })
 ], LegalAssistantModule);
 //# sourceMappingURL=legal-assistant.module.js.map

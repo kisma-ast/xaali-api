@@ -1,10 +1,14 @@
-import { Controller, Get, Post, Body, Param, Put, Delete } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Put, Delete, Inject } from '@nestjs/common';
 import { PaymentsService } from './payments.service';
 import { Payment } from './payment.entity';
+import { PayTechService } from './paytech.service';
 
 @Controller('payments')
 export class PaymentsController {
-  constructor(private readonly paymentsService: PaymentsService) {}
+  constructor(
+    private readonly paymentsService: PaymentsService,
+    @Inject(PayTechService) private readonly payTechService: PayTechService
+  ) {}
 
   @Get()
   findAll(): Promise<Payment[]> {
@@ -103,6 +107,79 @@ export class PaymentsController {
           prefixes: ['70', '75', '76', '77', '78'],
           logo: '🌊',
           description: 'Wave Sénégal'
+        }
+      ]
+    };
+  }
+
+  @Post('paytech/initiate')
+  async initiatePayTechPayment(@Body() body: { 
+    amount: number; 
+    currency?: string;
+    customerEmail?: string;
+    customerName?: string;
+    description: string;
+    commandeId?: number 
+  }) {
+    const { amount, currency, customerEmail, customerName, description, commandeId } = body;
+    
+    if (!amount || amount <= 0) {
+      return { success: false, message: 'Montant invalide' };
+    }
+
+    if (!description) {
+      return { success: false, message: 'Description requise' };
+    }
+
+    // Generate a unique reference
+    const reference = this.payTechService.generateReference('XAALI');
+    
+    // Create payment request
+    const paymentRequest = {
+      amount,
+      currency: currency || 'XOF',
+      customerEmail,
+      customerName,
+      description,
+      reference,
+      commandeId
+    };
+
+    // Initiate payment with PayTech
+    const result = await this.payTechService.initiatePayment(paymentRequest);
+    
+    if (result.success) {
+      // Create payment record in our database
+      const paymentRecord = await this.paymentsService.createFromPayTech({
+        ...result,
+        amount,
+        currency: currency || 'XOF',
+        description,
+        commandeId
+      });
+      
+      return {
+        success: true,
+        data: {
+          ...result,
+          paymentId: paymentRecord.id
+        }
+      };
+    }
+    
+    return result;
+  }
+
+  @Get('paytech/providers')
+  getPayTechProviders() {
+    return {
+      success: true,
+      data: [
+        {
+          id: 'paytech',
+          name: 'PayTech',
+          logo: '💳',
+          description: 'Paiement par carte via PayTech'
         }
       ]
     };

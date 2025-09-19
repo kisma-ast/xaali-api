@@ -17,7 +17,7 @@ export interface FormattedResponse {
     ragMetadata: {
         poweredBy: string;
         systemVersion: string;
-        processingMode: 'RAG_ENHANCED' | 'FALLBACK';
+        processingMode: 'FINE_TUNED' | 'FALLBACK';
         timestamp: string;
     };
 }
@@ -30,9 +30,5 @@ export declare class AIResponseService {
         score: number;
     }>): Promise<FormattedResponse>;
     private createFallbackResponse;
-    private extractArticlesFromDocuments;
-    private findMissingArticles;
-    private searchArticleOnWeb;
-    private searchSpecificInfo;
     formatDocumentText(text: string): string;
 }

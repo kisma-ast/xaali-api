@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Payment } from './payment.entity';
 import { BictorysService, BictorysPaymentStatus } from './bictorys.service';
+import { PayTechService, PayTechPaymentStatus } from './paytech.service';
 
 @Injectable()
 export class PaymentsService {
@@ -12,6 +13,7 @@ export class PaymentsService {
     @InjectRepository(Payment)
     private paymentsRepository: Repository<Payment>,
     private bictorysService: BictorysService,
+    private payTechService: PayTechService,
   ) {}
 
   findAll(): Promise<Payment[]> {
@@ -66,6 +68,46 @@ export class PaymentsService {
    * Met à jour un paiement avec le statut Bictorys
    */
   async updateFromBictorysStatus(paymentStatus: BictorysPaymentStatus): Promise<Payment | null> {
+    const payment = await this.findByTransactionId(paymentStatus.transactionId);
+    
+    if (!payment) {
+      this.logger.warn(`Payment not found for transaction ID: ${paymentStatus.transactionId}`);
+      return null;
+    }
+
+    const updateData: Partial<Payment> = {
+      status: paymentStatus.status,
+      errorMessage: paymentStatus.status === 'failed' ? paymentStatus.message : undefined,
+      completedAt: ['success', 'failed', 'cancelled'].includes(paymentStatus.status) ? new Date() : undefined
+    };
+
+    await this.paymentsRepository.update(payment.id, updateData);
+    return this.findOne(payment.id);
+  }
+
+  /**
+   * Crée un paiement à partir d'une réponse PayTech
+   */
+  async createFromPayTech(paytechResponse: any, userId?: number): Promise<Payment> {
+    const payment = this.paymentsRepository.create({
+      amount: paytechResponse.amount || 0,
+      currency: paytechResponse.currency || 'XOF',
+      userId,
+      status: 'pending',
+      transactionId: paytechResponse.transactionId,
+      reference: paytechResponse.reference,
+      description: paytechResponse.description || 'Paiement Xaali via PayTech',
+      paymentUrl: paytechResponse.redirectUrl,
+      metadata: paytechResponse
+    });
+
+    return this.paymentsRepository.save(payment);
+  }
+
+  /**
+   * Met à jour un paiement avec le statut PayTech
+   */
+  async updateFromPayTechStatus(paymentStatus: PayTechPaymentStatus): Promise<Payment | null> {
     const payment = await this.findByTransactionId(paymentStatus.transactionId);
     
     if (!payment) {

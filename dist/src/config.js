@@ -1,12 +1,17 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getConfig = exports.checkAIConfig = exports.testOpenAIKey = exports.config = exports.BICTORYS_CONFIG = exports.PINECONE_CONFIG = exports.AI_CONFIG = void 0;
+exports.getConfig = exports.checkAIConfig = exports.testOpenAIKey = exports.config = exports.BICTORYS_CONFIG = exports.PINECONE_CONFIG = exports.PAYTECH_CONFIG = exports.AI_CONFIG = void 0;
 exports.AI_CONFIG = {
     OPENAI_API_KEY: process.env.OPENAI_API_KEY || 'your_openai_api_key_here',
     MODELS: {
         OPENAI: 'gpt-3.5-turbo',
         EMBEDDING: 'text-embedding-ada-002'
     }
+};
+exports.PAYTECH_CONFIG = {
+    API_KEY: process.env.PAYTECH_API_KEY || '0a7be2ae03fbde423658f6a677dfafceb2c9019afff79cbe831106353e2281e9',
+    SECRET_KEY: process.env.PAYTECH_SECRET_KEY || '25e90fec5ff9717a863d2a5323153fa7ca821ee741b2ca6a16b258fa5f64ef4d',
+    BASE_URL: 'https://paytech.sn/api/payment/request-payment'
 };
 exports.PINECONE_CONFIG = {
     API_KEY: process.env.PINECONE_API_KEY || 'your_pinecone_api_key_here',
@@ -66,6 +71,11 @@ exports.config = {
         isProduction: process.env.NODE_ENV === 'production',
         config: process.env.NODE_ENV === 'production' ? exports.BICTORYS_CONFIG.PRODUCTION : exports.BICTORYS_CONFIG.SANDBOX,
         providers: exports.BICTORYS_CONFIG.MOBILE_MONEY_PROVIDERS
+    },
+    paytech: {
+        apiKey: exports.PAYTECH_CONFIG.API_KEY,
+        secretKey: exports.PAYTECH_CONFIG.SECRET_KEY,
+        baseUrl: exports.PAYTECH_CONFIG.BASE_URL
     }
 };
 const testOpenAIKey = async () => {
@@ -149,7 +159,8 @@ const getConfig = () => {
         ...exports.config,
         ai: exports.AI_CONFIG,
         pinecone: exports.PINECONE_CONFIG,
-        bictorys: exports.BICTORYS_CONFIG
+        bictorys: exports.BICTORYS_CONFIG,
+        paytech: exports.PAYTECH_CONFIG
     };
 };
 exports.getConfig = getConfig;

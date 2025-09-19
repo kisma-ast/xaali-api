@@ -15,15 +15,18 @@ const common_1 = require("@nestjs/common");
 const pinecone_service_1 = require("./pinecone/pinecone.service");
 const embedding_service_1 = require("./pinecone/embedding.service");
 const ai_response_service_1 = require("./ai-response.service");
+const fine_tuning_service_1 = require("./fine-tuning.service");
 let LegalAssistantService = LegalAssistantService_1 = class LegalAssistantService {
     pineconeService;
     embeddingService;
     aiResponseService;
+    fineTuningService;
     logger = new common_1.Logger(LegalAssistantService_1.name);
-    constructor(pineconeService, embeddingService, aiResponseService) {
+    constructor(pineconeService, embeddingService, aiResponseService, fineTuningService) {
         this.pineconeService = pineconeService;
         this.embeddingService = embeddingService;
         this.aiResponseService = aiResponseService;
+        this.fineTuningService = fineTuningService;
     }
     cache = new Map();
     CACHE_TTL = 5 * 60 * 1000;
@@ -35,23 +38,15 @@ let LegalAssistantService = LegalAssistantService_1 = class LegalAssistantServic
             return cached.data;
         }
         try {
-            const [queryEmbedding, filter] = await Promise.all([
-                this.embeddingService.generateEmbedding(legalQuery.query),
-                Promise.resolve(legalQuery.category ? { category: legalQuery.category } : undefined)
-            ]);
-            const searchResults = await this.pineconeService.searchSimilar(queryEmbedding, legalQuery.topK || 3, filter);
-            const relevantDocuments = searchResults.map(result => ({
-                id: result.id,
-                score: result.score,
-                text: result.metadata.text.substring(0, 500),
-                source: result.metadata.source,
-                category: result.metadata.category || 'unknown',
-            }));
-            const formattedResponse = await this.aiResponseService.generateFormattedResponse(legalQuery.query, relevantDocuments);
+            this.logger.log(`🚀 Utilisation du modèle fine-tuned pour: "${legalQuery.query}"`);
+            const fineTuningResponse = await this.fineTuningService.processFineTunedQuery({
+                question: legalQuery.query,
+                category: legalQuery.category,
+            });
             const result = {
                 query: legalQuery.query,
-                relevantDocuments,
-                formattedResponse,
+                relevantDocuments: [],
+                formattedResponse: fineTuningResponse.answer,
             };
             this.cache.set(cacheKey, { data: result, timestamp: Date.now() });
             return result;
@@ -64,14 +59,15 @@ let LegalAssistantService = LegalAssistantService_1 = class LegalAssistantServic
     async getLegalAdvice(query, category) {
         try {
             this.logger.log(`Getting legal advice for: ${query}`);
-            const searchResult = await this.searchLegalDocuments({
-                query,
-                category,
-                topK: 3,
+            const fineTuningResponse = await this.fineTuningService.processFineTunedQuery({
+                question: query,
+                category: category,
             });
             return {
-                ...searchResult,
-                summary: `Trouvé ${searchResult.relevantDocuments.length} document(s) pertinent(s) pour votre question.`,
+                query: query,
+                relevantDocuments: [],
+                formattedResponse: fineTuningResponse.answer,
+                summary: `Réponse générée par le modèle fine-tuned.`,
             };
         }
         catch (error) {
@@ -81,25 +77,15 @@ let LegalAssistantService = LegalAssistantService_1 = class LegalAssistantServic
     }
     async searchByCategory(category, query, topK = 10) {
         try {
-            this.logger.log(`Searching documents in category: ${category}`);
-            let queryEmbedding;
-            if (query) {
-                queryEmbedding = await this.embeddingService.generateEmbedding(query);
-            }
-            else {
-                queryEmbedding = Array.from({ length: 1024 }, () => 0);
-            }
-            const searchResults = await this.pineconeService.searchSimilar(queryEmbedding, topK, { category });
-            const relevantDocuments = searchResults.map(result => ({
-                id: result.id,
-                score: result.score,
-                text: result.metadata.text,
-                source: result.metadata.source,
-                category: result.metadata.category || 'unknown',
-            }));
+            this.logger.log(`Searching with fine-tuned model in category: ${category}`);
+            const fineTuningResponse = await this.fineTuningService.processFineTunedQuery({
+                question: query || `Documents in category: ${category}`,
+                category: category,
+            });
             return {
                 query: query || `Documents in category: ${category}`,
-                relevantDocuments,
+                relevantDocuments: [],
+                formattedResponse: fineTuningResponse.answer,
             };
         }
         catch (error) {
@@ -109,12 +95,12 @@ let LegalAssistantService = LegalAssistantService_1 = class LegalAssistantServic
     }
     async getDocumentStats() {
         try {
-            const stats = await this.pineconeService.getIndexStats();
             return {
-                totalDocuments: stats.totalVectorCount || 0,
-                indexDimension: stats.dimension || 1024,
-                indexName: stats.indexName || 'xaali-agent',
-                namespaces: stats.namespaces || {},
+                totalDocuments: 0,
+                indexDimension: 0,
+                indexName: 'fine-tuned-model',
+                namespaces: {},
+                modelType: 'fine-tuned',
             };
         }
         catch (error) {
@@ -128,6 +114,7 @@ exports.LegalAssistantService = LegalAssistantService = LegalAssistantService_1 
     (0, common_1.Injectable)(),
     __metadata("design:paramtypes", [pinecone_service_1.PineconeService,
         embedding_service_1.EmbeddingService,
-        ai_response_service_1.AIResponseService])
+        ai_response_service_1.AIResponseService,
+        fine_tuning_service_1.FineTuningService])
 ], LegalAssistantService);
 //# sourceMappingURL=legal-assistant.service.js.map

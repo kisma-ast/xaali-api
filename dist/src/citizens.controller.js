@@ -64,17 +64,10 @@ let CitizensController = class CitizensController {
     }
     async askSmartQuestion(body) {
         try {
-            const ragQuery = {
-                question: body.question,
-                userId: body.citizenId,
-                context: body.category,
-                maxResults: body.priority === 'high' ? 8 : 5,
-                minScore: 0.7,
-            };
             return {
                 success: true,
-                message: 'Utilisez l\'endpoint /rag/citizen-question pour des réponses optimisées',
-                redirectTo: '/rag/citizen-question',
+                message: 'Utilisez l\'endpoint /fine-tuning/ask pour des réponses optimisées',
+                redirectTo: '/fine-tuning/ask',
             };
         }
         catch (error) {

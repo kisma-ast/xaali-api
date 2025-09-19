@@ -13,12 +13,13 @@ const payments_service_1 = require("./payments.service");
 const payments_controller_1 = require("./payments.controller");
 const payment_entity_1 = require("./payment.entity");
 const bictorys_module_1 = require("./bictorys.module");
+const paytech_module_1 = require("./paytech.module");
 let PaymentsModule = class PaymentsModule {
 };
 exports.PaymentsModule = PaymentsModule;
 exports.PaymentsModule = PaymentsModule = __decorate([
     (0, common_1.Module)({
-        imports: [typeorm_1.TypeOrmModule.forFeature([payment_entity_1.Payment]), bictorys_module_1.BictorysModule],
+        imports: [typeorm_1.TypeOrmModule.forFeature([payment_entity_1.Payment]), bictorys_module_1.BictorysModule, paytech_module_1.PayTechModule],
         controllers: [payments_controller_1.PaymentsController],
         providers: [payments_service_1.PaymentsService],
     })
