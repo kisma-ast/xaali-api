@@ -17,6 +17,7 @@ const common_1 = require("@nestjs/common");
 const jwt_1 = require("@nestjs/jwt");
 const typeorm_1 = require("@nestjs/typeorm");
 const typeorm_2 = require("typeorm");
+const mongodb_1 = require("mongodb");
 const lawyer_entity_1 = require("./lawyer.entity");
 const bcrypt = require("bcrypt");
 let AuthService = class AuthService {
@@ -81,7 +82,7 @@ let AuthService = class AuthService {
         try {
             const payload = this.jwtService.verify(token);
             const lawyer = await this.lawyersRepository.findOne({
-                where: { id: payload.sub },
+                where: { _id: new mongodb_1.ObjectId(payload.sub) },
             });
             if (!lawyer) {
                 throw new common_1.UnauthorizedException('Token invalide');
@@ -98,7 +99,7 @@ exports.AuthService = AuthService;
 exports.AuthService = AuthService = __decorate([
     (0, common_1.Injectable)(),
     __param(0, (0, typeorm_1.InjectRepository)(lawyer_entity_1.Lawyer)),
-    __metadata("design:paramtypes", [typeorm_2.Repository,
+    __metadata("design:paramtypes", [typeorm_2.MongoRepository,
         jwt_1.JwtService])
 ], AuthService);
 //# sourceMappingURL=auth.service.js.map

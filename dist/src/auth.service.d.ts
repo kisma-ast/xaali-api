@@ -1,10 +1,10 @@
 import { JwtService } from '@nestjs/jwt';
-import { Repository } from 'typeorm';
+import { MongoRepository } from 'typeorm';
 import { Lawyer } from './lawyer.entity';
 export declare class AuthService {
     private lawyersRepository;
     private jwtService;
-    constructor(lawyersRepository: Repository<Lawyer>, jwtService: JwtService);
+    constructor(lawyersRepository: MongoRepository<Lawyer>, jwtService: JwtService);
     register(lawyerData: {
         name: string;
         email: string;

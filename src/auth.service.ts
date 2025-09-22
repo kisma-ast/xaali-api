@@ -1,7 +1,8 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { MongoRepository } from 'typeorm';
+import { ObjectId } from 'mongodb';
 import { Lawyer } from './lawyer.entity';
 import * as bcrypt from 'bcrypt';
 
@@ -9,7 +10,7 @@ import * as bcrypt from 'bcrypt';
 export class AuthService {
   constructor(
     @InjectRepository(Lawyer)
-    private lawyersRepository: Repository<Lawyer>,
+    private lawyersRepository: MongoRepository<Lawyer>,
     private jwtService: JwtService,
   ) {}
 
@@ -105,7 +106,7 @@ export class AuthService {
     try {
       const payload = this.jwtService.verify(token);
       const lawyer = await this.lawyersRepository.findOne({
-        where: { id: payload.sub },
+        where: { _id: new ObjectId(payload.sub) },
       });
 
       if (!lawyer) {

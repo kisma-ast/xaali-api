@@ -60,4 +60,21 @@ export class Payment {
 
   @Column({ type: 'json', nullable: true })
   metadata: any;
+
+  // Champs PayTech
+  @Column({ nullable: true })
+  paytechToken?: string;
+
+  @Column({ nullable: true })
+  paytechReference?: string;
+
+  @Column({ 
+    type: 'enum', 
+    enum: ['bictorys', 'paytech'],
+    default: 'bictorys'
+  })
+  paymentMethod: 'bictorys' | 'paytech';
+
+  @Column({ nullable: true })
+  citizenId?: string;
 } 

@@ -13,7 +13,10 @@ exports.Lawyer = void 0;
 const typeorm_1 = require("typeorm");
 const case_entity_1 = require("./case.entity");
 let Lawyer = class Lawyer {
-    id;
+    _id;
+    get id() {
+        return this._id.toHexString();
+    }
     name;
     email;
     password;
@@ -31,9 +34,9 @@ let Lawyer = class Lawyer {
 };
 exports.Lawyer = Lawyer;
 __decorate([
-    (0, typeorm_1.PrimaryGeneratedColumn)(),
-    __metadata("design:type", Number)
-], Lawyer.prototype, "id", void 0);
+    (0, typeorm_1.ObjectIdColumn)(),
+    __metadata("design:type", typeorm_1.ObjectId)
+], Lawyer.prototype, "_id", void 0);
 __decorate([
     (0, typeorm_1.Column)(),
     __metadata("design:type", String)

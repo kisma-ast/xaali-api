@@ -20,9 +20,9 @@ let PineconeService = PineconeService_1 = class PineconeService {
     index;
     constructor() {
         this.logger.log(` Configuration PineconeService:`);
-        this.logger.log(`  - Index: ${config_1.PINECONE_CONFIG.INDEX_NAME}`);
+        this.logger.log(`  - Index: ${config_1.PINECONE_CONFIG.INDEX_NAME || 'xaali-agent'}`);
         this.logger.log(`  - Dimensions: ${config_1.PINECONE_CONFIG.DIMENSIONS}`);
-        this.logger.log(`  - Environnement: ${config_1.PINECONE_CONFIG.ENVIRONMENT}`);
+        this.logger.log(`  - Environnement: ${config_1.PINECONE_CONFIG.ENVIRONMENT || 'us-east-1'}`);
         this.initializePinecone();
     }
     async initializePinecone() {

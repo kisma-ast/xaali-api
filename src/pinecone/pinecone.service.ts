@@ -40,9 +40,9 @@ export class PineconeService {
 
   constructor() {
     this.logger.log(` Configuration PineconeService:`);
-    this.logger.log(`  - Index: ${PINECONE_CONFIG.INDEX_NAME}`);
+    this.logger.log(`  - Index: ${PINECONE_CONFIG.INDEX_NAME || 'xaali-agent'}`);
     this.logger.log(`  - Dimensions: ${PINECONE_CONFIG.DIMENSIONS}`);
-    this.logger.log(`  - Environnement: ${PINECONE_CONFIG.ENVIRONMENT}`);
+    this.logger.log(`  - Environnement: ${PINECONE_CONFIG.ENVIRONMENT || 'us-east-1'}`);
     this.initializePinecone();
   }
 

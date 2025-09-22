@@ -4,6 +4,9 @@ dotenv.config();
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { checkAIConfig } from './config';
+// Services désactivés temporairement
+// import { DatabaseSetupService } from './database-setup.service';
+// import { SeedDataService } from './seed-data.service';
 
 async function bootstrap() {
   // Vérifier la configuration au démarrage
@@ -11,6 +14,15 @@ async function bootstrap() {
   checkAIConfig();
   
   const app = await NestFactory.create(AppModule);
+  
+  // Base de données désactivée temporairement
+  // const dbSetup = app.get(DatabaseSetupService);
+  // await dbSetup.checkAndSetupDatabase();
+  
+  // const seedData = app.get(SeedDataService);
+  // await seedData.seedAll();
+  
+  console.log('⚠️ Mode sans base de données - Authentification en mémoire uniquement');
   
   // Configuration CORS pour permettre les requêtes depuis le frontend
   // Ajout du support pour Render deployment

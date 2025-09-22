@@ -17,4 +17,8 @@ export declare class Payment {
     completedAt?: Date;
     errorMessage?: string;
     metadata: any;
+    paytechToken?: string;
+    paytechReference?: string;
+    paymentMethod: 'bictorys' | 'paytech';
+    citizenId?: string;
 }

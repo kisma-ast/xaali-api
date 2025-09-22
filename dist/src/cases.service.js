@@ -80,7 +80,7 @@ let CasesService = class CasesService {
         const lawyers = await this.lawyersRepository.find();
         for (const lawyer of lawyers) {
             const notification = this.notificationsRepository.create({
-                lawyerId: lawyer.id,
+                lawyerId: Number(lawyer.id),
                 caseId,
                 type: 'new_case',
                 isRead: false,

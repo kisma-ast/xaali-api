@@ -30,6 +30,10 @@ let Payment = class Payment {
     completedAt;
     errorMessage;
     metadata;
+    paytechToken;
+    paytechReference;
+    paymentMethod;
+    citizenId;
 };
 exports.Payment = Payment;
 __decorate([
@@ -108,6 +112,26 @@ __decorate([
     (0, typeorm_1.Column)({ type: 'json', nullable: true }),
     __metadata("design:type", Object)
 ], Payment.prototype, "metadata", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ nullable: true }),
+    __metadata("design:type", String)
+], Payment.prototype, "paytechToken", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ nullable: true }),
+    __metadata("design:type", String)
+], Payment.prototype, "paytechReference", void 0);
+__decorate([
+    (0, typeorm_1.Column)({
+        type: 'enum',
+        enum: ['bictorys', 'paytech'],
+        default: 'bictorys'
+    }),
+    __metadata("design:type", String)
+], Payment.prototype, "paymentMethod", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ nullable: true }),
+    __metadata("design:type", String)
+], Payment.prototype, "citizenId", void 0);
 exports.Payment = Payment = __decorate([
     (0, typeorm_1.Entity)()
 ], Payment);

@@ -1,6 +1,8 @@
+import { ObjectId } from 'typeorm';
 import { Case } from './case.entity';
 export declare class Lawyer {
-    id: number;
+    _id: ObjectId;
+    get id(): string;
     name: string;
     email: string;
     password: string;

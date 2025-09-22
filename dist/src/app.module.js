@@ -9,22 +9,15 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.AppModule = void 0;
 const common_1 = require("@nestjs/common");
 const config_1 = require("@nestjs/config");
-const typeorm_1 = require("@nestjs/typeorm");
 const app_controller_1 = require("./app.controller");
 const app_service_1 = require("./app.service");
-const users_module_1 = require("./users/users.module");
-const lawyers_module_1 = require("./lawyers.module");
-const cases_module_1 = require("./cases.module");
-const consultations_module_1 = require("./consultations.module");
-const payments_module_1 = require("./payments.module");
-const notifications_module_1 = require("./notifications.module");
-const citizens_module_1 = require("./citizens.module");
-const auth_module_1 = require("./auth.module");
 const webrtc_signaling_gateway_1 = require("./webrtc-signaling.gateway");
 const pinecone_1 = require("./pinecone");
 const legal_assistant_index_1 = require("./legal-assistant.index");
 const bictorys_module_1 = require("./bictorys.module");
+const paytech_module_1 = require("./paytech.module");
 const fine_tuning_service_1 = require("./fine-tuning.service");
+const memory_auth_controller_1 = require("./memory-auth.controller");
 let AppModule = class AppModule {
 };
 exports.AppModule = AppModule;
@@ -32,31 +25,12 @@ exports.AppModule = AppModule = __decorate([
     (0, common_1.Module)({
         imports: [
             config_1.ConfigModule.forRoot({ isGlobal: true }),
-            typeorm_1.TypeOrmModule.forRootAsync({
-                imports: [config_1.ConfigModule],
-                useFactory: (configService) => ({
-                    type: 'mongodb',
-                    url: configService.get('MONGODB_URI'),
-                    database: 'xaali-db',
-                    entities: [__dirname + '/**/*.entity{.ts,.js}'],
-                    synchronize: true,
-                    logging: false,
-                }),
-                inject: [config_1.ConfigService],
-            }),
-            users_module_1.UsersModule,
-            lawyers_module_1.LawyersModule,
-            cases_module_1.CasesModule,
-            consultations_module_1.ConsultationsModule,
-            payments_module_1.PaymentsModule,
-            notifications_module_1.NotificationsModule,
-            citizens_module_1.CitizensModule,
-            auth_module_1.AuthModule,
             pinecone_1.PineconeModule,
             legal_assistant_index_1.LegalAssistantModule,
             bictorys_module_1.BictorysModule,
+            paytech_module_1.PayTechModule,
         ],
-        controllers: [app_controller_1.AppController],
+        controllers: [app_controller_1.AppController, memory_auth_controller_1.MemoryAuthController],
         providers: [app_service_1.AppService, webrtc_signaling_gateway_1.WebRTCSignalingGateway, fine_tuning_service_1.FineTuningService],
     })
 ], AppModule);

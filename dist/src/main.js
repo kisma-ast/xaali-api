@@ -9,6 +9,7 @@ async function bootstrap() {
     console.log('Démarrage de Xaali Backend...');
     (0, config_1.checkAIConfig)();
     const app = await core_1.NestFactory.create(app_module_1.AppModule);
+    console.log('⚠️ Mode sans base de données - Authentification en mémoire uniquement');
     const allowedOrigins = [
         'http://localhost:5173',
         'http://localhost:4173',

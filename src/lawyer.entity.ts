@@ -1,10 +1,14 @@
-import { Entity, PrimaryGeneratedColumn, Column, OneToMany } from 'typeorm';
+import { Entity, ObjectIdColumn, Column, OneToMany, ObjectId } from 'typeorm';
 import { Case } from './case.entity';
 
 @Entity()
 export class Lawyer {
-  @PrimaryGeneratedColumn()
-  id: number;
+  @ObjectIdColumn()
+  _id: ObjectId;
+
+  get id(): string {
+    return this._id.toHexString();
+  }
 
   @Column()
   name: string;
