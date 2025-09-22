@@ -76,6 +76,30 @@ export class MemoryAuthController {
           { id: 'U002', title: 'Garde d\'enfants urgente', client: 'Mme Aïssatou Thiam', priority: 'urgent', deadline: '2024-09-23' }
         ]
       }
+    },
+    {
+      id: '6',
+      name: 'Maître Ndeye Anta Mbaye',
+      email: 'me.ndeyeantambaye@namavocats.com',
+      password: 'Xaali2025!',
+      specialty: 'Droit général',
+      phone: '+221 77 099 68 10',
+      experience: '10 ans',
+      lawFirm: 'NAM Avocats',
+      barNumber: 'BAR006SN',
+      cases: {
+        pending: [
+          { id: 'P004', title: 'Contentieux administratif', client: 'M. Ibrahima Sarr', priority: 'normal', date: '2024-09-22' },
+          { id: 'P005', title: 'Droit des sociétés - Fusion', client: 'Groupe Teranga SA', priority: 'high', date: '2024-09-21' }
+        ],
+        completed: [
+          { id: 'C004', title: 'Conseil juridique entreprise', client: 'SARL Dakar Tech', completedDate: '2024-09-15', result: 'Conseil fourni' },
+          { id: 'C005', title: 'Rédaction contrats commerciaux', client: 'Export Sénégal', completedDate: '2024-09-12', result: 'Contrats validés' }
+        ],
+        urgent: [
+          { id: 'U003', title: 'Procédure d\'urgence tribunal', client: 'Mme Mariama Fall', priority: 'urgent', deadline: '2024-09-24' }
+        ]
+      }
     }
   ];
 

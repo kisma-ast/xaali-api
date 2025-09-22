@@ -99,6 +99,20 @@ export class SeedDataService {
         mobileMoneyAccount: '+221 77 567 89 01',
         pricing: { consultation: 22000, dossier: 120000 },
         paymentMethod: 'mobile_money'
+      },
+      {
+        name: 'Maître Ndeye Anta Mbaye',
+        email: 'me.ndeyeantambaye@namavocats.com',
+        password: await bcrypt.hash('Xaali2025!', 10),
+        specialty: 'Droit général',
+        phone: '+221 77 099 68 10',
+        experience: '10 ans',
+        lawFirm: 'NAM Avocats',
+        barNumber: 'BAR006SN',
+        description: 'Avocate à la Cour, Barreau du Sénégal - Expertise en droit général',
+        mobileMoneyAccount: '+221 77 099 68 10',
+        pricing: { consultation: 35000, dossier: 250000 },
+        paymentMethod: 'mobile_money'
       }
     ];
 
