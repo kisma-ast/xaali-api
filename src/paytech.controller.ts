@@ -48,10 +48,7 @@ export class PayTechController {
         customerName,
         description,
         reference,
-        commandeId,
-        callbackUrl: `${process.env.BACKEND_URL || 'http://localhost:3000'}/api/paytech/callback`,
-        successUrl: `${process.env.FRONTEND_URL || 'http://localhost:5173'}/payment/success`,
-        cancelUrl: `${process.env.FRONTEND_URL || 'http://localhost:5173'}/payment/cancel`
+        commandeId
       };
 
       // Initiate payment with PayTech

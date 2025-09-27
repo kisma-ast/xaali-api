@@ -58,19 +58,17 @@ export class PayTechService {
     const backendUrl = process.env.BACKEND_URL || 'https://xaali-api.onrender.com';
     const frontendUrl = process.env.FRONTEND_URL || 'https://xaali.onrender.com';
     
-    // Auto-detect Cloudoor URLs if needed
-    const detectedFrontendUrl = process.env.FRONTEND_URL || 
-      (process.env.NODE_ENV === 'production' ? 'https://xaali-q6q6bc.live.cloudoor.com' : frontendUrl);
-    
-    this.PAYTECH_CALLBACK_URL = `${backendUrl}/api/paytech/callback`;
-    this.PAYTECH_SUCCESS_URL = `${detectedFrontendUrl}/payment/success`;
-    this.PAYTECH_CANCEL_URL = `${detectedFrontendUrl}/payment/cancel`;
+    this.PAYTECH_CALLBACK_URL = `${backendUrl}/paytech/callback`;
+    this.PAYTECH_SUCCESS_URL = `${frontendUrl}/#/payment/success`;
+    this.PAYTECH_CANCEL_URL = `${frontendUrl}/#/payment/cancel`;
     
     this.logger.log(`Configuration PayTech (${process.env.NODE_ENV || 'development'}):`);
     this.logger.log(`  - API Key: ${this.PAYTECH_API_KEY.substring(0, 10)}...`);
     this.logger.log(`  - Callback URL: ${this.PAYTECH_CALLBACK_URL}`);
     this.logger.log(`  - Success URL: ${this.PAYTECH_SUCCESS_URL}`);
     this.logger.log(`  - Cancel URL: ${this.PAYTECH_CANCEL_URL}`);
+    this.logger.log(`  - Backend URL: ${backendUrl}`);
+    this.logger.log(`  - Frontend URL: ${frontendUrl}`);
     
     // Vérifier que les URLs sont valides
     if (this.PAYTECH_SUCCESS_URL.includes('localhost') && process.env.NODE_ENV === 'production') {
@@ -97,9 +95,14 @@ export class PayTechService {
         command_name: paymentRequest.description,
         env: 'test', // Mode sandbox obligatoire
         ipn_url: this.PAYTECH_CALLBACK_URL,
-        success_url: this.PAYTECH_SUCCESS_URL, 
+        success_url: this.PAYTECH_SUCCESS_URL,
         cancel_url: this.PAYTECH_CANCEL_URL
       };
+      
+      this.logger.log(`[PayTech] URLs utilisées:`);
+      this.logger.log(`  - IPN: ${this.PAYTECH_CALLBACK_URL}`);
+      this.logger.log(`  - Success: ${this.PAYTECH_SUCCESS_URL}`);
+      this.logger.log(`  - Cancel: ${this.PAYTECH_CANCEL_URL}`);
 
       this.logger.log(`[PayTech] Sending data to PayTech: ${JSON.stringify(paytechData)}`);
 
