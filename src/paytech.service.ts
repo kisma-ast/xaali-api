@@ -54,28 +54,28 @@ export class PayTechService {
   private readonly PAYTECH_CANCEL_URL: string;
 
   constructor() {
-    // Set URLs based on environment
-    if (this.DEVELOPMENT_MODE) {
-      // Using ngrok or local tunnel for development
-      const ngrokUrl = process.env.NGROK_URL || 'https://7d5187e33e67.ngrok-free.app';
-      this.PAYTECH_CALLBACK_URL = `${ngrokUrl}/paytech/callback`;
-      this.PAYTECH_SUCCESS_URL = `http://localhost:5173/payment/success`;
-      this.PAYTECH_CANCEL_URL = `http://localhost:5173/payment/cancel`;
-      this.logger.log(`[PayTech] Development mode - Using URLs: ${ngrokUrl}`);
-    } else {
-      // Production URLs
-      const backendUrl = process.env.BACKEND_URL || 'https://xaali-api.onrender.com';
-      const frontendUrl = process.env.FRONTEND_URL || 'https://xaali.onrender.com';
-      this.PAYTECH_CALLBACK_URL = `${backendUrl}/api/paytech/callback`;
-      this.PAYTECH_SUCCESS_URL = `${frontendUrl}/payment/success`;
-      this.PAYTECH_CANCEL_URL = `${frontendUrl}/payment/cancel`;
-    }
+    // Set URLs based on environment - Always use environment variables
+    const backendUrl = process.env.BACKEND_URL || 'https://xaali-api.onrender.com';
+    const frontendUrl = process.env.FRONTEND_URL || 'https://xaali.onrender.com';
+    
+    // Auto-detect Cloudoor URLs if needed
+    const detectedFrontendUrl = process.env.FRONTEND_URL || 
+      (process.env.NODE_ENV === 'production' ? 'https://xaali-q6q6bc.live.cloudoor.com' : frontendUrl);
+    
+    this.PAYTECH_CALLBACK_URL = `${backendUrl}/api/paytech/callback`;
+    this.PAYTECH_SUCCESS_URL = `${detectedFrontendUrl}/payment/success`;
+    this.PAYTECH_CANCEL_URL = `${detectedFrontendUrl}/payment/cancel`;
     
     this.logger.log(`Configuration PayTech (${process.env.NODE_ENV || 'development'}):`);
     this.logger.log(`  - API Key: ${this.PAYTECH_API_KEY.substring(0, 10)}...`);
     this.logger.log(`  - Callback URL: ${this.PAYTECH_CALLBACK_URL}`);
     this.logger.log(`  - Success URL: ${this.PAYTECH_SUCCESS_URL}`);
     this.logger.log(`  - Cancel URL: ${this.PAYTECH_CANCEL_URL}`);
+    
+    // Vérifier que les URLs sont valides
+    if (this.PAYTECH_SUCCESS_URL.includes('localhost') && process.env.NODE_ENV === 'production') {
+      this.logger.warn('⚠️ URLs localhost détectées en production - Vérifiez FRONTEND_URL');
+    }
   }
 
   /**
