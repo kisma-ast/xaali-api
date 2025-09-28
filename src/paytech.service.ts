@@ -54,13 +54,38 @@ export class PayTechService {
   private readonly PAYTECH_CANCEL_URL: string;
 
   constructor() {
-    // Set URLs based on environment - Always use environment variables
-    const backendUrl = process.env.BACKEND_URL || 'https://xaali-api.onrender.com';
-    const frontendUrl = process.env.FRONTEND_URL || 'https://xaali.onrender.com';
+    // Auto-detect URLs based on deployment platform
+    let backendUrl = process.env.BACKEND_URL;
+    let frontendUrl = process.env.FRONTEND_URL;
     
-    this.PAYTECH_CALLBACK_URL = `${backendUrl}/paytech/callback`;
-    this.PAYTECH_SUCCESS_URL = `${frontendUrl}/#/payment/success`;
-    this.PAYTECH_CANCEL_URL = `${frontendUrl}/#/payment/cancel`;
+    // Force correct URLs based on platform detection
+    if (process.env.NODE_ENV === 'production') {
+      // Check multiple Render environment indicators
+      const isRender = process.env.RENDER_SERVICE_NAME || 
+                      process.env.RENDER || 
+                      process.env.RENDER_EXTERNAL_URL ||
+                      (typeof process.env.PORT !== 'undefined' && !process.env.VERCEL);
+      
+      if (isRender) {
+        // Force Render URLs
+        backendUrl = 'https://xaali-api.onrender.com';
+        frontendUrl = 'https://xaali.onrender.com';
+        this.logger.log('[PayTech] Forcing Render platform URLs');
+      } else {
+        // Default to Cloudoor
+        backendUrl = backendUrl || 'https://xaali-api-cx432k.live.cloudoor.com';
+        frontendUrl = frontendUrl || 'https://xaali-q6q6bc.live.cloudoor.com';
+        this.logger.log('[PayTech] Using Cloudoor URLs');
+      }
+    } else {
+      backendUrl = backendUrl || 'http://localhost:3000';
+      frontendUrl = frontendUrl || 'http://localhost:5173';
+      this.logger.log('[PayTech] Using localhost URLs for development');
+    }
+    
+    this.PAYTECH_CALLBACK_URL = `${backendUrl}/api/paytech/callback`;
+    this.PAYTECH_SUCCESS_URL = `${frontendUrl}/payment/success`;
+    this.PAYTECH_CANCEL_URL = `${frontendUrl}/payment/cancel`;
     
     this.logger.log(`Configuration PayTech (${process.env.NODE_ENV || 'development'}):`);
     this.logger.log(`  - API Key: ${this.PAYTECH_API_KEY.substring(0, 10)}...`);
