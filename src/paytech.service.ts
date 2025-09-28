@@ -54,38 +54,25 @@ export class PayTechService {
   private readonly PAYTECH_CANCEL_URL: string;
 
   constructor() {
-    // Auto-detect URLs based on deployment platform
-    let backendUrl = process.env.BACKEND_URL;
-    let frontendUrl = process.env.FRONTEND_URL;
+    // Force production URLs to avoid any localhost issues
+    let backendUrl: string;
+    let frontendUrl: string;
     
-    // Force correct URLs based on platform detection
     if (process.env.NODE_ENV === 'production') {
-      // Check multiple Render environment indicators
-      const isRender = process.env.RENDER_SERVICE_NAME || 
-                      process.env.RENDER || 
-                      process.env.RENDER_EXTERNAL_URL ||
-                      (typeof process.env.PORT !== 'undefined' && !process.env.VERCEL);
-      
-      if (isRender) {
-        // Force Render URLs
-        backendUrl = 'https://xaali-api.onrender.com';
-        frontendUrl = 'https://xaali.onrender.com';
-        this.logger.log('[PayTech] Forcing Render platform URLs');
-      } else {
-        // Default to Cloudoor
-        backendUrl = backendUrl || 'https://xaali-api-cx432k.live.cloudoor.com';
-        frontendUrl = frontendUrl || 'https://xaali-q6q6bc.live.cloudoor.com';
-        this.logger.log('[PayTech] Using Cloudoor URLs');
-      }
+      // Always use production URLs in production
+      backendUrl = 'https://xaali-api.onrender.com';
+      frontendUrl = 'https://xaali.onrender.com';
+      this.logger.log('[PayTech] Using FORCED production URLs');
     } else {
-      backendUrl = backendUrl || 'http://localhost:3000';
-      frontendUrl = frontendUrl || 'http://localhost:5173';
+      // Only use localhost in development
+      backendUrl = 'http://localhost:3000';
+      frontendUrl = 'http://localhost:5173';
       this.logger.log('[PayTech] Using localhost URLs for development');
     }
     
     this.PAYTECH_CALLBACK_URL = `${backendUrl}/api/paytech/callback`;
-    this.PAYTECH_SUCCESS_URL = `${frontendUrl}/payment/success`;
-    this.PAYTECH_CANCEL_URL = `${frontendUrl}/payment/cancel`;
+    this.PAYTECH_SUCCESS_URL = `${frontendUrl}/success`;
+    this.PAYTECH_CANCEL_URL = `${frontendUrl}/cancel`;
     
     this.logger.log(`Configuration PayTech (${process.env.NODE_ENV || 'development'}):`);
     this.logger.log(`  - API Key: ${this.PAYTECH_API_KEY.substring(0, 10)}...`);
@@ -97,7 +84,11 @@ export class PayTechService {
     
     // Vérifier que les URLs sont valides
     if (this.PAYTECH_SUCCESS_URL.includes('localhost') && process.env.NODE_ENV === 'production') {
-      this.logger.warn('⚠️ URLs localhost détectées en production - Vérifiez FRONTEND_URL');
+      this.logger.error('🚫 ERREUR CRITIQUE: URLs localhost en production!');
+      this.logger.error('Success URL:', this.PAYTECH_SUCCESS_URL);
+      this.logger.error('Cancel URL:', this.PAYTECH_CANCEL_URL);
+    } else {
+      this.logger.log('✅ URLs PayTech valides pour la production');
     }
   }
 
@@ -123,6 +114,12 @@ export class PayTechService {
         success_url: this.PAYTECH_SUCCESS_URL,
         cancel_url: this.PAYTECH_CANCEL_URL
       };
+      
+      // Vérifier que les URLs sont valides
+      this.logger.log(`[PayTech] Validation des URLs:`);
+      this.logger.log(`  - Success URL valide: ${this.isValidUrl(this.PAYTECH_SUCCESS_URL)}`);
+      this.logger.log(`  - Cancel URL valide: ${this.isValidUrl(this.PAYTECH_CANCEL_URL)}`);
+      this.logger.log(`  - IPN URL valide: ${this.isValidUrl(this.PAYTECH_CALLBACK_URL)}`);
       
       this.logger.log(`[PayTech] URLs utilisées:`);
       this.logger.log(`  - IPN: ${this.PAYTECH_CALLBACK_URL}`);
@@ -211,6 +208,18 @@ export class PayTechService {
     } catch (error) {
       this.logger.error(`Error checking PayTech payment status for ${transactionId}:`, error);
       throw error;
+    }
+  }
+
+  /**
+   * Vérifie si une URL est valide
+   */
+  private isValidUrl(urlString: string): boolean {
+    try {
+      const url = new URL(urlString);
+      return url.protocol === 'http:' || url.protocol === 'https:';
+    } catch {
+      return false;
     }
   }
 
