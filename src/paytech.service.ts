@@ -70,9 +70,9 @@ export class PayTechService {
       this.logger.log('[PayTech] Using localhost URLs for development');
     }
     
-    this.PAYTECH_CALLBACK_URL = `${backendUrl}/api/paytech/callback`;
-    this.PAYTECH_SUCCESS_URL = `${frontendUrl}/success`;
-    this.PAYTECH_CANCEL_URL = `${frontendUrl}/cancel`;
+    this.PAYTECH_CALLBACK_URL = `${backendUrl}/paytech/callback`;
+    this.PAYTECH_SUCCESS_URL = `${frontendUrl}/#/payment/success`;
+    this.PAYTECH_CANCEL_URL = `${frontendUrl}/#/payment/cancel`;
     
     this.logger.log(`Configuration PayTech (${process.env.NODE_ENV || 'development'}):`);
     this.logger.log(`  - API Key: ${this.PAYTECH_API_KEY.substring(0, 10)}...`);
@@ -104,15 +104,16 @@ export class PayTechService {
 
       // PayTech official API request structure selon la documentation
       const paytechData = {
-        item_name: paymentRequest.description,
+        item_name: paymentRequest.description.substring(0, 100),
         item_price: Math.round(paymentRequest.amount),
         currency: 'XOF',
         ref_command: paymentRequest.reference,
-        command_name: paymentRequest.description,
-        env: 'test', // Mode sandbox obligatoire
+        command_name: paymentRequest.description.substring(0, 100),
+        env: 'test',
         ipn_url: this.PAYTECH_CALLBACK_URL,
         success_url: this.PAYTECH_SUCCESS_URL,
-        cancel_url: this.PAYTECH_CANCEL_URL
+        cancel_url: this.PAYTECH_CANCEL_URL,
+        with_mobile_money: '1'
       };
       
       // Vérifier que les URLs sont valides
@@ -278,7 +279,7 @@ export class PayTechService {
   /**
    * Génère une référence unique pour les paiements
    */
-  generateReference(prefix: string = 'XAALI_PAYTECH'): string {
+  generateReference(prefix: string = 'XAALI_PxAYTECH'): string {
     const timestamp = Date.now();
     const random = Math.random().toString(36).substring(2, 8).toUpperCase();
     return `${prefix}_${timestamp}_${random}`;
