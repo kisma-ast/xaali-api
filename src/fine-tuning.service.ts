@@ -60,7 +60,7 @@ export class FineTuningService {
   private async generateFineTunedResponse(query: FineTuningQuery): Promise<any> {
     try {
       // Prompt optimisé pour modèle fine-tuned
-      const systemPrompt = `Tu es un assistant juridique expert du droit sénégalais. Tu as été spécifiquement entraîné sur la législation sénégalaise, y compris les codes, lois, décrets et réglementations locales. Réponds avec précision en citant les références légales exactes.`;
+      const systemPrompt = `Tu es un assistant juridique expert du droit sénégalais. Tu as été spécifiquement entraîné sur la législation sénégalaise, y compris les codes, lois, décrets et réglementations locales. Réponds avec précision en citant les références légales exactes. IMPORTANT: Adresse-toi directement à la personne qui pose la question en utilisant "vous" et "votre" au lieu de "le demandeur", "le salarié", etc.`;
 
       const userPrompt = `Question: ${query.question}
 Contexte: ${query.context || 'Demande générale'}
@@ -69,7 +69,7 @@ Catégorie: ${query.category || 'Droit général'}
 Réponds en JSON avec le format suivant:
 {
   "title": "Titre concis",
-  "content": "Réponse détaillée avec références légales",
+  "content": "Réponse détaillée avec références légales - UTILISE 'vous' et 'votre' pour t'adresser directement à la personne",
   "summary": "Résumé en 1-2 phrases",
   "confidence": "Élevé/Moyen/Faible",
   "nextSteps": ["Étape 1", "Étape 2"],
