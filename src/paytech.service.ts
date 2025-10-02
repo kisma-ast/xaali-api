@@ -115,7 +115,11 @@ export class PayTechService {
         cancel_url: this.PAYTECH_CANCEL_URL
       };
 
-      this.logger.log(`[PayTech] Sending data to PayTech: ${JSON.stringify(paytechData)}`);
+      this.logger.log(`[PayTech] 🔍 DONNÉES ENVOYÉES:`);
+      this.logger.log(`[PayTech] - URL: ${this.PAYTECH_BASE_URL}`);
+      this.logger.log(`[PayTech] - Data: ${JSON.stringify(paytechData)}`);
+      this.logger.log(`[PayTech] - API Key: ${this.PAYTECH_API_KEY.substring(0, 10)}...`);
+      this.logger.log(`[PayTech] - Secret Key: ${this.PAYTECH_SECRET_KEY.substring(0, 10)}...`);
 
       // PayTech headers selon documentation
       const headers = {
@@ -124,45 +128,66 @@ export class PayTechService {
         'Content-Type': 'application/x-www-form-urlencoded'
       };
 
+      this.logger.log(`[PayTech] 📡 HEADERS: ${JSON.stringify(headers)}`);
+      
+      const formData = new URLSearchParams(paytechData as any);
+      this.logger.log(`[PayTech] 📦 FORM DATA: ${formData.toString()}`);
+
       // Make request selon documentation PayTech
       const response = await fetch(this.PAYTECH_BASE_URL, {
         method: 'POST',
-        body: new URLSearchParams(paytechData as any),
+        body: formData,
         headers: headers
       });
 
-      this.logger.log(`[PayTech] Response status: ${response.status}`);
+      this.logger.log(`[PayTech] 📬 RÉPONSE STATUS: ${response.status}`);
+      this.logger.log(`[PayTech] 📬 RÉPONSE HEADERS: ${JSON.stringify(Object.fromEntries(response.headers.entries()))}`);
+
+      const responseText = await response.text();
+      this.logger.log(`[PayTech] 📬 RÉPONSE BRUTE: ${responseText}`);
 
       if (response.ok) {
-        const paytechResponse = await response.json();
-        this.logger.log(`[PayTech] Parsed response: ${JSON.stringify(paytechResponse)}`);
+        try {
+          const paytechResponse = JSON.parse(responseText);
+          this.logger.log(`[PayTech] ✅ RÉPONSE PARSÉE: ${JSON.stringify(paytechResponse)}`);
 
-        // Check success based on official documentation
-        if (paytechResponse.success === 1 || paytechResponse.success === true) {
-          return {
-            success: true,
-            redirectUrl: paytechResponse.redirect_url,
-            token: paytechResponse.token,
-            reference: paytechResponse.ref,
-            transactionId: paymentRequest.reference,
-            message: 'Paiement PayTech créé avec succès'
-          };
-        } else {
-          const errorMsg = paytechResponse.message || 'Erreur PayTech inconnue';
-          this.logger.error(`[PayTech] Payment failed: ${errorMsg}`);
+          // Check success based on official documentation
+          if (paytechResponse.success === 1 || paytechResponse.success === true) {
+            this.logger.log(`[PayTech] 🎉 PAIEMENT CRÉÉ AVEC SUCCÈS`);
+            return {
+              success: true,
+              redirectUrl: paytechResponse.redirect_url,
+              token: paytechResponse.token,
+              reference: paytechResponse.ref,
+              transactionId: paymentRequest.reference,
+              message: 'Paiement PayTech créé avec succès'
+            };
+          } else {
+            const errorMsg = paytechResponse.message || 'Erreur PayTech inconnue';
+            this.logger.error(`[PayTech] ❌ ÉCHEC PAIEMENT: ${errorMsg}`);
+            this.logger.error(`[PayTech] ❌ RÉPONSE COMPLÈTE: ${JSON.stringify(paytechResponse)}`);
+            return {
+              success: false,
+              message: errorMsg,
+              transactionId: paymentRequest.reference
+            };
+          }
+        } catch (parseError) {
+          this.logger.error(`[PayTech] ❌ ERREUR PARSING JSON: ${parseError.message}`);
+          this.logger.error(`[PayTech] ❌ RÉPONSE BRUTE: ${responseText}`);
           return {
             success: false,
-            message: errorMsg,
+            message: `Erreur parsing réponse PayTech: ${parseError.message}`,
             transactionId: paymentRequest.reference
           };
         }
       } else {
-        const errorText = await response.text();
-        this.logger.error(`[PayTech] HTTP Error: ${response.status} - ${errorText}`);
+        this.logger.error(`[PayTech] ❌ HTTP ERROR ${response.status}`);
+        this.logger.error(`[PayTech] ❌ RÉPONSE: ${responseText}`);
         
         return {
           success: false,
-          message: `Erreur de connexion PayTech: ${response.status}`,
+          message: `Erreur de connexion PayTech: ${response.status} - ${responseText}`,
           transactionId: paymentRequest.reference
         };
       }
