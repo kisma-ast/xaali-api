@@ -104,16 +104,15 @@ export class PayTechService {
 
       // PayTech official API request structure selon la documentation
       const paytechData = {
-        item_name: paymentRequest.description.substring(0, 100),
+        item_name: 'Consultation Xaali',
         item_price: Math.round(paymentRequest.amount),
         currency: 'XOF',
         ref_command: paymentRequest.reference,
-        command_name: paymentRequest.description.substring(0, 100),
+        command_name: 'Consultation Xaali',
         env: 'test',
         ipn_url: this.PAYTECH_CALLBACK_URL,
         success_url: this.PAYTECH_SUCCESS_URL,
-        cancel_url: this.PAYTECH_CANCEL_URL,
-        with_mobile_money: '1'
+        cancel_url: this.PAYTECH_CANCEL_URL
       };
       
       // Vérifier que les URLs sont valides
