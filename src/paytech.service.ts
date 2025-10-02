@@ -102,17 +102,13 @@ export class PayTechService {
       // REAL PAYTECH API CALL
       this.logger.log("[PayTech] Making real API call to PayTech");
 
-      // PayTech official API request structure selon la documentation
+      // PayTech minimal request structure
       const paytechData = {
-        item_name: 'Consultation Xaali',
+        item_name: 'Xaali',
         item_price: Math.round(paymentRequest.amount),
         currency: 'XOF',
-        ref_command: paymentRequest.reference,
-        command_name: 'Consultation Xaali',
-        env: 'test',
-        ipn_url: this.PAYTECH_CALLBACK_URL,
-        success_url: this.PAYTECH_SUCCESS_URL,
-        cancel_url: this.PAYTECH_CANCEL_URL
+        ref_command: paymentRequest.reference.substring(0, 20),
+        env: 'test'
       };
       
       // Vérifier que les URLs sont valides
@@ -128,18 +124,17 @@ export class PayTechService {
 
       this.logger.log(`[PayTech] Sending data to PayTech: ${JSON.stringify(paytechData)}`);
 
-      // Official PayTech headers structure
+      // PayTech headers
       const headers = {
         'API_KEY': this.PAYTECH_API_KEY,
         'API_SECRET': this.PAYTECH_SECRET_KEY,
-        'Content-Type': 'application/x-www-form-urlencoded'
+        'Content-Type': 'application/json'
       };
 
-      // Make request to official PayTech API
+      // Make request to PayTech API
       const response = await fetch(this.PAYTECH_BASE_URL, {
         method: 'POST',
-        // @ts-ignore
-        body: new URLSearchParams(paytechData),
+        body: JSON.stringify(paytechData),
         headers: headers
       });
 
