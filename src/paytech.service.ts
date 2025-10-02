@@ -102,39 +102,32 @@ export class PayTechService {
       // REAL PAYTECH API CALL
       this.logger.log("[PayTech] Making real API call to PayTech");
 
-      // PayTech minimal request structure
+      // PayTech official request structure selon documentation
       const paytechData = {
-        item_name: 'Xaali',
+        item_name: 'Consultation Xaali',
         item_price: Math.round(paymentRequest.amount),
         currency: 'XOF',
-        ref_command: paymentRequest.reference.substring(0, 20),
-        env: 'test'
+        ref_command: paymentRequest.reference,
+        command_name: 'Consultation Xaali',
+        env: 'test',
+        ipn_url: this.PAYTECH_CALLBACK_URL,
+        success_url: this.PAYTECH_SUCCESS_URL,
+        cancel_url: this.PAYTECH_CANCEL_URL
       };
-      
-      // Vérifier que les URLs sont valides
-      this.logger.log(`[PayTech] Validation des URLs:`);
-      this.logger.log(`  - Success URL valide: ${this.isValidUrl(this.PAYTECH_SUCCESS_URL)}`);
-      this.logger.log(`  - Cancel URL valide: ${this.isValidUrl(this.PAYTECH_CANCEL_URL)}`);
-      this.logger.log(`  - IPN URL valide: ${this.isValidUrl(this.PAYTECH_CALLBACK_URL)}`);
-      
-      this.logger.log(`[PayTech] URLs utilisées:`);
-      this.logger.log(`  - IPN: ${this.PAYTECH_CALLBACK_URL}`);
-      this.logger.log(`  - Success: ${this.PAYTECH_SUCCESS_URL}`);
-      this.logger.log(`  - Cancel: ${this.PAYTECH_CANCEL_URL}`);
 
       this.logger.log(`[PayTech] Sending data to PayTech: ${JSON.stringify(paytechData)}`);
 
-      // PayTech headers
+      // PayTech headers selon documentation
       const headers = {
         'API_KEY': this.PAYTECH_API_KEY,
         'API_SECRET': this.PAYTECH_SECRET_KEY,
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/x-www-form-urlencoded'
       };
 
-      // Make request to PayTech API
+      // Make request selon documentation PayTech
       const response = await fetch(this.PAYTECH_BASE_URL, {
         method: 'POST',
-        body: JSON.stringify(paytechData),
+        body: new URLSearchParams(paytechData as any),
         headers: headers
       });
 
