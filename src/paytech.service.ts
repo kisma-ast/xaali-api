@@ -54,42 +54,24 @@ export class PayTechService {
   private readonly PAYTECH_CANCEL_URL: string;
 
   constructor() {
-    // Force production URLs to avoid any localhost issues
-    let backendUrl: string;
-    let frontendUrl: string;
-    
-    if (process.env.NODE_ENV === 'production') {
-      // Always use production URLs in production
-      backendUrl = 'https://xaali-api.onrender.com';
-      frontendUrl = 'https://xaali.onrender.com';
-      this.logger.log('[PayTech] Using FORCED production URLs');
-    } else {
-      // Only use localhost in development
-      backendUrl = 'http://localhost:3000';
-      frontendUrl = 'http://localhost:5173';
-      this.logger.log('[PayTech] Using localhost URLs for development');
-    }
+    // FORCE production URLs - PayTech requires HTTPS
+    const backendUrl = 'https://xaali-api.onrender.com';
+    const frontendUrl = 'https://xaali.onrender.com';
     
     this.PAYTECH_CALLBACK_URL = `${backendUrl}/paytech/callback`;
     this.PAYTECH_SUCCESS_URL = `${frontendUrl}/#/payment/success`;
     this.PAYTECH_CANCEL_URL = `${frontendUrl}/#/payment/cancel`;
     
-    this.logger.log(`Configuration PayTech (${process.env.NODE_ENV || 'development'}):`);
+    this.logger.log('[PayTech] FORCED production URLs for PayTech HTTPS requirement');
+    
+    this.logger.log(`Configuration PayTech:`);
     this.logger.log(`  - API Key: ${this.PAYTECH_API_KEY.substring(0, 10)}...`);
     this.logger.log(`  - Callback URL: ${this.PAYTECH_CALLBACK_URL}`);
     this.logger.log(`  - Success URL: ${this.PAYTECH_SUCCESS_URL}`);
     this.logger.log(`  - Cancel URL: ${this.PAYTECH_CANCEL_URL}`);
     this.logger.log(`  - Backend URL: ${backendUrl}`);
     this.logger.log(`  - Frontend URL: ${frontendUrl}`);
-    
-    // Vérifier que les URLs sont valides
-    if (this.PAYTECH_SUCCESS_URL.includes('localhost') && process.env.NODE_ENV === 'production') {
-      this.logger.error('🚫 ERREUR CRITIQUE: URLs localhost en production!');
-      this.logger.error('Success URL:', this.PAYTECH_SUCCESS_URL);
-      this.logger.error('Cancel URL:', this.PAYTECH_CANCEL_URL);
-    } else {
-      this.logger.log('✅ URLs PayTech valides pour la production');
-    }
+    this.logger.log('✅ URLs PayTech HTTPS forcées pour production');
   }
 
   /**
