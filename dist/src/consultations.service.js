@@ -32,21 +32,17 @@ let ConsultationsService = class ConsultationsService {
         const newConsultation = this.consultationsRepository.create(consultation);
         return this.consultationsRepository.save(newConsultation);
     }
-    update(id, consultation) {
-        return this.consultationsRepository.save({ id, ...consultation });
+    async update(id, consultation) {
+        await this.consultationsRepository.update(id, consultation);
+        return this.findOne(id);
     }
     async remove(id) {
         await this.consultationsRepository.delete(id);
     }
     async createVideoConsultation(consultationData) {
-        const meetingId = this.generateMeetingId();
-        const meetingPassword = this.generateMeetingPassword();
         const consultation = this.consultationsRepository.create({
             ...consultationData,
-            meetingId,
-            meetingPassword,
-            status: 'pending',
-            meetingUrl: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/consultation/${meetingId}`,
+            status: 'pending'
         });
         return this.consultationsRepository.save(consultation);
     }
@@ -55,9 +51,6 @@ let ConsultationsService = class ConsultationsService {
         if (!consultation)
             return null;
         consultation.status = 'active';
-        consultation.startTime = new Date();
-        consultation.isVideoEnabled = true;
-        consultation.isAudioEnabled = true;
         return this.consultationsRepository.save(consultation);
     }
     async endConsultation(id) {
@@ -65,11 +58,10 @@ let ConsultationsService = class ConsultationsService {
         if (!consultation)
             return null;
         consultation.status = 'completed';
-        consultation.endTime = new Date();
         return this.consultationsRepository.save(consultation);
     }
     async findByMeetingId(meetingId) {
-        return this.consultationsRepository.findOne({ where: { meetingId } });
+        return this.consultationsRepository.findOne({ where: { id: meetingId } });
     }
     async findByStatus(status) {
         return this.consultationsRepository.find({ where: { status } });

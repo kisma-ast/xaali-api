@@ -14,7 +14,10 @@ const typeorm_1 = require("typeorm");
 const lawyer_entity_1 = require("./lawyer.entity");
 const case_entity_1 = require("./case.entity");
 let LawyerNotification = class LawyerNotification {
-    id;
+    _id;
+    get id() {
+        return this._id.toHexString();
+    }
     lawyerId;
     caseId;
     type;
@@ -26,16 +29,16 @@ let LawyerNotification = class LawyerNotification {
 };
 exports.LawyerNotification = LawyerNotification;
 __decorate([
-    (0, typeorm_1.PrimaryGeneratedColumn)(),
-    __metadata("design:type", Number)
-], LawyerNotification.prototype, "id", void 0);
+    (0, typeorm_1.ObjectIdColumn)(),
+    __metadata("design:type", typeorm_1.ObjectId)
+], LawyerNotification.prototype, "_id", void 0);
 __decorate([
     (0, typeorm_1.Column)(),
-    __metadata("design:type", Number)
+    __metadata("design:type", String)
 ], LawyerNotification.prototype, "lawyerId", void 0);
 __decorate([
     (0, typeorm_1.Column)(),
-    __metadata("design:type", Number)
+    __metadata("design:type", String)
 ], LawyerNotification.prototype, "caseId", void 0);
 __decorate([
     (0, typeorm_1.Column)({ default: 'new_case' }),
@@ -50,7 +53,7 @@ __decorate([
     __metadata("design:type", Boolean)
 ], LawyerNotification.prototype, "isAccepted", void 0);
 __decorate([
-    (0, typeorm_1.CreateDateColumn)(),
+    (0, typeorm_1.Column)(),
     __metadata("design:type", Date)
 ], LawyerNotification.prototype, "createdAt", void 0);
 __decorate([

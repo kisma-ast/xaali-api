@@ -14,26 +14,45 @@ const typeorm_1 = require("typeorm");
 const citizen_entity_1 = require("./citizen.entity");
 const lawyer_entity_1 = require("./lawyer.entity");
 let Case = class Case {
-    id;
+    _id;
+    get id() {
+        return this._id.toHexString();
+    }
     title;
     description;
     status;
     citizenId;
+    category;
+    citizenName;
+    citizenPhone;
+    citizenEmail;
     lawyerId;
+    urgency;
+    estimatedTime;
     isPaid;
     paymentAmount;
     paymentId;
-    lawyerNotified;
-    assignedLawyerId;
+    acceptedAt;
+    aiResponse;
+    clientQuestion;
+    firstQuestion;
+    firstResponse;
+    secondQuestion;
+    secondResponse;
+    thirdQuestion;
+    thirdResponse;
+    trackingCode;
+    trackingToken;
+    lawyerName;
     createdAt;
     citizen;
     lawyer;
 };
 exports.Case = Case;
 __decorate([
-    (0, typeorm_1.PrimaryGeneratedColumn)(),
-    __metadata("design:type", Number)
-], Case.prototype, "id", void 0);
+    (0, typeorm_1.ObjectIdColumn)(),
+    __metadata("design:type", typeorm_1.ObjectId)
+], Case.prototype, "_id", void 0);
 __decorate([
     (0, typeorm_1.Column)(),
     __metadata("design:type", String)
@@ -52,8 +71,32 @@ __decorate([
 ], Case.prototype, "citizenId", void 0);
 __decorate([
     (0, typeorm_1.Column)({ nullable: true }),
-    __metadata("design:type", Number)
+    __metadata("design:type", String)
+], Case.prototype, "category", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ nullable: true }),
+    __metadata("design:type", String)
+], Case.prototype, "citizenName", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ nullable: true }),
+    __metadata("design:type", String)
+], Case.prototype, "citizenPhone", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ nullable: true }),
+    __metadata("design:type", String)
+], Case.prototype, "citizenEmail", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ nullable: true }),
+    __metadata("design:type", String)
 ], Case.prototype, "lawyerId", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ default: 'normal' }),
+    __metadata("design:type", String)
+], Case.prototype, "urgency", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ default: 30 }),
+    __metadata("design:type", Number)
+], Case.prototype, "estimatedTime", void 0);
 __decorate([
     (0, typeorm_1.Column)({ default: false }),
     __metadata("design:type", Boolean)
@@ -67,15 +110,55 @@ __decorate([
     __metadata("design:type", String)
 ], Case.prototype, "paymentId", void 0);
 __decorate([
-    (0, typeorm_1.Column)({ default: false }),
-    __metadata("design:type", Boolean)
-], Case.prototype, "lawyerNotified", void 0);
+    (0, typeorm_1.Column)({ nullable: true }),
+    __metadata("design:type", Date)
+], Case.prototype, "acceptedAt", void 0);
 __decorate([
     (0, typeorm_1.Column)({ nullable: true }),
-    __metadata("design:type", Number)
-], Case.prototype, "assignedLawyerId", void 0);
+    __metadata("design:type", String)
+], Case.prototype, "aiResponse", void 0);
 __decorate([
-    (0, typeorm_1.CreateDateColumn)(),
+    (0, typeorm_1.Column)({ nullable: true }),
+    __metadata("design:type", String)
+], Case.prototype, "clientQuestion", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ nullable: true }),
+    __metadata("design:type", String)
+], Case.prototype, "firstQuestion", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ nullable: true }),
+    __metadata("design:type", String)
+], Case.prototype, "firstResponse", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ nullable: true }),
+    __metadata("design:type", String)
+], Case.prototype, "secondQuestion", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ nullable: true }),
+    __metadata("design:type", String)
+], Case.prototype, "secondResponse", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ nullable: true }),
+    __metadata("design:type", String)
+], Case.prototype, "thirdQuestion", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ nullable: true }),
+    __metadata("design:type", String)
+], Case.prototype, "thirdResponse", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ nullable: true }),
+    __metadata("design:type", String)
+], Case.prototype, "trackingCode", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ nullable: true }),
+    __metadata("design:type", String)
+], Case.prototype, "trackingToken", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ nullable: true }),
+    __metadata("design:type", String)
+], Case.prototype, "lawyerName", void 0);
+__decorate([
+    (0, typeorm_1.Column)(),
     __metadata("design:type", Date)
 ], Case.prototype, "createdAt", void 0);
 __decorate([

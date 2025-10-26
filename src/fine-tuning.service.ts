@@ -60,21 +60,39 @@ export class FineTuningService {
   private async generateFineTunedResponse(query: FineTuningQuery): Promise<any> {
     try {
       // Prompt optimisé pour modèle fine-tuned
-      const systemPrompt = `Tu es un assistant juridique expert du droit sénégalais. Tu as été spécifiquement entraîné sur la législation sénégalaise, y compris les codes, lois, décrets et réglementations locales. Réponds avec précision en citant les références légales exactes. IMPORTANT: Adresse-toi directement à la personne qui pose la question en utilisant "vous" et "votre" au lieu de "le demandeur", "le salarié", etc.`;
+      const systemPrompt = `Tu es Xaali-IA, assistant juridique expert du droit sénégalais. Tu réponds à TOUTES les questions en trouvant l'aspect juridique sénégalais pertinent. Même pour des questions générales, identifie les implications légales au Sénégal. Tu maîtrises parfaitement tous les codes, lois, décrets et réglementations du Sénégal. Réponds TOUJOURS avec des références légales sénégalaises concrètes. Utilise "vous" et "votre" pour t'adresser à la personne.`;
 
-      const userPrompt = `Question: ${query.question}
-Contexte: ${query.context || 'Demande générale'}
+      // Adapter le prompt selon le contexte
+      let userPrompt = '';
+      
+      if (query.context === 'title_generation') {
+        // Prompt spécifique pour la génération de titres
+        userPrompt = `Génère un titre juridique court et précis (maximum 8 mots) pour cette consultation: "${query.question}"
 Catégorie: ${query.category || 'Droit général'}
 
-Réponds en JSON avec le format suivant:
+Le titre doit être professionnel, indiquer clairement le type de problème juridique, et être adapté pour un tableau de bord d'avocat.
+
+Exemples de bons titres:
+- "Licenciement abusif - Demande d'indemnisation"
+- "Conflit successoral entre héritiers"
+- "Rupture de contrat commercial"
+- "Divorce pour faute - Garde d'enfants"
+
+Réponds uniquement avec le titre, sans guillemets ni ponctuation finale.`;
+      } else {
+        // Prompt normal pour les réponses complètes
+        userPrompt = `Question: ${query.question}
+Catégorie: ${query.category || 'Droit général'}
+
+Tu DOIS répondre à cette question en trouvant l'angle juridique sénégalais. Fournis des détails explicatifs sur les lois citées. Format JSON:
 {
-  "title": "Titre concis",
-  "content": "Réponse détaillée avec références légales - UTILISE 'vous' et 'votre' pour t'adresser directement à la personne",
-  "summary": "Résumé en 1-2 phrases",
-  "confidence": "Élevé/Moyen/Faible",
-  "nextSteps": ["Étape 1", "Étape 2"],
-  "relatedTopics": ["Sujet 1", "Sujet 2"]
+  "title": "Titre juridique précis",
+  "content": "Réponse détaillée: 1) Article de loi sénégalais spécifique, 2) Explication de ce que dit cette loi, 3) Comment elle s'applique à votre situation, 4) Conséquences pratiques. 4-5 phrases explicatives.",
+  "summary": "Résumé des droits et obligations en 2 phrases",
+  "nextSteps": ["Documents à préparer", "Démarches précises", "Spécialiste recommandé"],
+  "confidence": "Élevé/Moyen/Faible"
 }`;
+      }
 
       this.logger.log(`🤖 Appel à l'API OpenAI avec le modèle fine-tuned: ${AI_CONFIG.MODELS.OPENAI}`);
       
@@ -97,7 +115,7 @@ Réponds en JSON avec le format suivant:
             }
           ],
           temperature: 0.1,
-          max_tokens: 800
+          max_tokens: 900
         }),
       });
 
@@ -110,14 +128,23 @@ Réponds en JSON avec le format suivant:
       const data = await response.json();
       const responseText = data.choices[0].message.content;
 
-      // Parser la réponse JSON
-      try {
-        const parsedResponse = JSON.parse(responseText);
-        return parsedResponse;
-      } catch (parseError) {
-        this.logger.error('Error parsing OpenAI response:', parseError);
-        // Fallback: créer une réponse basique
-        return this.createFallbackResponse(query);
+      // Parser la réponse selon le contexte
+      if (query.context === 'title_generation') {
+        // Pour la génération de titre, retourner directement le texte
+        return {
+          title: responseText.trim(),
+          content: responseText.trim()
+        };
+      } else {
+        // Parser la réponse JSON pour les réponses complètes
+        try {
+          const parsedResponse = JSON.parse(responseText);
+          return parsedResponse;
+        } catch (parseError) {
+          this.logger.error('Error parsing OpenAI response:', parseError);
+          // Fallback: créer une réponse basique
+          return this.createFallbackResponse(query);
+        }
       }
 
     } catch (error) {
@@ -144,6 +171,8 @@ Réponds en JSON avec le format suivant:
     if (response.confidence === 'Faible') return 0.4;
     return 0.6; // Default
   }
+
+
 
   // Méthode pour obtenir des statistiques du modèle fine-tuned
   async getModelStats(): Promise<any> {

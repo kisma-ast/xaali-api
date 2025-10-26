@@ -1,22 +1,23 @@
 import { Repository } from 'typeorm';
 import { Case } from './case.entity';
 import { Lawyer } from './lawyer.entity';
-import { LawyerNotification } from './lawyer-notification.entity';
 export declare class CasesService {
     private casesRepository;
     private lawyersRepository;
-    private notificationsRepository;
-    constructor(casesRepository: Repository<Case>, lawyersRepository: Repository<Lawyer>, notificationsRepository: Repository<LawyerNotification>);
+    constructor(casesRepository: Repository<Case>, lawyersRepository: Repository<Lawyer>);
     findAll(): Promise<Case[]>;
-    findOne(id: number): Promise<Case | null>;
+    findOne(id: string): Promise<Case | null>;
     create(caseData: Partial<Case>): Promise<Case>;
-    update(id: number, caseData: Partial<Case>): Promise<Case | null>;
-    remove(id: number): Promise<void>;
+    update(id: string, caseData: Partial<Case>): Promise<Case | null>;
+    remove(id: string): Promise<void>;
     getPendingCases(): Promise<Case[]>;
-    getCasesByLawyer(lawyerId: number): Promise<Case[]>;
-    assignLawyer(caseId: number, lawyerId: number): Promise<Case>;
+    getCasesByLawyer(lawyerId: string): Promise<Case[]>;
+    assignLawyer(caseId: string, lawyerId: string): Promise<Case>;
+    createBeforePayment(caseData: Partial<Case>): Promise<Case>;
+    updatePaymentStatus(caseId: string, paymentData: {
+        paymentId: string;
+        paymentAmount: number;
+        isPaid: boolean;
+    }): Promise<Case | null>;
     private notifyAllLawyers;
-    getLawyerNotifications(lawyerId: number): Promise<LawyerNotification[]>;
-    markNotificationAsRead(notificationId: number): Promise<void>;
-    acceptCase(notificationId: number, lawyerId: number): Promise<Case>;
 }

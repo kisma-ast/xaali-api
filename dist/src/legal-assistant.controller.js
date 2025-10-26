@@ -16,16 +16,23 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.LegalAssistantController = void 0;
 const common_1 = require("@nestjs/common");
 const legal_assistant_service_1 = require("./legal-assistant.service");
+const typeorm_1 = require("@nestjs/typeorm");
+const typeorm_2 = require("typeorm");
+const case_entity_1 = require("./case.entity");
+const mongodb_1 = require("mongodb");
 let LegalAssistantController = LegalAssistantController_1 = class LegalAssistantController {
     legalAssistantService;
+    caseRepository;
     logger = new common_1.Logger(LegalAssistantController_1.name);
-    constructor(legalAssistantService) {
+    constructor(legalAssistantService, caseRepository) {
         this.legalAssistantService = legalAssistantService;
+        this.caseRepository = caseRepository;
     }
     async searchDocuments(legalQuery) {
         try {
             this.logger.log(`Search request: ${legalQuery.query}`);
             const results = await this.legalAssistantService.searchLegalDocuments(legalQuery);
+            await this.saveUnpaidCase(legalQuery, results);
             if (results.formattedResponse) {
                 return {
                     success: true,
@@ -107,6 +114,29 @@ let LegalAssistantController = LegalAssistantController_1 = class LegalAssistant
             };
         }
     }
+    async saveFollowUpQuestion(body) {
+        try {
+            const existingCase = await this.caseRepository.findOne({ where: { _id: new mongodb_1.ObjectId(body.caseId) } });
+            if (!existingCase) {
+                return { success: false, message: 'Cas non trouvé' };
+            }
+            if (body.questionNumber === 2) {
+                existingCase.secondQuestion = body.question;
+                existingCase.secondResponse = body.response;
+            }
+            else if (body.questionNumber === 3) {
+                existingCase.thirdQuestion = body.question;
+                existingCase.thirdResponse = body.response;
+            }
+            await this.caseRepository.save(existingCase);
+            this.logger.log(`✅ Question de suivi ${body.questionNumber} sauvegardée pour le cas: ${body.caseId}`);
+            return { success: true, message: 'Question de suivi sauvegardée' };
+        }
+        catch (error) {
+            this.logger.error('❌ Erreur sauvegarde question de suivi:', error);
+            return { success: false, message: 'Erreur lors de la sauvegarde' };
+        }
+    }
     async getLegalAdvice(body) {
         try {
             this.logger.log(`Legal advice request: ${body.query}`);
@@ -157,6 +187,37 @@ let LegalAssistantController = LegalAssistantController_1 = class LegalAssistant
             };
         }
     }
+    async saveUnpaidCase(query, results) {
+        try {
+            let aiResponse = 'Réponse IA générée';
+            let title = `Consultation sur ${query.category || 'sujet juridique'}`;
+            if (results.formattedResponse) {
+                const fr = results.formattedResponse;
+                aiResponse = fr.content || fr.summary || JSON.stringify(fr);
+                title = fr.title || title;
+            }
+            const unpaidCase = new case_entity_1.Case();
+            unpaidCase.title = title;
+            unpaidCase.description = `Question: ${query.query}`;
+            unpaidCase.category = query.category || 'consultation-generale';
+            unpaidCase.citizenName = query.citizenName || null;
+            unpaidCase.citizenPhone = query.citizenPhone || null;
+            unpaidCase.status = 'unpaid';
+            unpaidCase.urgency = 'normal';
+            unpaidCase.estimatedTime = 30;
+            unpaidCase.firstQuestion = query.query;
+            unpaidCase.firstResponse = aiResponse;
+            unpaidCase.aiResponse = aiResponse;
+            unpaidCase.clientQuestion = query.query;
+            unpaidCase.isPaid = false;
+            unpaidCase.createdAt = new Date();
+            const savedCase = await this.caseRepository.save(unpaidCase);
+            this.logger.log(`✅ Cas non payé enregistré: ${savedCase.id} avec réponse: ${aiResponse.substring(0, 50)}...`);
+        }
+        catch (error) {
+            this.logger.error('❌ Erreur sauvegarde cas non payé:', error);
+        }
+    }
 };
 exports.LegalAssistantController = LegalAssistantController;
 __decorate([
@@ -182,6 +243,13 @@ __decorate([
     __metadata("design:returntype", Promise)
 ], LegalAssistantController.prototype, "searchDocumentsFormatted", null);
 __decorate([
+    (0, common_1.Post)('follow-up'),
+    __param(0, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", Promise)
+], LegalAssistantController.prototype, "saveFollowUpQuestion", null);
+__decorate([
     (0, common_1.Post)('advice'),
     __param(0, (0, common_1.Body)()),
     __metadata("design:type", Function),
@@ -205,6 +273,8 @@ __decorate([
 ], LegalAssistantController.prototype, "getStats", null);
 exports.LegalAssistantController = LegalAssistantController = LegalAssistantController_1 = __decorate([
     (0, common_1.Controller)('legal-assistant'),
-    __metadata("design:paramtypes", [legal_assistant_service_1.LegalAssistantService])
+    __param(1, (0, typeorm_1.InjectRepository)(case_entity_1.Case)),
+    __metadata("design:paramtypes", [legal_assistant_service_1.LegalAssistantService,
+        typeorm_2.Repository])
 ], LegalAssistantController);
 //# sourceMappingURL=legal-assistant.controller.js.map

@@ -14,7 +14,7 @@ export class ConsultationsService {
     return this.consultationsRepository.find();
   }
 
-  findOne(id: number): Promise<Consultation | null> {
+  findOne(id: string): Promise<Consultation | null> {
     return this.consultationsRepository.findOne({ where: { id } });
   }
 
@@ -23,54 +23,45 @@ export class ConsultationsService {
     return this.consultationsRepository.save(newConsultation);
   }
 
-  update(id: number, consultation: Partial<Consultation>): Promise<Consultation | null> {
-    return this.consultationsRepository.save({ id, ...consultation });
+  async update(id: string, consultation: Partial<Consultation>): Promise<Consultation | null> {
+    await this.consultationsRepository.update(id, consultation);
+    return this.findOne(id);
   }
 
-  async remove(id: number): Promise<void> {
+  async remove(id: string): Promise<void> {
     await this.consultationsRepository.delete(id);
   }
 
   // Méthodes pour la visioconférence
   async createVideoConsultation(consultationData: Partial<Consultation>): Promise<Consultation> {
-    const meetingId = this.generateMeetingId();
-    const meetingPassword = this.generateMeetingPassword();
-    
     const consultation = this.consultationsRepository.create({
       ...consultationData,
-      meetingId,
-      meetingPassword,
-      status: 'pending',
-      meetingUrl: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/consultation/${meetingId}`,
+      status: 'pending'
     });
     
     return this.consultationsRepository.save(consultation);
   }
 
-  async startConsultation(id: number): Promise<Consultation | null> {
+  async startConsultation(id: string): Promise<Consultation | null> {
     const consultation = await this.findOne(id);
     if (!consultation) return null;
     
     consultation.status = 'active';
-    consultation.startTime = new Date();
-    consultation.isVideoEnabled = true;
-    consultation.isAudioEnabled = true;
     
     return this.consultationsRepository.save(consultation);
   }
 
-  async endConsultation(id: number): Promise<Consultation | null> {
+  async endConsultation(id: string): Promise<Consultation | null> {
     const consultation = await this.findOne(id);
     if (!consultation) return null;
     
     consultation.status = 'completed';
-    consultation.endTime = new Date();
     
     return this.consultationsRepository.save(consultation);
   }
 
   async findByMeetingId(meetingId: string): Promise<Consultation | null> {
-    return this.consultationsRepository.findOne({ where: { meetingId } });
+    return this.consultationsRepository.findOne({ where: { id: meetingId } });
   }
 
   async findByStatus(status: 'pending' | 'active' | 'completed' | 'cancelled'): Promise<Consultation[]> {

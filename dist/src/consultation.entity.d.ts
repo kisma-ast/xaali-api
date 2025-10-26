@@ -1,17 +1,17 @@
 export declare class Consultation {
-    id: number;
-    date: Date;
-    caseId: number;
-    lawyerId: number;
-    userId: number;
-    notes: string;
-    meetingId: string;
-    meetingPassword: string;
-    status: 'pending' | 'active' | 'completed' | 'cancelled';
-    startTime: Date;
-    endTime: Date;
-    duration: number;
-    meetingUrl: string;
-    isVideoEnabled: boolean;
-    isAudioEnabled: boolean;
+    id: string;
+    citizenName: string;
+    citizenPhone: string;
+    citizenEmail: string;
+    firstQuestion: string;
+    firstResponse: string;
+    secondQuestion: string;
+    secondResponse: string;
+    category: string;
+    paymentId: string;
+    paymentAmount: number;
+    status: string;
+    lawyerId: string;
+    acceptedAt: Date;
+    createdAt: Date;
 }

@@ -8,18 +8,20 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.LegalAssistantModule = void 0;
 const common_1 = require("@nestjs/common");
+const typeorm_1 = require("@nestjs/typeorm");
 const legal_assistant_controller_1 = require("./legal-assistant.controller");
 const fine_tuning_controller_1 = require("./fine-tuning.controller");
 const legal_assistant_service_1 = require("./legal-assistant.service");
 const ai_response_service_1 = require("./ai-response.service");
 const fine_tuning_service_1 = require("./fine-tuning.service");
 const pinecone_1 = require("./pinecone");
+const case_entity_1 = require("./case.entity");
 let LegalAssistantModule = class LegalAssistantModule {
 };
 exports.LegalAssistantModule = LegalAssistantModule;
 exports.LegalAssistantModule = LegalAssistantModule = __decorate([
     (0, common_1.Module)({
-        imports: [pinecone_1.PineconeModule],
+        imports: [pinecone_1.PineconeModule, typeorm_1.TypeOrmModule.forFeature([case_entity_1.Case])],
         controllers: [legal_assistant_controller_1.LegalAssistantController, fine_tuning_controller_1.FineTuningController],
         providers: [
             legal_assistant_service_1.LegalAssistantService,

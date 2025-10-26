@@ -11,6 +11,21 @@ export declare class ConsultationsController {
     endConsultation(id: string): Promise<Consultation | null>;
     findByMeetingId(meetingId: string): Promise<Consultation | null>;
     findByStatus(status: 'pending' | 'active' | 'completed' | 'cancelled'): Promise<Consultation[]>;
+    findPending(): Promise<{
+        success: boolean;
+        consultations: Consultation[];
+    }>;
+    acceptConsultation(id: string, body: {
+        lawyerId: string;
+    }): Promise<{
+        success: boolean;
+        consultation: Consultation | null;
+        message?: undefined;
+    } | {
+        success: boolean;
+        message: string;
+        consultation?: undefined;
+    }>;
     update(id: string, consultation: Partial<Consultation>): Promise<Consultation | null>;
     remove(id: string): Promise<void>;
 }

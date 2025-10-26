@@ -1,4 +1,4 @@
-import { Entity, ObjectIdColumn, Column, OneToMany, ObjectId } from 'typeorm';
+import { Entity, ObjectIdColumn, Column, OneToMany, ObjectId, Index } from 'typeorm';
 import { Case } from './case.entity';
 
 @Entity()
@@ -48,6 +48,12 @@ export class Lawyer {
 
   @Column({ nullable: true })
   paymentAmount: string;
+
+  @Column({ default: true })
+  isActive: boolean;
+
+  @Column()
+  createdAt: Date;
 
   @OneToMany(() => Case, case_ => case_.lawyer)
   cases: Case[];

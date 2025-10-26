@@ -13,7 +13,7 @@ export class ConsultationsController {
 
   @Get(':id')
   findOne(@Param('id') id: string): Promise<Consultation | null> {
-    return this.consultationsService.findOne(Number(id));
+    return this.consultationsService.findOne(id);
   }
 
   @Post()
@@ -28,12 +28,12 @@ export class ConsultationsController {
 
   @Put(':id/start')
   startConsultation(@Param('id') id: string): Promise<Consultation | null> {
-    return this.consultationsService.startConsultation(Number(id));
+    return this.consultationsService.startConsultation(id);
   }
 
   @Put(':id/end')
   endConsultation(@Param('id') id: string): Promise<Consultation | null> {
-    return this.consultationsService.endConsultation(Number(id));
+    return this.consultationsService.endConsultation(id);
   }
 
   @Get('meeting/:meetingId')
@@ -46,13 +46,42 @@ export class ConsultationsController {
     return this.consultationsService.findByStatus(status);
   }
 
+  @Get('pending')
+  async findPending() {
+    const consultations = await this.consultationsService.findByStatus('pending');
+    return {
+      success: true,
+      consultations: consultations
+    };
+  }
+
+  @Post('accept/:id')
+  async acceptConsultation(@Param('id') id: string, @Body() body: { lawyerId: string }) {
+    try {
+      const consultation = await this.consultationsService.update(id, {
+        status: 'active',
+        lawyerId: body.lawyerId,
+        acceptedAt: new Date()
+      });
+      return {
+        success: true,
+        consultation: consultation
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: 'Erreur lors de l\'acceptation de la consultation'
+      };
+    }
+  }
+
   @Put(':id')
   update(@Param('id') id: string, @Body() consultation: Partial<Consultation>): Promise<Consultation | null> {
-    return this.consultationsService.update(Number(id), consultation);
+    return this.consultationsService.update(id, consultation);
   }
 
   @Delete(':id')
   remove(@Param('id') id: string): Promise<void> {
-    return this.consultationsService.remove(Number(id));
+    return this.consultationsService.remove(id);
   }
 } 

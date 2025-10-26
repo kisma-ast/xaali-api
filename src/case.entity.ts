@@ -1,11 +1,15 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn, CreateDateColumn } from 'typeorm';
+import { Entity, ObjectIdColumn, Column, ManyToOne, JoinColumn, CreateDateColumn, ObjectId } from 'typeorm';
 import { Citizen } from './citizen.entity';
 import { Lawyer } from './lawyer.entity';
 
 @Entity()
 export class Case {
-  @PrimaryGeneratedColumn()
-  id: number;
+  @ObjectIdColumn()
+  _id: ObjectId;
+
+  get id(): string {
+    return this._id.toHexString();
+  }
 
   @Column()
   title: string;
@@ -20,7 +24,25 @@ export class Case {
   citizenId: string;
 
   @Column({ nullable: true })
-  lawyerId: number;
+  category: string;
+
+  @Column({ nullable: true })
+  citizenName: string;
+
+  @Column({ nullable: true })
+  citizenPhone: string;
+
+  @Column({ nullable: true })
+  citizenEmail: string;
+
+  @Column({ nullable: true })
+  lawyerId: string;
+
+  @Column({ default: 'normal' })
+  urgency: string;
+
+  @Column({ default: 30 })
+  estimatedTime: number;
 
   @Column({ default: false })
   isPaid: boolean;
@@ -31,13 +53,43 @@ export class Case {
   @Column({ nullable: true })
   paymentId: string;
 
-  @Column({ default: false })
-  lawyerNotified: boolean;
+  @Column({ nullable: true })
+  acceptedAt: Date;
 
   @Column({ nullable: true })
-  assignedLawyerId: number;
+  aiResponse: string;
 
-  @CreateDateColumn()
+  @Column({ nullable: true })
+  clientQuestion: string;
+
+  @Column({ nullable: true })
+  firstQuestion: string;
+
+  @Column({ nullable: true })
+  firstResponse: string;
+
+  @Column({ nullable: true })
+  secondQuestion: string;
+
+  @Column({ nullable: true })
+  secondResponse: string;
+
+  @Column({ nullable: true })
+  thirdQuestion: string;
+
+  @Column({ nullable: true })
+  thirdResponse: string;
+
+  @Column({ nullable: true })
+  trackingCode: string;
+
+  @Column({ nullable: true })
+  trackingToken: string;
+
+  @Column({ nullable: true })
+  lawyerName: string;
+
+  @Column()
   createdAt: Date;
 
   @ManyToOne(() => Citizen, citizen => citizen.cases)

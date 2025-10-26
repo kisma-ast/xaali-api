@@ -1,50 +1,49 @@
-import { Entity, PrimaryGeneratedColumn, Column } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn } from 'typeorm';
 
-@Entity()
+@Entity('consultations')
 export class Consultation {
-  @PrimaryGeneratedColumn()
-  id: number;
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
 
   @Column()
-  date: Date;
+  citizenName: string;
 
   @Column()
-  caseId: number;
+  citizenPhone: string;
 
-  @Column()
-  lawyerId: number;
+  @Column({ nullable: true })
+  citizenEmail: string;
 
-  @Column()
-  userId: number;
+  @Column('text')
+  firstQuestion: string;
+
+  @Column('text')
+  firstResponse: string;
 
   @Column('text', { nullable: true })
-  notes: string;
+  secondQuestion: string;
 
-  // Champs pour la visioconférence
-  @Column({ nullable: true })
-  meetingId: string;
+  @Column('text', { nullable: true })
+  secondResponse: string;
 
-  @Column({ nullable: true })
-  meetingPassword: string;
+  @Column()
+  category: string;
+
+  @Column()
+  paymentId: string;
+
+  @Column('decimal', { precision: 10, scale: 2 })
+  paymentAmount: number;
 
   @Column({ default: 'pending' })
-  status: 'pending' | 'active' | 'completed' | 'cancelled';
+  status: string;
 
   @Column({ nullable: true })
-  startTime: Date;
+  lawyerId: string;
 
   @Column({ nullable: true })
-  endTime: Date;
+  acceptedAt: Date;
 
-  @Column({ nullable: true })
-  duration: number; // en minutes
-
-  @Column({ nullable: true })
-  meetingUrl: string;
-
-  @Column({ default: false })
-  isVideoEnabled: boolean;
-
-  @Column({ default: false })
-  isAudioEnabled: boolean;
-} 
+  @CreateDateColumn()
+  createdAt: Date;
+}

@@ -30,6 +30,8 @@ let Lawyer = class Lawyer {
     pricing;
     paymentMethod;
     paymentAmount;
+    isActive;
+    createdAt;
     cases;
 };
 exports.Lawyer = Lawyer;
@@ -89,6 +91,14 @@ __decorate([
     (0, typeorm_1.Column)({ nullable: true }),
     __metadata("design:type", String)
 ], Lawyer.prototype, "paymentAmount", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ default: true }),
+    __metadata("design:type", Boolean)
+], Lawyer.prototype, "isActive", void 0);
+__decorate([
+    (0, typeorm_1.Column)(),
+    __metadata("design:type", Date)
+], Lawyer.prototype, "createdAt", void 0);
 __decorate([
     (0, typeorm_1.OneToMany)(() => case_entity_1.Case, case_ => case_.lawyer),
     __metadata("design:type", Array)

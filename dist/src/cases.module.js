@@ -14,6 +14,7 @@ const cases_controller_1 = require("./cases.controller");
 const case_entity_1 = require("./case.entity");
 const lawyer_entity_1 = require("./lawyer.entity");
 const lawyer_notification_entity_1 = require("./lawyer-notification.entity");
+const email_service_1 = require("./email.service");
 let CasesModule = class CasesModule {
 };
 exports.CasesModule = CasesModule;
@@ -21,7 +22,7 @@ exports.CasesModule = CasesModule = __decorate([
     (0, common_1.Module)({
         imports: [typeorm_1.TypeOrmModule.forFeature([case_entity_1.Case, lawyer_entity_1.Lawyer, lawyer_notification_entity_1.LawyerNotification])],
         controllers: [cases_controller_1.CasesController],
-        providers: [cases_service_1.CasesService],
+        providers: [cases_service_1.CasesService, email_service_1.EmailService],
     })
 ], CasesModule);
 //# sourceMappingURL=cases.module.js.map

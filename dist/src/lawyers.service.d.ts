@@ -33,6 +33,8 @@ export declare class LawyersService {
         pricing: any;
         paymentMethod: string;
         paymentAmount: string;
+        isActive: boolean;
+        createdAt: Date;
         cases: Case[];
     } | null>;
 }

@@ -28,6 +28,8 @@ export declare class LawyersController {
         pricing: any;
         paymentMethod: string;
         paymentAmount: string;
+        isActive: boolean;
+        createdAt: Date;
         cases: import("./case.entity").Case[];
     } | null>;
     create(lawyer: Partial<Lawyer>): Promise<Lawyer>;

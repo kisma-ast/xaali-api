@@ -12,6 +12,7 @@ const typeorm_1 = require("@nestjs/typeorm");
 const notifications_service_1 = require("./notifications.service");
 const notifications_controller_1 = require("./notifications.controller");
 const notification_entity_1 = require("./notification.entity");
+const email_service_1 = require("./email.service");
 let NotificationsModule = class NotificationsModule {
 };
 exports.NotificationsModule = NotificationsModule;
@@ -19,7 +20,7 @@ exports.NotificationsModule = NotificationsModule = __decorate([
     (0, common_1.Module)({
         imports: [typeorm_1.TypeOrmModule.forFeature([notification_entity_1.Notification])],
         controllers: [notifications_controller_1.NotificationsController],
-        providers: [notifications_service_1.NotificationsService],
+        providers: [notifications_service_1.NotificationsService, email_service_1.EmailService],
     })
 ], NotificationsModule);
 //# sourceMappingURL=notifications.module.js.map

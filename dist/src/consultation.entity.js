@@ -13,83 +13,83 @@ exports.Consultation = void 0;
 const typeorm_1 = require("typeorm");
 let Consultation = class Consultation {
     id;
-    date;
-    caseId;
-    lawyerId;
-    userId;
-    notes;
-    meetingId;
-    meetingPassword;
+    citizenName;
+    citizenPhone;
+    citizenEmail;
+    firstQuestion;
+    firstResponse;
+    secondQuestion;
+    secondResponse;
+    category;
+    paymentId;
+    paymentAmount;
     status;
-    startTime;
-    endTime;
-    duration;
-    meetingUrl;
-    isVideoEnabled;
-    isAudioEnabled;
+    lawyerId;
+    acceptedAt;
+    createdAt;
 };
 exports.Consultation = Consultation;
 __decorate([
-    (0, typeorm_1.PrimaryGeneratedColumn)(),
-    __metadata("design:type", Number)
+    (0, typeorm_1.PrimaryGeneratedColumn)('uuid'),
+    __metadata("design:type", String)
 ], Consultation.prototype, "id", void 0);
 __decorate([
     (0, typeorm_1.Column)(),
-    __metadata("design:type", Date)
-], Consultation.prototype, "date", void 0);
+    __metadata("design:type", String)
+], Consultation.prototype, "citizenName", void 0);
 __decorate([
     (0, typeorm_1.Column)(),
-    __metadata("design:type", Number)
-], Consultation.prototype, "caseId", void 0);
+    __metadata("design:type", String)
+], Consultation.prototype, "citizenPhone", void 0);
 __decorate([
-    (0, typeorm_1.Column)(),
-    __metadata("design:type", Number)
-], Consultation.prototype, "lawyerId", void 0);
+    (0, typeorm_1.Column)({ nullable: true }),
+    __metadata("design:type", String)
+], Consultation.prototype, "citizenEmail", void 0);
 __decorate([
-    (0, typeorm_1.Column)(),
-    __metadata("design:type", Number)
-], Consultation.prototype, "userId", void 0);
+    (0, typeorm_1.Column)('text'),
+    __metadata("design:type", String)
+], Consultation.prototype, "firstQuestion", void 0);
+__decorate([
+    (0, typeorm_1.Column)('text'),
+    __metadata("design:type", String)
+], Consultation.prototype, "firstResponse", void 0);
 __decorate([
     (0, typeorm_1.Column)('text', { nullable: true }),
     __metadata("design:type", String)
-], Consultation.prototype, "notes", void 0);
+], Consultation.prototype, "secondQuestion", void 0);
 __decorate([
-    (0, typeorm_1.Column)({ nullable: true }),
+    (0, typeorm_1.Column)('text', { nullable: true }),
     __metadata("design:type", String)
-], Consultation.prototype, "meetingId", void 0);
+], Consultation.prototype, "secondResponse", void 0);
 __decorate([
-    (0, typeorm_1.Column)({ nullable: true }),
+    (0, typeorm_1.Column)(),
     __metadata("design:type", String)
-], Consultation.prototype, "meetingPassword", void 0);
+], Consultation.prototype, "category", void 0);
+__decorate([
+    (0, typeorm_1.Column)(),
+    __metadata("design:type", String)
+], Consultation.prototype, "paymentId", void 0);
+__decorate([
+    (0, typeorm_1.Column)('decimal', { precision: 10, scale: 2 }),
+    __metadata("design:type", Number)
+], Consultation.prototype, "paymentAmount", void 0);
 __decorate([
     (0, typeorm_1.Column)({ default: 'pending' }),
     __metadata("design:type", String)
 ], Consultation.prototype, "status", void 0);
 __decorate([
     (0, typeorm_1.Column)({ nullable: true }),
-    __metadata("design:type", Date)
-], Consultation.prototype, "startTime", void 0);
-__decorate([
-    (0, typeorm_1.Column)({ nullable: true }),
-    __metadata("design:type", Date)
-], Consultation.prototype, "endTime", void 0);
-__decorate([
-    (0, typeorm_1.Column)({ nullable: true }),
-    __metadata("design:type", Number)
-], Consultation.prototype, "duration", void 0);
-__decorate([
-    (0, typeorm_1.Column)({ nullable: true }),
     __metadata("design:type", String)
-], Consultation.prototype, "meetingUrl", void 0);
+], Consultation.prototype, "lawyerId", void 0);
 __decorate([
-    (0, typeorm_1.Column)({ default: false }),
-    __metadata("design:type", Boolean)
-], Consultation.prototype, "isVideoEnabled", void 0);
+    (0, typeorm_1.Column)({ nullable: true }),
+    __metadata("design:type", Date)
+], Consultation.prototype, "acceptedAt", void 0);
 __decorate([
-    (0, typeorm_1.Column)({ default: false }),
-    __metadata("design:type", Boolean)
-], Consultation.prototype, "isAudioEnabled", void 0);
+    (0, typeorm_1.CreateDateColumn)(),
+    __metadata("design:type", Date)
+], Consultation.prototype, "createdAt", void 0);
 exports.Consultation = Consultation = __decorate([
-    (0, typeorm_1.Entity)()
+    (0, typeorm_1.Entity)('consultations')
 ], Consultation);
 //# sourceMappingURL=consultation.entity.js.map

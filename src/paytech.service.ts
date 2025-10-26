@@ -32,6 +32,7 @@ export interface PayTechPaymentStatus {
   currency: string;
   customerEmail?: string;
   customerName?: string;
+  customerPhone?: string; // Nouveau champ pour récupérer le téléphone
   timestamp: string;
   message?: string;
 }
@@ -59,8 +60,8 @@ export class PayTechService {
     const frontendUrl = 'https://xaali.onrender.com';
     
     this.PAYTECH_CALLBACK_URL = `${backendUrl}/paytech/callback`;
-    this.PAYTECH_SUCCESS_URL = `${frontendUrl}/#/payment/success`;
-    this.PAYTECH_CANCEL_URL = `${frontendUrl}/#/payment/cancel`;
+    this.PAYTECH_SUCCESS_URL = `${frontendUrl}?payment=success`;
+    this.PAYTECH_CANCEL_URL = `${frontendUrl}?payment=cancel`;
     
     this.logger.log('[PayTech] FORCED production URLs for PayTech HTTPS requirement');
     
@@ -94,7 +95,10 @@ export class PayTechService {
         env: 'test',
         ipn_url: this.PAYTECH_CALLBACK_URL,
         success_url: this.PAYTECH_SUCCESS_URL,
-        cancel_url: this.PAYTECH_CANCEL_URL
+        cancel_url: this.PAYTECH_CANCEL_URL,
+        // Champs optionnels pour pré-remplir les infos client
+        customer_name: paymentRequest.customerName || '',
+        customer_email: paymentRequest.customerEmail || ''
       };
 
       this.logger.log(`[PayTech] 🔍 DONNÉES ENVOYÉES:`);
@@ -235,6 +239,12 @@ export class PayTechService {
       const refCommand = callbackData.ref_command;
       const typeEvent = callbackData.type_event;
       
+      // RÉCUPÉRATION DES INFOS CLIENT DEPUIS PAYTECH
+      const customerPhone = callbackData.customer_phone || callbackData.phone;
+      const customerEmail = callbackData.customer_email || callbackData.email;
+      const customerName = callbackData.customer_name || callbackData.name;
+      
+      this.logger.log(`[PayTech] 📱 Client récupéré: ${customerName} - ${customerPhone} - ${customerEmail}`);
       this.logger.log(`[PayTech] Processing event ${typeEvent} for reference: ${refCommand}`);
 
       // Map PayTech event types to our status
@@ -259,8 +269,9 @@ export class PayTechService {
         status,
         amount: callbackData.amount || 0,
         currency: callbackData.currency || 'XOF',
-        customerEmail: callbackData.customer_email,
-        customerName: callbackData.customer_name,
+        customerEmail: customerEmail,
+        customerName: customerName,
+        customerPhone: customerPhone, // Nouveau champ
         timestamp: new Date().toISOString(),
         message: `Payment status updated to ${status}`
       };

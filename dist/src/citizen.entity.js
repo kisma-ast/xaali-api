@@ -13,20 +13,26 @@ exports.Citizen = void 0;
 const typeorm_1 = require("typeorm");
 const case_entity_1 = require("./case.entity");
 let Citizen = class Citizen {
-    id;
+    _id;
+    get id() {
+        return this._id.toHexString();
+    }
     name;
     email;
+    password;
+    phone;
     questionsAsked;
     hasPaid;
     paymentId;
+    isActive;
     createdAt;
     cases;
 };
 exports.Citizen = Citizen;
 __decorate([
-    (0, typeorm_1.PrimaryGeneratedColumn)('uuid'),
-    __metadata("design:type", String)
-], Citizen.prototype, "id", void 0);
+    (0, typeorm_1.ObjectIdColumn)(),
+    __metadata("design:type", typeorm_1.ObjectId)
+], Citizen.prototype, "_id", void 0);
 __decorate([
     (0, typeorm_1.Column)({ nullable: true }),
     __metadata("design:type", String)
@@ -35,6 +41,14 @@ __decorate([
     (0, typeorm_1.Column)({ nullable: true }),
     __metadata("design:type", String)
 ], Citizen.prototype, "email", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ nullable: true }),
+    __metadata("design:type", String)
+], Citizen.prototype, "password", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ nullable: true }),
+    __metadata("design:type", String)
+], Citizen.prototype, "phone", void 0);
 __decorate([
     (0, typeorm_1.Column)({ default: 0 }),
     __metadata("design:type", Number)
@@ -48,7 +62,11 @@ __decorate([
     __metadata("design:type", String)
 ], Citizen.prototype, "paymentId", void 0);
 __decorate([
-    (0, typeorm_1.CreateDateColumn)(),
+    (0, typeorm_1.Column)({ default: true }),
+    __metadata("design:type", Boolean)
+], Citizen.prototype, "isActive", void 0);
+__decorate([
+    (0, typeorm_1.Column)(),
     __metadata("design:type", Date)
 ], Citizen.prototype, "createdAt", void 0);
 __decorate([

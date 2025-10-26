@@ -5,10 +5,11 @@ import { CasesController } from './cases.controller';
 import { Case } from './case.entity';
 import { Lawyer } from './lawyer.entity';
 import { LawyerNotification } from './lawyer-notification.entity';
+import { EmailService } from './email.service';
 
 @Module({
   imports: [TypeOrmModule.forFeature([Case, Lawyer, LawyerNotification])],
   controllers: [CasesController],
-  providers: [CasesService],
+  providers: [CasesService, EmailService],
 })
 export class CasesModule {} 

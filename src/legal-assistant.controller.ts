@@ -1,18 +1,29 @@
 import { Controller, Post, Get, Body, Query, Logger, Res } from '@nestjs/common';
 import { LegalAssistantService, LegalQuery } from './legal-assistant.service';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { Case } from './case.entity';
 import { Response } from 'express';
+import { ObjectId } from 'mongodb';
 
 @Controller('legal-assistant')
 export class LegalAssistantController {
   private readonly logger = new Logger(LegalAssistantController.name);
 
-  constructor(private readonly legalAssistantService: LegalAssistantService) {}
+  constructor(
+    private readonly legalAssistantService: LegalAssistantService,
+    @InjectRepository(Case)
+    private caseRepository: Repository<Case>,
+  ) {}
 
   @Post('search')
-  async searchDocuments(@Body() legalQuery: LegalQuery) {
+  async searchDocuments(@Body() legalQuery: LegalQuery & { citizenName?: string; citizenPhone?: string; category?: string }) {
     try {
       this.logger.log(`Search request: ${legalQuery.query}`);
       const results = await this.legalAssistantService.searchLegalDocuments(legalQuery);
+      
+      // Enregistrer le cas non payé dans la BD
+      await this.saveUnpaidCase(legalQuery, results);
       
       // Si une réponse formatée est disponible, l'utiliser
       if (results.formattedResponse) {
@@ -109,6 +120,32 @@ export class LegalAssistantController {
     }
   }
 
+  @Post('follow-up')
+  async saveFollowUpQuestion(@Body() body: { caseId: string; question: string; response: string; questionNumber: number }) {
+    try {
+      const existingCase = await this.caseRepository.findOne({ where: { _id: new ObjectId(body.caseId) } });
+      if (!existingCase) {
+        return { success: false, message: 'Cas non trouvé' };
+      }
+
+      if (body.questionNumber === 2) {
+        existingCase.secondQuestion = body.question;
+        existingCase.secondResponse = body.response;
+      } else if (body.questionNumber === 3) {
+        existingCase.thirdQuestion = body.question;
+        existingCase.thirdResponse = body.response;
+      }
+
+      await this.caseRepository.save(existingCase);
+      this.logger.log(`✅ Question de suivi ${body.questionNumber} sauvegardée pour le cas: ${body.caseId}`);
+      
+      return { success: true, message: 'Question de suivi sauvegardée' };
+    } catch (error) {
+      this.logger.error('❌ Erreur sauvegarde question de suivi:', error);
+      return { success: false, message: 'Erreur lors de la sauvegarde' };
+    }
+  }
+
   @Post('advice')
   async getLegalAdvice(
     @Body() body: { query: string; category?: string },
@@ -172,6 +209,42 @@ export class LegalAssistantController {
         success: false,
         error: error.message,
       };
+    }
+  }
+
+  // Méthode pour sauvegarder les cas non payés
+  private async saveUnpaidCase(query: any, results: any): Promise<void> {
+    try {
+      // Extraire la réponse IA complète
+      let aiResponse = 'Réponse IA générée';
+      let title = `Consultation sur ${query.category || 'sujet juridique'}`;
+      
+      if (results.formattedResponse) {
+        const fr = results.formattedResponse;
+        aiResponse = fr.content || fr.summary || JSON.stringify(fr);
+        title = fr.title || title;
+      }
+      
+      const unpaidCase = new Case();
+      unpaidCase.title = title;
+      unpaidCase.description = `Question: ${query.query}`;
+      unpaidCase.category = query.category || 'consultation-generale';
+      unpaidCase.citizenName = query.citizenName || null;
+      unpaidCase.citizenPhone = query.citizenPhone || null;
+      unpaidCase.status = 'unpaid';
+      unpaidCase.urgency = 'normal';
+      unpaidCase.estimatedTime = 30;
+      unpaidCase.firstQuestion = query.query;
+      unpaidCase.firstResponse = aiResponse;
+      unpaidCase.aiResponse = aiResponse;
+      unpaidCase.clientQuestion = query.query;
+      unpaidCase.isPaid = false;
+      unpaidCase.createdAt = new Date();
+
+      const savedCase = await this.caseRepository.save(unpaidCase);
+      this.logger.log(`✅ Cas non payé enregistré: ${savedCase.id} avec réponse: ${aiResponse.substring(0, 50)}...`);
+    } catch (error) {
+      this.logger.error('❌ Erreur sauvegarde cas non payé:', error);
     }
   }
 }

@@ -18,26 +18,29 @@ const typeorm_1 = require("@nestjs/typeorm");
 const typeorm_2 = require("typeorm");
 const case_entity_1 = require("./case.entity");
 const lawyer_entity_1 = require("./lawyer.entity");
-const lawyer_notification_entity_1 = require("./lawyer-notification.entity");
 let CasesService = class CasesService {
     casesRepository;
     lawyersRepository;
-    notificationsRepository;
-    constructor(casesRepository, lawyersRepository, notificationsRepository) {
+    constructor(casesRepository, lawyersRepository) {
         this.casesRepository = casesRepository;
         this.lawyersRepository = lawyersRepository;
-        this.notificationsRepository = notificationsRepository;
     }
     findAll() {
         return this.casesRepository.find({
             relations: ['citizen', 'lawyer'],
         });
     }
-    findOne(id) {
-        return this.casesRepository.findOne({
-            where: { id },
-            relations: ['citizen', 'lawyer'],
-        });
+    async findOne(id) {
+        try {
+            return await this.casesRepository.findOne({
+                where: { _id: id },
+                relations: ['citizen', 'lawyer'],
+            });
+        }
+        catch (error) {
+            console.error('Erreur findOne case:', error);
+            return null;
+        }
     }
     async create(caseData) {
         const newCase = this.casesRepository.create(caseData);
@@ -46,11 +49,22 @@ let CasesService = class CasesService {
         return savedCase;
     }
     async update(id, caseData) {
-        await this.casesRepository.update(id, caseData);
-        return this.findOne(id);
+        try {
+            await this.casesRepository.update({ _id: id }, caseData);
+            return this.findOne(id);
+        }
+        catch (error) {
+            console.error('Erreur update case:', error);
+            return null;
+        }
     }
     async remove(id) {
-        await this.casesRepository.delete(id);
+        try {
+            await this.casesRepository.delete({ _id: id });
+        }
+        catch (error) {
+            console.error('Erreur remove case:', error);
+        }
     }
     async getPendingCases() {
         return this.casesRepository.find({
@@ -67,49 +81,56 @@ let CasesService = class CasesService {
         });
     }
     async assignLawyer(caseId, lawyerId) {
-        const case_ = await this.findOne(caseId);
-        if (!case_) {
-            throw new Error('Case not found');
+        try {
+            const case_ = await this.findOne(caseId);
+            if (!case_) {
+                throw new Error('Case not found');
+            }
+            case_.lawyerId = lawyerId;
+            case_.status = 'accepted';
+            case_.acceptedAt = new Date();
+            return await this.casesRepository.save(case_);
         }
-        case_.lawyerId = lawyerId;
-        case_.assignedLawyerId = lawyerId;
-        case_.status = 'assigned';
-        return await this.casesRepository.save(case_);
+        catch (error) {
+            console.error('Erreur assignLawyer:', error);
+            throw error;
+        }
+    }
+    async createBeforePayment(caseData) {
+        console.log('💾 [CASES-SERVICE] Création cas avant paiement');
+        console.log('📋 [CASES-SERVICE] Données:', JSON.stringify(caseData, null, 2));
+        const newCase = this.casesRepository.create({
+            ...caseData,
+            isPaid: false,
+            status: 'pending'
+        });
+        console.log('💾 [CASES-SERVICE] Entité créée:', JSON.stringify(newCase, null, 2));
+        const savedCase = await this.casesRepository.save(newCase);
+        console.log('✅ [CASES-SERVICE] Cas sauvegardé avec ID:', savedCase.id);
+        return savedCase;
+    }
+    async updatePaymentStatus(caseId, paymentData) {
+        try {
+            const case_ = await this.findOne(caseId);
+            if (!case_) {
+                throw new Error('Case not found');
+            }
+            case_.paymentId = paymentData.paymentId;
+            case_.paymentAmount = paymentData.paymentAmount;
+            case_.isPaid = paymentData.isPaid;
+            const updatedCase = await this.casesRepository.save(case_);
+            if (paymentData.isPaid) {
+                await this.notifyAllLawyers(updatedCase.id);
+            }
+            return updatedCase;
+        }
+        catch (error) {
+            console.error('Erreur updatePaymentStatus:', error);
+            throw error;
+        }
     }
     async notifyAllLawyers(caseId) {
-        const lawyers = await this.lawyersRepository.find();
-        for (const lawyer of lawyers) {
-            const notification = this.notificationsRepository.create({
-                lawyerId: Number(lawyer.id),
-                caseId,
-                type: 'new_case',
-                isRead: false,
-                isAccepted: false,
-            });
-            await this.notificationsRepository.save(notification);
-        }
-    }
-    async getLawyerNotifications(lawyerId) {
-        return this.notificationsRepository.find({
-            where: { lawyerId },
-            relations: ['case', 'case.citizen'],
-            order: { createdAt: 'DESC' },
-        });
-    }
-    async markNotificationAsRead(notificationId) {
-        await this.notificationsRepository.update(notificationId, { isRead: true });
-    }
-    async acceptCase(notificationId, lawyerId) {
-        const notification = await this.notificationsRepository.findOne({
-            where: { id: notificationId },
-            relations: ['case'],
-        });
-        if (!notification) {
-            throw new Error('Notification not found');
-        }
-        notification.isAccepted = true;
-        await this.notificationsRepository.save(notification);
-        return await this.assignLawyer(notification.case.id, lawyerId);
+        console.log(`Nouveau cas ${caseId} à notifier aux avocats`);
     }
 };
 exports.CasesService = CasesService;
@@ -117,9 +138,7 @@ exports.CasesService = CasesService = __decorate([
     (0, common_1.Injectable)(),
     __param(0, (0, typeorm_1.InjectRepository)(case_entity_1.Case)),
     __param(1, (0, typeorm_1.InjectRepository)(lawyer_entity_1.Lawyer)),
-    __param(2, (0, typeorm_1.InjectRepository)(lawyer_notification_entity_1.LawyerNotification)),
     __metadata("design:paramtypes", [typeorm_2.Repository,
-        typeorm_2.Repository,
         typeorm_2.Repository])
 ], CasesService);
 //# sourceMappingURL=cases.service.js.map

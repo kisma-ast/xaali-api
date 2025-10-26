@@ -24,7 +24,7 @@ let ConsultationsController = class ConsultationsController {
         return this.consultationsService.findAll();
     }
     findOne(id) {
-        return this.consultationsService.findOne(Number(id));
+        return this.consultationsService.findOne(id);
     }
     create(consultation) {
         return this.consultationsService.create(consultation);
@@ -33,10 +33,10 @@ let ConsultationsController = class ConsultationsController {
         return this.consultationsService.createVideoConsultation(consultation);
     }
     startConsultation(id) {
-        return this.consultationsService.startConsultation(Number(id));
+        return this.consultationsService.startConsultation(id);
     }
     endConsultation(id) {
-        return this.consultationsService.endConsultation(Number(id));
+        return this.consultationsService.endConsultation(id);
     }
     findByMeetingId(meetingId) {
         return this.consultationsService.findByMeetingId(meetingId);
@@ -44,11 +44,37 @@ let ConsultationsController = class ConsultationsController {
     findByStatus(status) {
         return this.consultationsService.findByStatus(status);
     }
+    async findPending() {
+        const consultations = await this.consultationsService.findByStatus('pending');
+        return {
+            success: true,
+            consultations: consultations
+        };
+    }
+    async acceptConsultation(id, body) {
+        try {
+            const consultation = await this.consultationsService.update(id, {
+                status: 'active',
+                lawyerId: body.lawyerId,
+                acceptedAt: new Date()
+            });
+            return {
+                success: true,
+                consultation: consultation
+            };
+        }
+        catch (error) {
+            return {
+                success: false,
+                message: 'Erreur lors de l\'acceptation de la consultation'
+            };
+        }
+    }
     update(id, consultation) {
-        return this.consultationsService.update(Number(id), consultation);
+        return this.consultationsService.update(id, consultation);
     }
     remove(id) {
-        return this.consultationsService.remove(Number(id));
+        return this.consultationsService.remove(id);
     }
 };
 exports.ConsultationsController = ConsultationsController;
@@ -107,6 +133,20 @@ __decorate([
     __metadata("design:paramtypes", [String]),
     __metadata("design:returntype", Promise)
 ], ConsultationsController.prototype, "findByStatus", null);
+__decorate([
+    (0, common_1.Get)('pending'),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", []),
+    __metadata("design:returntype", Promise)
+], ConsultationsController.prototype, "findPending", null);
+__decorate([
+    (0, common_1.Post)('accept/:id'),
+    __param(0, (0, common_1.Param)('id')),
+    __param(1, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, Object]),
+    __metadata("design:returntype", Promise)
+], ConsultationsController.prototype, "acceptConsultation", null);
 __decorate([
     (0, common_1.Put)(':id'),
     __param(0, (0, common_1.Param)('id')),

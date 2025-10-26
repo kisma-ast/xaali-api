@@ -4,25 +4,57 @@ dotenv.config();
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { checkAIConfig } from './config';
-// Services désactivés temporairement
-// import { DatabaseSetupService } from './database-setup.service';
-// import { SeedDataService } from './seed-data.service';
+
+
+// Fonction pour tester MongoDB au démarrage
+async function testMongoConnection() {
+  console.log('🔍 Test de connexion MongoDB...');
+  
+  if (!process.env.MONGODB_URI) {
+    console.error('❌ MONGODB_URI non configuré!');
+    return false;
+  }
+  
+  try {
+    const { MongoClient } = require('mongodb');
+    const client = new MongoClient(process.env.MONGODB_URI);
+    
+    await client.connect();
+    console.log('✅ MongoDB connecté avec succès');
+    
+    const db = client.db('xaali-db');
+    const collections = await db.listCollections().toArray();
+    console.log('📁 Collections disponibles:', collections.map((c: any) => c.name));
+    
+    await client.close();
+    return true;
+  } catch (error) {
+    console.error('❌ Erreur MongoDB:', error.message);
+    return false;
+  }
+}
 
 async function bootstrap() {
   // Vérifier la configuration au démarrage
-  console.log('Démarrage de Xaali Backend...');
+  console.log('\n🚀 =================================');
+  console.log('🚀 DÉMARRAGE DE XAALI BACKEND');
+  console.log('🚀 =================================\n');
+  
+  // Tester MongoDB avant de continuer
+  const mongoOk = await testMongoConnection();
+  if (!mongoOk) {
+    console.error('❌ Impossible de se connecter à MongoDB. Arrêt du serveur.');
+    process.exit(1);
+  }
+  
   checkAIConfig();
   
   const app = await NestFactory.create(AppModule);
   
-  // Base de données désactivée temporairement
-  // const dbSetup = app.get(DatabaseSetupService);
-  // await dbSetup.checkAndSetupDatabase();
-  
-  // const seedData = app.get(SeedDataService);
-  // await seedData.seedAll();
-  
-  console.log('⚠️ Mode sans base de données - Authentification en mémoire uniquement');
+  console.log('✅ Mode MongoDB activé - Authentification persistante');
+  console.log('🔗 MongoDB URI:', process.env.MONGODB_URI ? 'Configuré' : 'NON CONFIGURÉ');
+  console.log('🎯 Contrôleurs actifs: RealAuthController (MongoDB)');
+  console.log('❌ Contrôleurs désactivés: MemoryAuthController');
   
   // Configuration CORS pour permettre les requêtes depuis le frontend
   // Ajout du support pour Render deployment
@@ -64,9 +96,22 @@ async function bootstrap() {
   
   // Middleware pour logger toutes les requêtes
   app.use((req: any, res: any, next: any) => {
-    console.log(`📥 ${new Date().toISOString()} - ${req.method} ${req.url}`);
-    console.log('📋 Headers:', JSON.stringify(req.headers, null, 2));
-    console.log('🌐 Origin:', req.headers.origin || 'Aucune origine');
+    const timestamp = new Date().toISOString();
+    console.log(`\n📥 ${timestamp} - ${req.method} ${req.url}`);
+    
+    // Logger spécialement les requêtes d'authentification
+    if (req.url.includes('/real-auth/')) {
+      console.log('🔐 [AUTH] Requête d\'authentification détectée');
+      console.log('🔐 [AUTH] Method:', req.method);
+      console.log('🔐 [AUTH] URL:', req.url);
+      console.log('🔐 [AUTH] Content-Type:', req.headers['content-type']);
+      console.log('🔐 [AUTH] Origin:', req.headers.origin || 'Aucune origine');
+      
+      if (req.method === 'POST' && req.body) {
+        console.log('🔐 [AUTH] Body reçu:', JSON.stringify(req.body, null, 2));
+      }
+    }
+    
     next();
   });
   
@@ -79,7 +124,19 @@ async function bootstrap() {
   console.log('⚖️ Legal Assistant: http://localhost:3000/legal-assistant');
   console.log('🔍 Health Check: http://localhost:3000/health');
   console.log('🤖 Fine-Tuning: http://localhost:3000/fine-tuning/ask');
+  console.log('🔐 Authentification MongoDB: http://localhost:3000/real-auth/');
   console.log('📊 Environnement:', process.env.NODE_ENV || 'development');
   console.log('🔗 CORS activé pour toutes les origines en mode développement');
+  console.log('\n🎯 ENDPOINTS D\'AUTHENTIFICATION DISPONIBLES:');
+  console.log('   POST /real-auth/register - Inscription avocat');
+  console.log('   POST /real-auth/login - Connexion avocat');
+  console.log('   POST /real-auth/notary-register - Inscription notaire');
+  console.log('   POST /real-auth/notary-login - Connexion notaire');
+  console.log('   POST /real-auth/bailiff-register - Inscription huissier');
+  console.log('   POST /real-auth/bailiff-login - Connexion huissier');
+  console.log('\n💾 BASE DE DONNÉES:');
+  console.log('   Type: MongoDB Atlas');
+  console.log('   Status: Connecté');
+  console.log('   Collections: lawyer, case, citizen');
 }
 bootstrap();

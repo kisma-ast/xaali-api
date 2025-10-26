@@ -1,17 +1,21 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn, CreateDateColumn } from 'typeorm';
+import { Entity, ObjectIdColumn, Column, ManyToOne, JoinColumn, CreateDateColumn, ObjectId } from 'typeorm';
 import { Lawyer } from './lawyer.entity';
 import { Case } from './case.entity';
 
 @Entity()
 export class LawyerNotification {
-  @PrimaryGeneratedColumn()
-  id: number;
+  @ObjectIdColumn()
+  _id: ObjectId;
+
+  get id(): string {
+    return this._id.toHexString();
+  }
 
   @Column()
-  lawyerId: number;
+  lawyerId: string;
 
   @Column()
-  caseId: number;
+  caseId: string;
 
   @Column({ default: 'new_case' })
   type: string; // new_case, case_assigned, case_completed
@@ -22,7 +26,7 @@ export class LawyerNotification {
   @Column({ default: false })
   isAccepted: boolean;
 
-  @CreateDateColumn()
+  @Column()
   createdAt: Date;
 
   @ManyToOne(() => Lawyer)

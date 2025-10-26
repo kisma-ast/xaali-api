@@ -3,7 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Case } from './case.entity';
 import { Lawyer } from './lawyer.entity';
-import { LawyerNotification } from './lawyer-notification.entity';
+// import { LawyerNotification } from './lawyer-notification.entity';
 
 @Injectable()
 export class CasesService {
@@ -12,8 +12,8 @@ export class CasesService {
     private casesRepository: Repository<Case>,
     @InjectRepository(Lawyer)
     private lawyersRepository: Repository<Lawyer>,
-    @InjectRepository(LawyerNotification)
-    private notificationsRepository: Repository<LawyerNotification>,
+    // @InjectRepository(LawyerNotification)
+    // private notificationsRepository: Repository<LawyerNotification>,
   ) {}
 
   findAll(): Promise<Case[]> {
@@ -22,11 +22,16 @@ export class CasesService {
     });
   }
 
-  findOne(id: number): Promise<Case | null> {
-    return this.casesRepository.findOne({
-      where: { id },
-      relations: ['citizen', 'lawyer'],
-    });
+  async findOne(id: string): Promise<Case | null> {
+    try {
+      return await this.casesRepository.findOne({
+        where: { _id: id as any },
+        relations: ['citizen', 'lawyer'],
+      });
+    } catch (error) {
+      console.error('Erreur findOne case:', error);
+      return null;
+    }
   }
 
   async create(caseData: Partial<Case>): Promise<Case> {
@@ -39,13 +44,22 @@ export class CasesService {
     return savedCase;
   }
 
-  async update(id: number, caseData: Partial<Case>): Promise<Case | null> {
-    await this.casesRepository.update(id, caseData);
-    return this.findOne(id);
+  async update(id: string, caseData: Partial<Case>): Promise<Case | null> {
+    try {
+      await this.casesRepository.update({ _id: id as any }, caseData);
+      return this.findOne(id);
+    } catch (error) {
+      console.error('Erreur update case:', error);
+      return null;
+    }
   }
 
-  async remove(id: number): Promise<void> {
-    await this.casesRepository.delete(id);
+  async remove(id: string): Promise<void> {
+    try {
+      await this.casesRepository.delete({ _id: id as any });
+    } catch (error) {
+      console.error('Erreur remove case:', error);
+    }
   }
 
   async getPendingCases(): Promise<Case[]> {
@@ -56,7 +70,7 @@ export class CasesService {
     });
   }
 
-  async getCasesByLawyer(lawyerId: number): Promise<Case[]> {
+  async getCasesByLawyer(lawyerId: string): Promise<Case[]> {
     return this.casesRepository.find({
       where: { lawyerId },
       relations: ['citizen'],
@@ -64,62 +78,87 @@ export class CasesService {
     });
   }
 
-  async assignLawyer(caseId: number, lawyerId: number): Promise<Case> {
-    const case_ = await this.findOne(caseId);
-    if (!case_) {
-      throw new Error('Case not found');
-    }
+  async assignLawyer(caseId: string, lawyerId: string): Promise<Case> {
+    try {
+      const case_ = await this.findOne(caseId);
+      if (!case_) {
+        throw new Error('Case not found');
+      }
 
-    case_.lawyerId = lawyerId;
-    case_.assignedLawyerId = lawyerId;
-    case_.status = 'assigned';
-    
-    return await this.casesRepository.save(case_);
-  }
-
-  private async notifyAllLawyers(caseId: number): Promise<void> {
-    const lawyers = await this.lawyersRepository.find();
-    
-    for (const lawyer of lawyers) {
-      const notification = this.notificationsRepository.create({
-        lawyerId: Number(lawyer.id),
-        caseId,
-        type: 'new_case',
-        isRead: false,
-        isAccepted: false,
-      });
+      case_.lawyerId = lawyerId;
+      case_.status = 'accepted';
+      case_.acceptedAt = new Date();
       
-      await this.notificationsRepository.save(notification);
+      return await this.casesRepository.save(case_);
+    } catch (error) {
+      console.error('Erreur assignLawyer:', error);
+      throw error;
     }
   }
 
-  async getLawyerNotifications(lawyerId: number): Promise<LawyerNotification[]> {
-    return this.notificationsRepository.find({
-      where: { lawyerId },
-      relations: ['case', 'case.citizen'],
-      order: { createdAt: 'DESC' },
+  async createBeforePayment(caseData: Partial<Case>): Promise<Case> {
+    console.log('💾 [CASES-SERVICE] Création cas avant paiement');
+    console.log('📋 [CASES-SERVICE] Données:', JSON.stringify(caseData, null, 2));
+    
+    const newCase = this.casesRepository.create({
+      ...caseData,
+      isPaid: false,
+      status: 'pending'
     });
+    
+    console.log('💾 [CASES-SERVICE] Entité créée:', JSON.stringify(newCase, null, 2));
+    
+    const savedCase = await this.casesRepository.save(newCase);
+    
+    console.log('✅ [CASES-SERVICE] Cas sauvegardé avec ID:', savedCase.id);
+    
+    return savedCase;
   }
 
-  async markNotificationAsRead(notificationId: number): Promise<void> {
-    await this.notificationsRepository.update(notificationId, { isRead: true });
-  }
+  async updatePaymentStatus(caseId: string, paymentData: {
+    paymentId: string;
+    paymentAmount: number;
+    isPaid: boolean;
+  }): Promise<Case | null> {
+    try {
+      const case_ = await this.findOne(caseId);
+      if (!case_) {
+        throw new Error('Case not found');
+      }
 
-  async acceptCase(notificationId: number, lawyerId: number): Promise<Case> {
-    const notification = await this.notificationsRepository.findOne({
-      where: { id: notificationId },
-      relations: ['case'],
-    });
-
-    if (!notification) {
-      throw new Error('Notification not found');
+      case_.paymentId = paymentData.paymentId;
+      case_.paymentAmount = paymentData.paymentAmount;
+      case_.isPaid = paymentData.isPaid;
+      
+      const updatedCase = await this.casesRepository.save(case_);
+      
+      // Si le paiement est confirmé, notifier les avocats
+      if (paymentData.isPaid) {
+        await this.notifyAllLawyers(updatedCase.id);
+      }
+      
+      return updatedCase;
+    } catch (error) {
+      console.error('Erreur updatePaymentStatus:', error);
+      throw error;
     }
-
-    // Marquer la notification comme acceptée
-    notification.isAccepted = true;
-    await this.notificationsRepository.save(notification);
-
-    // Assigner le cas à l'avocat
-    return await this.assignLawyer(notification.case.id, lawyerId);
   }
+
+  private async notifyAllLawyers(caseId: string): Promise<void> {
+    // Notification simplifiée - à implémenter avec WebSocket
+    console.log(`Nouveau cas ${caseId} à notifier aux avocats`);
+  }
+
+  // Méthodes de notification temporairement désactivées
+  // async getLawyerNotifications(lawyerId: string): Promise<LawyerNotification[]> {
+  //   return [];
+  // }
+
+  // async markNotificationAsRead(notificationId: string): Promise<void> {
+  //   // Implémentation à venir
+  // }
+
+  // async acceptCase(notificationId: string, lawyerId: string): Promise<Case> {
+  //   return await this.assignLawyer(caseId, lawyerId);
+  // }
 } 

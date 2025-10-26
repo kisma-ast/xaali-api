@@ -1,10 +1,17 @@
 import { LegalAssistantService, LegalQuery } from './legal-assistant.service';
+import { Repository } from 'typeorm';
+import { Case } from './case.entity';
 import { Response } from 'express';
 export declare class LegalAssistantController {
     private readonly legalAssistantService;
+    private caseRepository;
     private readonly logger;
-    constructor(legalAssistantService: LegalAssistantService);
-    searchDocuments(legalQuery: LegalQuery): Promise<{
+    constructor(legalAssistantService: LegalAssistantService, caseRepository: Repository<Case>);
+    searchDocuments(legalQuery: LegalQuery & {
+        citizenName?: string;
+        citizenPhone?: string;
+        category?: string;
+    }): Promise<{
         success: boolean;
         data: {
             query: string;
@@ -34,6 +41,15 @@ export declare class LegalAssistantController {
         success: boolean;
         error: any;
         data?: undefined;
+    }>;
+    saveFollowUpQuestion(body: {
+        caseId: string;
+        question: string;
+        response: string;
+        questionNumber: number;
+    }): Promise<{
+        success: boolean;
+        message: string;
     }>;
     getLegalAdvice(body: {
         query: string;
@@ -65,4 +81,5 @@ export declare class LegalAssistantController {
         error: any;
         data?: undefined;
     }>;
+    private saveUnpaidCase;
 }
