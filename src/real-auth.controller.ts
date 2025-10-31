@@ -403,12 +403,40 @@ export class RealAuthController {
         order: { acceptedAt: 'DESC' }
       });
 
+      console.log('📋 [REAL-AUTH] Cas acceptés trouvés:', acceptedCases.length);
+      console.log('📋 [REAL-AUTH] Détails des cas:', acceptedCases.map(c => ({ id: c.id, _id: c._id, lawyerId: c.lawyerId, status: c.status })));
+
       return {
         success: true,
         cases: acceptedCases
       };
     } catch (error) {
       this.logger.error('Erreur récupération cas acceptés:', error);
+      return { success: false, message: 'Erreur lors de la récupération des cas acceptés' };
+    }
+  }
+
+  @Get('cases/accepted/:lawyerId')
+  async getAcceptedCasesByLawyer(@Param('lawyerId') lawyerId: string) {
+    try {
+      console.log('🔍 [REAL-AUTH] Recherche cas acceptés pour avocat:', lawyerId);
+      
+      const acceptedCases = await this.caseRepository.find({
+        where: { 
+          status: 'accepted',
+          lawyerId: lawyerId
+        },
+        order: { acceptedAt: 'DESC' }
+      });
+
+      console.log('📋 [REAL-AUTH] Cas acceptés trouvés pour avocat', lawyerId, ':', acceptedCases.length);
+
+      return {
+        success: true,
+        cases: acceptedCases
+      };
+    } catch (error) {
+      this.logger.error('Erreur récupération cas acceptés par avocat:', error);
       return { success: false, message: 'Erreur lors de la récupération des cas acceptés' };
     }
   }

@@ -22,9 +22,12 @@ export class SimplifiedCaseService {
     citizenEmail?: string;
     paymentAmount: number;
   }) {
+    console.log('🚀 Début création dossier simplifié:', data);
+    
     const trackingToken = uuidv4();
     const trackingCode = `XA-${Math.floor(Math.random() * 90000) + 10000}`;
-    const caseId = uuidv4();
+    
+    console.log('📝 Données générées:', { trackingCode, trackingToken });
     
     const newCase = this.caseRepository.create({
       title: data.question.substring(0, 100),
@@ -35,24 +38,44 @@ export class SimplifiedCaseService {
       category: data.category,
       citizenName: data.citizenName,
       citizenPhone: data.citizenPhone,
+      citizenEmail: data.citizenEmail || undefined,
       aiResponse: data.aiResponse,
       paymentAmount: data.paymentAmount,
       isPaid: true,
       createdAt: new Date()
     });
+    
+    console.log('💾 Données à sauvegarder:', {
+      citizenName: data.citizenName,
+      citizenPhone: data.citizenPhone,
+      citizenEmail: data.citizenEmail
+    });
 
-    await this.caseRepository.save(newCase);
+    console.log('💾 Sauvegarde en cours...');
+    const savedCase = await this.caseRepository.save(newCase);
+    console.log('✅ Dossier sauvegardé avec ID:', Array.isArray(savedCase) ? savedCase[0]?.id : savedCase.id);
+
+    // Vérification de la sauvegarde
+    const verifyCase = await this.caseRepository.findOne({
+      where: { trackingToken }
+    });
+    
+    if (verifyCase) {
+      console.log('✅ Vérification: Dossier trouvé en BD avec code:', verifyCase.trackingCode);
+    } else {
+      console.log('❌ Erreur: Dossier non trouvé après sauvegarde');
+    }
 
     // Créer automatiquement le compte utilisateur
     await this.createAutomaticAccount(data.citizenPhone, data.citizenName, data.citizenEmail);
 
-    // Simuler l'envoi des notifications
+    // Envoyer les notifications
     await this.sendNotifications(trackingCode, trackingToken, data);
 
     return {
       trackingCode,
       trackingLink: `https://xaali.net/suivi/${trackingToken}`,
-      caseId
+      caseId: Array.isArray(savedCase) ? savedCase[0]?.id : savedCase.id
     };
   }
 
@@ -73,9 +96,27 @@ export class SimplifiedCaseService {
       lawyerName: caseData.lawyerName || null,
       question: caseData.description,
       citizenPhone: caseData.citizenPhone,
-      citizenEmail: caseData.citizenName, // Utiliser citizenName comme email temporaire
+      citizenEmail: caseData.citizenEmail,
       createdAt: caseData.createdAt.toISOString()
     };
+  }
+
+  async getAllCases() {
+    const cases = await this.caseRepository.find({
+      order: { createdAt: 'DESC' }
+    });
+    
+    console.log(`📊 Total des dossiers en BD: ${cases.length}`);
+    
+    return cases.map(caseData => ({
+      id: caseData.id,
+      trackingCode: caseData.trackingCode,
+      status: caseData.status,
+      citizenName: caseData.citizenName,
+      citizenPhone: caseData.citizenPhone,
+      paymentAmount: caseData.paymentAmount,
+      createdAt: caseData.createdAt.toISOString()
+    }));
   }
 
   private async createAutomaticAccount(phone: string, name: string, email?: string) {

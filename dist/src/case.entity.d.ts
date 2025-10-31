@@ -11,7 +11,7 @@ export declare class Case {
     category: string;
     citizenName: string;
     citizenPhone: string;
-    citizenEmail: string;
+    citizenEmail?: string;
     lawyerId: string;
     urgency: string;
     estimatedTime: number;

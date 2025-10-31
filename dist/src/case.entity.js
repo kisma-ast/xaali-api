@@ -172,6 +172,6 @@ __decorate([
     __metadata("design:type", lawyer_entity_1.Lawyer)
 ], Case.prototype, "lawyer", void 0);
 exports.Case = Case = __decorate([
-    (0, typeorm_1.Entity)()
+    (0, typeorm_1.Entity)('case')
 ], Case);
 //# sourceMappingURL=case.entity.js.map

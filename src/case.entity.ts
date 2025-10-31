@@ -2,7 +2,7 @@ import { Entity, ObjectIdColumn, Column, ManyToOne, JoinColumn, CreateDateColumn
 import { Citizen } from './citizen.entity';
 import { Lawyer } from './lawyer.entity';
 
-@Entity()
+@Entity('case')
 export class Case {
   @ObjectIdColumn()
   _id: ObjectId;
@@ -33,7 +33,7 @@ export class Case {
   citizenPhone: string;
 
   @Column({ nullable: true })
-  citizenEmail: string;
+  citizenEmail?: string;
 
   @Column({ nullable: true })
   lawyerId: string;
