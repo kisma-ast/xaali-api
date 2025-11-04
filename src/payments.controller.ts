@@ -2,12 +2,14 @@ import { Controller, Get, Post, Body, Param, Put, Delete, Inject } from '@nestjs
 import { PaymentsService } from './payments.service';
 import { Payment } from './payment.entity';
 import { PayTechService } from './paytech.service';
+import { SimplifiedCaseService } from './simplified-case.service';
 
 @Controller('payments')
 export class PaymentsController {
   constructor(
     private readonly paymentsService: PaymentsService,
-    @Inject(PayTechService) private readonly payTechService: PayTechService
+    @Inject(PayTechService) private readonly payTechService: PayTechService,
+    private readonly simplifiedCaseService: SimplifiedCaseService
   ) {}
 
   @Get()
@@ -183,5 +185,49 @@ export class PaymentsController {
         }
       ]
     };
+  }
+
+  @Post('success')
+  async handlePaymentSuccess(@Body() body: {
+    paymentId: string;
+    existingCaseId: string;
+    citizenName: string;
+    citizenPhone: string;
+    citizenEmail?: string;
+    amount: number;
+  }) {
+    const { paymentId, existingCaseId, citizenName, citizenPhone, citizenEmail, amount } = body;
+    
+    try {
+      console.log('💳 Traitement succès paiement pour cas existant:', existingCaseId);
+      
+      // Mettre à jour le cas existant avec les vraies données de paiement
+      const result = await this.simplifiedCaseService.createSimplifiedCase({
+        question: '', // Sera ignoré car on met à jour
+        aiResponse: '', // Sera ignoré car on met à jour
+        category: '', // Sera ignoré car on met à jour
+        citizenName,
+        citizenPhone,
+        citizenEmail,
+        paymentAmount: amount,
+        existingCaseId // Clé importante pour la mise à jour
+      });
+      
+      console.log('✅ Cas existant mis à jour avec succès');
+      
+      return {
+        success: true,
+        message: 'Paiement traité et dossier mis à jour',
+        trackingCode: result.trackingCode,
+        trackingLink: result.trackingLink,
+        caseId: result.caseId
+      };
+    } catch (error) {
+      console.error('Erreur traitement paiement:', error);
+      return {
+        success: false,
+        message: 'Erreur lors du traitement du paiement'
+      };
+    }
   }
 } 

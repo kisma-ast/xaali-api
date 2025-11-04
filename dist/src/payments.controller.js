@@ -16,12 +16,15 @@ exports.PaymentsController = void 0;
 const common_1 = require("@nestjs/common");
 const payments_service_1 = require("./payments.service");
 const paytech_service_1 = require("./paytech.service");
+const simplified_case_service_1 = require("./simplified-case.service");
 let PaymentsController = class PaymentsController {
     paymentsService;
     payTechService;
-    constructor(paymentsService, payTechService) {
+    simplifiedCaseService;
+    constructor(paymentsService, payTechService, simplifiedCaseService) {
         this.paymentsService = paymentsService;
         this.payTechService = payTechService;
+        this.simplifiedCaseService = simplifiedCaseService;
     }
     findAll() {
         return this.paymentsService.findAll();
@@ -153,6 +156,37 @@ let PaymentsController = class PaymentsController {
             ]
         };
     }
+    async handlePaymentSuccess(body) {
+        const { paymentId, existingCaseId, citizenName, citizenPhone, citizenEmail, amount } = body;
+        try {
+            console.log('💳 Traitement succès paiement pour cas existant:', existingCaseId);
+            const result = await this.simplifiedCaseService.createSimplifiedCase({
+                question: '',
+                aiResponse: '',
+                category: '',
+                citizenName,
+                citizenPhone,
+                citizenEmail,
+                paymentAmount: amount,
+                existingCaseId
+            });
+            console.log('✅ Cas existant mis à jour avec succès');
+            return {
+                success: true,
+                message: 'Paiement traité et dossier mis à jour',
+                trackingCode: result.trackingCode,
+                trackingLink: result.trackingLink,
+                caseId: result.caseId
+            };
+        }
+        catch (error) {
+            console.error('Erreur traitement paiement:', error);
+            return {
+                success: false,
+                message: 'Erreur lors du traitement du paiement'
+            };
+        }
+    }
 };
 exports.PaymentsController = PaymentsController;
 __decorate([
@@ -216,10 +250,18 @@ __decorate([
     __metadata("design:paramtypes", []),
     __metadata("design:returntype", void 0)
 ], PaymentsController.prototype, "getPayTechProviders", null);
+__decorate([
+    (0, common_1.Post)('success'),
+    __param(0, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", Promise)
+], PaymentsController.prototype, "handlePaymentSuccess", null);
 exports.PaymentsController = PaymentsController = __decorate([
     (0, common_1.Controller)('payments'),
     __param(1, (0, common_1.Inject)(paytech_service_1.PayTechService)),
     __metadata("design:paramtypes", [payments_service_1.PaymentsService,
-        paytech_service_1.PayTechService])
+        paytech_service_1.PayTechService,
+        simplified_case_service_1.SimplifiedCaseService])
 ], PaymentsController);
 //# sourceMappingURL=payments.controller.js.map

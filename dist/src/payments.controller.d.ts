@@ -1,10 +1,12 @@
 import { PaymentsService } from './payments.service';
 import { Payment } from './payment.entity';
 import { PayTechService } from './paytech.service';
+import { SimplifiedCaseService } from './simplified-case.service';
 export declare class PaymentsController {
     private readonly paymentsService;
     private readonly payTechService;
-    constructor(paymentsService: PaymentsService, payTechService: PayTechService);
+    private readonly simplifiedCaseService;
+    constructor(paymentsService: PaymentsService, payTechService: PayTechService, simplifiedCaseService: SimplifiedCaseService);
     findAll(): Promise<Payment[]>;
     findOne(id: string): Promise<Payment | null>;
     create(payment: Partial<Payment>): Promise<Payment>;
@@ -70,4 +72,24 @@ export declare class PaymentsController {
             description: string;
         }[];
     };
+    handlePaymentSuccess(body: {
+        paymentId: string;
+        existingCaseId: string;
+        citizenName: string;
+        citizenPhone: string;
+        citizenEmail?: string;
+        amount: number;
+    }): Promise<{
+        success: boolean;
+        message: string;
+        trackingCode: string | undefined;
+        trackingLink: string;
+        caseId: any;
+    } | {
+        success: boolean;
+        message: string;
+        trackingCode?: undefined;
+        trackingLink?: undefined;
+        caseId?: undefined;
+    }>;
 }

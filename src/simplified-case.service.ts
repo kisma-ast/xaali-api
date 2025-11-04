@@ -39,6 +39,17 @@ export class SimplifiedCaseService {
       
       if (existingCase) {
         // Mettre à jour le cas existant avec les VRAIES informations de paiement
+        console.log('🔍 Données avant mise à jour:', {
+          ancien_nom: existingCase.citizenName,
+          ancien_telephone: existingCase.citizenPhone,
+          ancien_email: existingCase.citizenEmail
+        });
+        console.log('🔍 Nouvelles données reçues:', {
+          nouveau_nom: data.citizenName,
+          nouveau_telephone: data.citizenPhone,
+          nouveau_email: data.citizenEmail
+        });
+        
         existingCase.citizenName = data.citizenName || existingCase.citizenName;
         existingCase.citizenPhone = data.citizenPhone || existingCase.citizenPhone;
         existingCase.citizenEmail = data.citizenEmail || existingCase.citizenEmail;
@@ -47,9 +58,9 @@ export class SimplifiedCaseService {
         existingCase.status = 'pending';
         
         console.log('📝 Mise à jour avec vraies données:', {
-          nom: existingCase.citizenName,
-          telephone: existingCase.citizenPhone,
-          email: existingCase.citizenEmail
+          nom_final: existingCase.citizenName,
+          telephone_final: existingCase.citizenPhone,
+          email_final: existingCase.citizenEmail
         });
         
         // Générer les codes de suivi s'ils n'existent pas
@@ -138,7 +149,16 @@ export class SimplifiedCaseService {
       throw new Error('Dossier non trouvé');
     }
     
-    return {
+    console.log('🔍 Données du dossier récupérées depuis BD:', {
+      id: caseData.id,
+      trackingCode: caseData.trackingCode,
+      citizenName: caseData.citizenName,
+      citizenPhone: caseData.citizenPhone,
+      citizenEmail: caseData.citizenEmail,
+      isPaid: caseData.isPaid
+    });
+    
+    const result = {
       id: caseData.id,
       trackingCode: caseData.trackingCode,
       status: caseData.status,
@@ -149,6 +169,10 @@ export class SimplifiedCaseService {
       citizenEmail: caseData.citizenEmail,
       createdAt: caseData.createdAt.toISOString()
     };
+    
+    console.log('📤 Données retournées au frontend:', result);
+    
+    return result;
   }
 
   async getAllCases() {
