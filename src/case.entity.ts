@@ -54,9 +54,6 @@ export class Case {
   paymentId: string;
 
   @Column({ nullable: true })
-  acceptedAt: Date;
-
-  @Column({ nullable: true })
   aiResponse: string;
 
   @Column({ nullable: true })
@@ -81,13 +78,16 @@ export class Case {
   thirdResponse: string;
 
   @Column({ nullable: true })
-  trackingCode: string;
+  trackingCode?: string;
 
   @Column({ nullable: true })
-  trackingToken: string;
+  trackingToken?: string;
 
   @Column({ nullable: true })
   lawyerName: string;
+
+  @Column({ nullable: true })
+  acceptedAt: Date;
 
   @Column()
   createdAt: Date;

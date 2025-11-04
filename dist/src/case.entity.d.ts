@@ -18,7 +18,6 @@ export declare class Case {
     isPaid: boolean;
     paymentAmount: number;
     paymentId: string;
-    acceptedAt: Date;
     aiResponse: string;
     clientQuestion: string;
     firstQuestion: string;
@@ -27,9 +26,10 @@ export declare class Case {
     secondResponse: string;
     thirdQuestion: string;
     thirdResponse: string;
-    trackingCode: string;
-    trackingToken: string;
+    trackingCode?: string;
+    trackingToken?: string;
     lawyerName: string;
+    acceptedAt: Date;
     createdAt: Date;
     citizen: Citizen;
     lawyer: Lawyer;

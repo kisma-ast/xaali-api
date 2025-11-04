@@ -32,7 +32,6 @@ let Case = class Case {
     isPaid;
     paymentAmount;
     paymentId;
-    acceptedAt;
     aiResponse;
     clientQuestion;
     firstQuestion;
@@ -44,6 +43,7 @@ let Case = class Case {
     trackingCode;
     trackingToken;
     lawyerName;
+    acceptedAt;
     createdAt;
     citizen;
     lawyer;
@@ -111,10 +111,6 @@ __decorate([
 ], Case.prototype, "paymentId", void 0);
 __decorate([
     (0, typeorm_1.Column)({ nullable: true }),
-    __metadata("design:type", Date)
-], Case.prototype, "acceptedAt", void 0);
-__decorate([
-    (0, typeorm_1.Column)({ nullable: true }),
     __metadata("design:type", String)
 ], Case.prototype, "aiResponse", void 0);
 __decorate([
@@ -157,6 +153,10 @@ __decorate([
     (0, typeorm_1.Column)({ nullable: true }),
     __metadata("design:type", String)
 ], Case.prototype, "lawyerName", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ nullable: true }),
+    __metadata("design:type", Date)
+], Case.prototype, "acceptedAt", void 0);
 __decorate([
     (0, typeorm_1.Column)(),
     __metadata("design:type", Date)
