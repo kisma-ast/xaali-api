@@ -1,12 +1,14 @@
 import { Controller, Post, Body, Logger, Get, Param } from '@nestjs/common';
 import { EmailService } from './email.service';
+import { CasesService } from './cases.service';
 
 @Controller('notifications')
 export class NotificationsController {
   private readonly logger = new Logger(NotificationsController.name);
 
   constructor(
-    private readonly emailService: EmailService
+    private readonly emailService: EmailService,
+    private readonly casesService: CasesService
   ) {}
 
   @Post('send-tracking')
@@ -116,15 +118,50 @@ export class NotificationsController {
   @Get('get-case/:trackingCode')
   async getCaseByTracking(@Param('trackingCode') trackingCode: string) {
     try {
-      const caseData = this.emailService.getCaseData(trackingCode);
+      console.log('🔍 Recherche dossier:', trackingCode);
       
-      if (caseData) {
-        return {
-          success: true,
-          caseData
-        };
+      // D'abord essayer le stockage temporaire
+      const tempCaseData = this.emailService.getCaseData(trackingCode);
+      if (tempCaseData) {
+        console.log('✅ Dossier trouvé en stockage temporaire');
+        return { success: true, caseData: tempCaseData };
       }
       
+      // Chercher en base de données MongoDB
+      const caseFromDB = await this.casesService.findByTrackingCode(trackingCode);
+      if (caseFromDB) {
+        console.log('✅ Dossier trouvé en base de données:', caseFromDB.id);
+        
+        // Formater les données pour le frontend
+        const formattedCase = {
+          id: caseFromDB.id,
+          clientName: caseFromDB.citizenName || 'Client Xaali',
+          clientPhone: caseFromDB.citizenPhone || '+221 77 000 00 00',
+          clientEmail: caseFromDB.citizenEmail || null,
+          problemCategory: caseFromDB.category || 'Consultation juridique',
+          clientQuestion: caseFromDB.clientQuestion || caseFromDB.description,
+          aiResponse: caseFromDB.aiResponse || 'Réponse en cours de traitement',
+          followUpQuestions: [
+            caseFromDB.firstQuestion,
+            caseFromDB.secondQuestion,
+            caseFromDB.thirdQuestion
+          ].filter(Boolean),
+          followUpAnswers: [
+            caseFromDB.firstResponse,
+            caseFromDB.secondResponse,
+            caseFromDB.thirdResponse
+          ].filter(Boolean),
+          status: caseFromDB.isPaid ? 'paid' : caseFromDB.status,
+          createdAt: caseFromDB.createdAt?.toISOString() || new Date().toISOString(),
+          paymentAmount: caseFromDB.paymentAmount || 10000,
+          lawyerName: caseFromDB.lawyerName,
+          acceptedAt: caseFromDB.acceptedAt?.toISOString()
+        };
+        
+        return { success: true, caseData: formattedCase };
+      }
+      
+      console.log('❌ Dossier non trouvé:', trackingCode);
       return {
         success: false,
         message: 'Dossier non trouvé'

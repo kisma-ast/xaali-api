@@ -1,8 +1,10 @@
 import { EmailService } from './email.service';
+import { CasesService } from './cases.service';
 export declare class NotificationsController {
     private readonly emailService;
+    private readonly casesService;
     private readonly logger;
-    constructor(emailService: EmailService);
+    constructor(emailService: EmailService, casesService: CasesService);
     sendTrackingNotifications(data: {
         caseId: string;
         trackingCode: string;

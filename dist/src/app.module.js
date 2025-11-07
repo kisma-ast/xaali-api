@@ -36,7 +36,6 @@ const google_auth_service_1 = require("./google-auth.service");
 const legal_documents_service_1 = require("./legal-documents.service");
 const legal_documents_controller_1 = require("./legal-documents.controller");
 const email_service_1 = require("./email.service");
-const notifications_controller_1 = require("./notifications.controller");
 const simplified_case_controller_1 = require("./simplified-case.controller");
 const simplified_case_service_1 = require("./simplified-case.service");
 const tracking_controller_1 = require("./tracking.controller");
@@ -84,7 +83,7 @@ exports.AppModule = AppModule = __decorate([
             messages_module_1.MessagesModule,
             typeorm_1.TypeOrmModule.forFeature([lawyer_entity_1.Lawyer, case_entity_1.Case, citizen_entity_1.Citizen, consultation_entity_1.Consultation, message_entity_1.Message, tracking_entity_1.Tracking]),
         ],
-        controllers: [app_controller_1.AppController, real_auth_controller_1.RealAuthController, citizen_auth_controller_1.CitizenAuthController, messages_controller_1.MessagesController, legal_documents_controller_1.LegalDocumentsController, notifications_controller_1.NotificationsController, simplified_case_controller_1.SimplifiedCaseController, tracking_controller_1.TrackingController],
+        controllers: [app_controller_1.AppController, real_auth_controller_1.RealAuthController, citizen_auth_controller_1.CitizenAuthController, messages_controller_1.MessagesController, legal_documents_controller_1.LegalDocumentsController, simplified_case_controller_1.SimplifiedCaseController, tracking_controller_1.TrackingController],
         providers: [
             google_auth_service_1.GoogleAuthService, notification_service_1.NotificationService, app_service_1.AppService, webrtc_signaling_gateway_1.WebRTCSignalingGateway, fine_tuning_service_1.FineTuningService, legal_documents_service_1.LegalDocumentsService, email_service_1.EmailService, simplified_case_service_1.SimplifiedCaseService, tracking_service_1.TrackingService
         ],

@@ -20,4 +20,5 @@ export declare class CasesService {
         isPaid: boolean;
     }): Promise<Case | null>;
     private notifyAllLawyers;
+    findByTrackingCode(trackingCode: string): Promise<Case | null>;
 }

@@ -149,16 +149,15 @@ export class CasesService {
     console.log(`Nouveau cas ${caseId} à notifier aux avocats`);
   }
 
-  // Méthodes de notification temporairement désactivées
-  // async getLawyerNotifications(lawyerId: string): Promise<LawyerNotification[]> {
-  //   return [];
-  // }
-
-  // async markNotificationAsRead(notificationId: string): Promise<void> {
-  //   // Implémentation à venir
-  // }
-
-  // async acceptCase(notificationId: string, lawyerId: string): Promise<Case> {
-  //   return await this.assignLawyer(caseId, lawyerId);
-  // }
+  async findByTrackingCode(trackingCode: string): Promise<Case | null> {
+    try {
+      return await this.casesRepository.findOne({
+        where: { trackingCode },
+        relations: ['citizen', 'lawyer'],
+      });
+    } catch (error) {
+      console.error('Erreur findByTrackingCode:', error);
+      return null;
+    }
+  }
 } 

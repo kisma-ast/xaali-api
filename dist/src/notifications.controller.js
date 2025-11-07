@@ -16,11 +16,14 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.NotificationsController = void 0;
 const common_1 = require("@nestjs/common");
 const email_service_1 = require("./email.service");
+const cases_service_1 = require("./cases.service");
 let NotificationsController = NotificationsController_1 = class NotificationsController {
     emailService;
+    casesService;
     logger = new common_1.Logger(NotificationsController_1.name);
-    constructor(emailService) {
+    constructor(emailService, casesService) {
         this.emailService = emailService;
+        this.casesService = casesService;
     }
     async sendTrackingNotifications(data) {
         try {
@@ -69,13 +72,42 @@ let NotificationsController = NotificationsController_1 = class NotificationsCon
     }
     async getCaseByTracking(trackingCode) {
         try {
-            const caseData = this.emailService.getCaseData(trackingCode);
-            if (caseData) {
-                return {
-                    success: true,
-                    caseData
-                };
+            console.log('🔍 Recherche dossier:', trackingCode);
+            const tempCaseData = this.emailService.getCaseData(trackingCode);
+            if (tempCaseData) {
+                console.log('✅ Dossier trouvé en stockage temporaire');
+                return { success: true, caseData: tempCaseData };
             }
+            const caseFromDB = await this.casesService.findByTrackingCode(trackingCode);
+            if (caseFromDB) {
+                console.log('✅ Dossier trouvé en base de données:', caseFromDB.id);
+                const formattedCase = {
+                    id: caseFromDB.id,
+                    clientName: caseFromDB.citizenName || 'Client Xaali',
+                    clientPhone: caseFromDB.citizenPhone || '+221 77 000 00 00',
+                    clientEmail: caseFromDB.citizenEmail || null,
+                    problemCategory: caseFromDB.category || 'Consultation juridique',
+                    clientQuestion: caseFromDB.clientQuestion || caseFromDB.description,
+                    aiResponse: caseFromDB.aiResponse || 'Réponse en cours de traitement',
+                    followUpQuestions: [
+                        caseFromDB.firstQuestion,
+                        caseFromDB.secondQuestion,
+                        caseFromDB.thirdQuestion
+                    ].filter(Boolean),
+                    followUpAnswers: [
+                        caseFromDB.firstResponse,
+                        caseFromDB.secondResponse,
+                        caseFromDB.thirdResponse
+                    ].filter(Boolean),
+                    status: caseFromDB.isPaid ? 'paid' : caseFromDB.status,
+                    createdAt: caseFromDB.createdAt?.toISOString() || new Date().toISOString(),
+                    paymentAmount: caseFromDB.paymentAmount || 10000,
+                    lawyerName: caseFromDB.lawyerName,
+                    acceptedAt: caseFromDB.acceptedAt?.toISOString()
+                };
+                return { success: true, caseData: formattedCase };
+            }
+            console.log('❌ Dossier non trouvé:', trackingCode);
             return {
                 success: false,
                 message: 'Dossier non trouvé'
@@ -148,6 +180,7 @@ __decorate([
 ], NotificationsController.prototype, "getCaseByTracking", null);
 exports.NotificationsController = NotificationsController = NotificationsController_1 = __decorate([
     (0, common_1.Controller)('notifications'),
-    __metadata("design:paramtypes", [email_service_1.EmailService])
+    __metadata("design:paramtypes", [email_service_1.EmailService,
+        cases_service_1.CasesService])
 ], NotificationsController);
 //# sourceMappingURL=notifications.controller.js.map

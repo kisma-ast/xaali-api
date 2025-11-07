@@ -13,14 +13,17 @@ const notifications_service_1 = require("./notifications.service");
 const notifications_controller_1 = require("./notifications.controller");
 const notification_entity_1 = require("./notification.entity");
 const email_service_1 = require("./email.service");
+const cases_service_1 = require("./cases.service");
+const case_entity_1 = require("./case.entity");
+const lawyer_entity_1 = require("./lawyer.entity");
 let NotificationsModule = class NotificationsModule {
 };
 exports.NotificationsModule = NotificationsModule;
 exports.NotificationsModule = NotificationsModule = __decorate([
     (0, common_1.Module)({
-        imports: [typeorm_1.TypeOrmModule.forFeature([notification_entity_1.Notification])],
+        imports: [typeorm_1.TypeOrmModule.forFeature([notification_entity_1.Notification, case_entity_1.Case, lawyer_entity_1.Lawyer])],
         controllers: [notifications_controller_1.NotificationsController],
-        providers: [notifications_service_1.NotificationsService, email_service_1.EmailService],
+        providers: [notifications_service_1.NotificationsService, email_service_1.EmailService, cases_service_1.CasesService],
     })
 ], NotificationsModule);
 //# sourceMappingURL=notifications.module.js.map

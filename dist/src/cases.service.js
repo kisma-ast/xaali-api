@@ -132,6 +132,18 @@ let CasesService = class CasesService {
     async notifyAllLawyers(caseId) {
         console.log(`Nouveau cas ${caseId} à notifier aux avocats`);
     }
+    async findByTrackingCode(trackingCode) {
+        try {
+            return await this.casesRepository.findOne({
+                where: { trackingCode },
+                relations: ['citizen', 'lawyer'],
+            });
+        }
+        catch (error) {
+            console.error('Erreur findByTrackingCode:', error);
+            return null;
+        }
+    }
 };
 exports.CasesService = CasesService;
 exports.CasesService = CasesService = __decorate([

@@ -30,7 +30,7 @@ import { GoogleAuthService } from './google-auth.service';
 import { LegalDocumentsService } from './legal-documents.service';
 import { LegalDocumentsController } from './legal-documents.controller';
 import { EmailService } from './email.service';
-import { NotificationsController } from './notifications.controller';
+
 import { SimplifiedCaseController } from './simplified-case.controller';
 import { SimplifiedCaseService } from './simplified-case.service';
 import { TrackingController } from './tracking.controller';
@@ -75,7 +75,7 @@ import { Message } from './message.entity';
     MessagesModule,
     TypeOrmModule.forFeature([Lawyer, Case, Citizen, Consultation, Message, Tracking]),
   ],
-  controllers: [AppController, RealAuthController, CitizenAuthController, MessagesController, LegalDocumentsController, NotificationsController, SimplifiedCaseController, TrackingController],
+  controllers: [AppController, RealAuthController, CitizenAuthController, MessagesController, LegalDocumentsController, SimplifiedCaseController, TrackingController],
   providers: [
     GoogleAuthService, NotificationService, AppService, WebRTCSignalingGateway, FineTuningService, LegalDocumentsService, EmailService, SimplifiedCaseService, TrackingService],
 })
