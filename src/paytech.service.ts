@@ -60,8 +60,8 @@ export class PayTechService {
     const frontendUrl = 'https://xaali.onrender.com';
     
     this.PAYTECH_CALLBACK_URL = `${backendUrl}/paytech/callback`;
-    this.PAYTECH_SUCCESS_URL = `${frontendUrl}?payment=success`;
-    this.PAYTECH_CANCEL_URL = `${frontendUrl}?payment=cancel`;
+    this.PAYTECH_SUCCESS_URL = `${frontendUrl}#/payment/success`;
+    this.PAYTECH_CANCEL_URL = `${frontendUrl}#/payment/cancel`;
     
     this.logger.log('[PayTech] FORCED production URLs for PayTech HTTPS requirement');
     
