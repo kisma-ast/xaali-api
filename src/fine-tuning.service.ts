@@ -84,14 +84,23 @@ Réponds uniquement avec le titre, sans guillemets ni ponctuation finale.`;
         userPrompt = `Question: ${query.question}
 Catégorie: ${query.category || 'Droit général'}
 
-Tu DOIS répondre à cette question en trouvant l'angle juridique sénégalais. Fournis des détails explicatifs sur les lois citées. Format JSON:
+Tu DOIS répondre à cette question en trouvant l'angle juridique sénégalais. RÈGLE ABSOLUE: CHAQUE loi/article cité DOIT être immédiatement suivi de son extrait textuel entre guillemets. Format JSON STRICT:
 {
   "title": "Titre juridique précis",
-  "content": "Réponse détaillée: 1) Article de loi sénégalais spécifique, 2) Explication de ce que dit cette loi, 3) Comment elle s'applique à votre situation, 4) Conséquences pratiques. 4-5 phrases explicatives.",
+  "content": "Réponse OBLIGATOIREMENT structurée: 1) Citation précise (ex: Article 310 du Code de la Famille sénégalais), 2) IMMÉDIATEMENT après: extrait textuel exact entre guillemets (ex: : \"Il est interdit de marier une personne âgée de moins de 16 ans\"), 3) Explication de cette disposition, 4) Application à la situation, 5) Conséquences pratiques. OBLIGATOIRE: Terminer par 'Pour une analyse approfondie de votre situation spécifique, nous vous recommandons vivement de consulter un avocat qualifié.'",
   "summary": "Résumé des droits et obligations en 2 phrases",
-  "nextSteps": ["Documents à préparer", "Démarches précises", "Spécialiste recommandé"],
+  "nextSteps": ["Préparer les documents nécessaires", "Contacter les autorités compétentes si nécessaire", "Consulter un avocat spécialisé pour un conseil personnalisé"],
   "confidence": "Élevé/Moyen/Faible"
-}`;
+}
+
+FORMAT OBLIGATOIRE pour CHAQUE loi citée:
+"En vertu de l'Article [NUMÉRO] du [CODE/LOI] : \"[EXTRAIT EXACT DE LA LOI]\". Cette disposition..."
+
+EXEMPLES CONFORMES:
+- "Selon l'Article 279 du Code de la Famille : \"L'âge minimum pour le mariage est fixé à 18 ans\". Cela signifie..."
+- "L'Article 320 du Code pénal dispose : \"Est puni d'emprisonnement quiconque force au mariage\". Cette sanction..."
+
+ATTENTION: ZÉRO EXCEPTION - Chaque référence légale = extrait immédiat entre guillemets.`;
       }
 
       this.logger.log(`🤖 Appel à l'API OpenAI avec le modèle fine-tuned: ${AI_CONFIG.MODELS.OPENAI}`);
@@ -139,11 +148,30 @@ Tu DOIS répondre à cette question en trouvant l'angle juridique sénégalais. 
         // Parser la réponse JSON pour les réponses complètes
         try {
           const parsedResponse = JSON.parse(responseText);
+          
+          // TOUJOURS forcer les nextSteps
+          parsedResponse.nextSteps = [
+            'Préparer les documents nécessaires',
+            'Contacter les autorités compétentes si nécessaire',
+            'Consulter un avocat spécialisé pour un conseil personnalisé'
+          ];
+          
           return parsedResponse;
         } catch (parseError) {
           this.logger.error('Error parsing OpenAI response:', parseError);
-          // Fallback: créer une réponse basique
-          return this.createFallbackResponse(query);
+          // Si pas de JSON valide, créer une réponse avec le contenu brut
+          return {
+            title: 'Réponse juridique',
+            content: responseText + ' Pour une analyse approfondie de votre situation spécifique, nous vous recommandons vivement de consulter un avocat qualifié.',
+            summary: 'Réponse basée sur le droit sénégalais.',
+            confidence: 'Moyen',
+            nextSteps: [
+              'Préparer les documents nécessaires',
+              'Contacter les autorités compétentes si nécessaire',
+              'Consulter un avocat spécialisé pour un conseil personnalisé'
+            ],
+            relatedTopics: []
+          };
         }
       }
 
@@ -156,10 +184,14 @@ Tu DOIS répondre à cette question en trouvant l'angle juridique sénégalais. 
   private createFallbackResponse(query: FineTuningQuery): any {
     return {
       title: `Réponse à votre question sur ${query.question}`,
-      content: `En tant qu'assistant juridique spécialisé dans le droit sénégalais, je peux vous fournir des informations générales sur cette question. Pour une réponse précise adaptée à votre situation spécifique, nous vous recommandons de consulter un avocat.`,
+      content: `En tant qu'assistant juridique spécialisé dans le droit sénégalais, je peux vous fournir des informations générales sur cette question. Pour une analyse approfondie de votre situation spécifique, nous vous recommandons vivement de consulter un avocat qualifié.`,
       summary: `Réponse générale à votre question juridique.`,
       confidence: 'Moyen',
-      nextSteps: ['Consulter un professionnel du droit'],
+      nextSteps: [
+        'Préparer les documents pertinents',
+        'Rassembler les pièces justificatives',
+        'Consulter un avocat spécialisé pour un conseil personnalisé'
+      ],
       relatedTopics: [],
     };
   }
