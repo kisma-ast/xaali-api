@@ -111,17 +111,24 @@ export class TrackingController {
       });
 
       if (!existingCitizen) {
-        // Créer un nouveau compte citoyen
+        // Créer un nouveau compte citoyen avec identifiant anonyme (pour anonymat)
+        const anonymousName = `Client-${phone.slice(-4)}`; // Identifiant anonyme
         const citizen = this.citizenRepository.create({
-          name: `Client ${phone.slice(-4)}`,
+          name: anonymousName, // Pas de nom réel pour préserver l'anonymat
           phone,
-          email: email || `${phone}@xaali.temp`,
+          email: email || `${phone.replace(/[^0-9]/g, '')}@xaali.temp`,
           password: this.generateRandomPassword(),
           createdAt: new Date()
         });
 
         await this.citizenRepository.save(citizen);
-        this.logger.log(`Compte citoyen créé automatiquement: ${phone}`);
+        this.logger.log(`Compte citoyen créé automatiquement (anonyme): ${phone}`);
+      } else {
+        // Mettre à jour uniquement l'email si nécessaire (pas le nom pour anonymat)
+        if (email && !existingCitizen.email?.includes('@xaali.temp')) {
+          existingCitizen.email = email;
+          await this.citizenRepository.save(existingCitizen);
+        }
       }
     } catch (error) {
       this.logger.error('Erreur création compte citoyen:', error);
@@ -134,6 +141,7 @@ export class TrackingController {
 
   private async sendNotifications(phone: string, email: string | undefined, trackingCode: string, trackingLink: string) {
     try {
+      // Envoyer directement les notifications (unifié avec PayTech)
       // SMS
       await this.sendSMS(phone, `Merci, votre dossier ${trackingCode} a été créé. Suivez-le ici : ${trackingLink}`);
       
@@ -144,8 +152,8 @@ export class TrackingController {
       if (email && !email.includes('@xaali.temp')) {
         await this.sendEmail(email, trackingCode, trackingLink);
       }
-
-      this.logger.log(`Notifications envoyées pour ${trackingCode}`);
+      
+      this.logger.log(`✅ Notifications envoyées pour ${trackingCode}`);
     } catch (error) {
       this.logger.error('Erreur envoi notifications:', error);
     }

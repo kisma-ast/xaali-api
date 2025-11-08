@@ -122,7 +122,8 @@ export class SimplifiedCaseService {
     }
 
     // Créer automatiquement le compte utilisateur
-    await this.createAutomaticAccount(data.citizenPhone, data.citizenName, data.citizenEmail);
+    // Créer compte anonyme (sans nom réel pour préserver l'anonymat)
+    await this.createAutomaticAccount(data.citizenPhone, null, data.citizenEmail);
 
     // Envoyer les notifications avec la vraie réponse IA
     const notificationData = {
@@ -221,13 +222,17 @@ export class SimplifiedCaseService {
     };
   }
 
-  private async createAutomaticAccount(phone: string, name: string, email?: string) {
-    // Simuler la création automatique du compte
-    console.log(`🔐 Compte automatique créé:`);
+  private async createAutomaticAccount(phone: string, name: string | null, email?: string) {
+    // Créer un compte anonyme (pour préserver l'anonymat)
+    const anonymousName = name || `Client-${phone.slice(-4)}`; // Identifiant anonyme si pas de nom
+    console.log(`🔐 Compte automatique créé (anonyme):`);
     console.log(`   Identifiant: ${phone}`);
-    console.log(`   Nom: ${name}`);
+    console.log(`   Nom anonyme: ${anonymousName}`);
     console.log(`   Email: ${email || 'Non fourni'}`);
     console.log(`   Mot de passe: Généré automatiquement`);
+    
+    // TODO: Créer réellement le compte dans la base de données si nécessaire
+    // Pour l'instant, c'est juste logué pour la simulation
   }
 
   private async sendNotifications(trackingCode: string, trackingToken: string, data: any) {
@@ -274,7 +279,7 @@ export class SimplifiedCaseService {
     console.log('🚀 Création cas avec codes de suivi:', data);
     
     const trackingToken = uuidv4();
-    const trackingCode = `XL-${Math.floor(Math.random() * 90000) + 10000}`;
+    const trackingCode = `XA-${Math.floor(10000 + Math.random() * 90000)}`;
     
     const newCase = this.caseRepository.create({
       title: data.question.substring(0, 100),

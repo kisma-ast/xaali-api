@@ -1,11 +1,14 @@
 import { Controller, Post, Get, Body, Param, Query, Req, Res, HttpStatus, HttpException, Logger } from '@nestjs/common';
 import { PayTechService } from './paytech.service';
 import { NotificationService } from './notification.service';
+import { EmailService } from './email.service';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Case } from './case.entity';
 import { Consultation } from './consultation.entity';
+import { Citizen } from './citizen.entity';
 import { Request, Response } from 'express';
+import { v4 as uuidv4 } from 'uuid';
 
 @Controller('paytech')
 export class PayTechController {
@@ -14,10 +17,13 @@ export class PayTechController {
   constructor(
     private readonly payTechService: PayTechService,
     private readonly notificationService: NotificationService,
+    private readonly emailService: EmailService,
     @InjectRepository(Case)
     private caseRepository: Repository<Case>,
     @InjectRepository(Consultation)
     private consultationRepository: Repository<Consultation>,
+    @InjectRepository(Citizen)
+    private citizenRepository: Repository<Citizen>,
   ) {}
 
   @Post('create-simplified-payment')
@@ -262,6 +268,149 @@ export class PayTechController {
     }
   }
 
+  // Endpoint pour récupérer le dossier après paiement PayTech
+  @Get('case-by-payment/:paymentId')
+  async getCaseByPaymentId(@Param('paymentId') paymentId: string) {
+    try {
+      this.logger.log(`Récupération du cas pour paymentId: ${paymentId}`);
+      
+      const case_ = await this.caseRepository.findOne({
+        where: { paymentId: paymentId } as any
+      });
+
+      if (!case_) {
+        return {
+          success: false,
+          message: 'Dossier introuvable pour ce paiement'
+        };
+      }
+
+      // Construire les follow-up questions et answers
+      const followUpQuestions: string[] = [];
+      const followUpAnswers: string[] = [];
+      
+      if (case_.firstQuestion) {
+        followUpQuestions.push(case_.firstQuestion);
+        if (case_.firstResponse) followUpAnswers.push(case_.firstResponse);
+      }
+      if (case_.secondQuestion) {
+        followUpQuestions.push(case_.secondQuestion);
+        if (case_.secondResponse) followUpAnswers.push(case_.secondResponse);
+      }
+      if (case_.thirdQuestion) {
+        followUpQuestions.push(case_.thirdQuestion);
+        if (case_.thirdResponse) followUpAnswers.push(case_.thirdResponse);
+      }
+
+      // Retourner toutes les informations nécessaires pour le frontend
+      return {
+        success: true,
+        case: {
+          id: case_.id,
+          trackingCode: case_.trackingCode,
+          trackingToken: case_.trackingToken,
+          trackingLink: case_.trackingToken 
+            ? `${process.env.FRONTEND_URL || 'http://localhost:5173'}/suivi/${case_.trackingToken}`
+            : null,
+          clientName: case_.citizenName,
+          clientPhone: case_.citizenPhone,
+          clientEmail: case_.citizenEmail,
+          problemCategory: case_.category,
+          clientQuestion: case_.clientQuestion || case_.description,
+          aiResponse: case_.aiResponse,
+          followUpQuestions,
+          followUpAnswers,
+          status: case_.status,
+          isPaid: case_.isPaid,
+          paymentAmount: case_.paymentAmount,
+          createdAt: case_.createdAt,
+          title: case_.title,
+          assignedLawyer: case_.lawyerName ? {
+            name: case_.lawyerName,
+            specialty: case_.category,
+            phone: ''
+          } : null
+        }
+      };
+    } catch (error) {
+      this.logger.error(`Erreur récupération cas par paymentId: ${error.message}`);
+      return {
+        success: false,
+        message: 'Erreur lors de la récupération du dossier'
+      };
+    }
+  }
+
+  // Endpoint pour récupérer le dossier par trackingToken
+  @Get('case-by-token/:token')
+  async getCaseByTrackingToken(@Param('token') token: string) {
+    try {
+      this.logger.log(`Récupération du cas pour trackingToken: ${token}`);
+      
+      const case_ = await this.caseRepository.findOne({
+        where: { trackingToken: token } as any
+      });
+
+      if (!case_) {
+        return {
+          success: false,
+          message: 'Dossier introuvable'
+        };
+      }
+
+      // Construire les follow-up questions et answers
+      const followUpQuestions: string[] = [];
+      const followUpAnswers: string[] = [];
+      
+      if (case_.firstQuestion) {
+        followUpQuestions.push(case_.firstQuestion);
+        if (case_.firstResponse) followUpAnswers.push(case_.firstResponse);
+      }
+      if (case_.secondQuestion) {
+        followUpQuestions.push(case_.secondQuestion);
+        if (case_.secondResponse) followUpAnswers.push(case_.secondResponse);
+      }
+      if (case_.thirdQuestion) {
+        followUpQuestions.push(case_.thirdQuestion);
+        if (case_.thirdResponse) followUpAnswers.push(case_.thirdResponse);
+      }
+
+      return {
+        success: true,
+        case: {
+          id: case_.id,
+          trackingCode: case_.trackingCode,
+          trackingToken: case_.trackingToken,
+          trackingLink: `${process.env.FRONTEND_URL || 'http://localhost:5173'}/suivi/${case_.trackingToken}`,
+          clientName: case_.citizenName,
+          clientPhone: case_.citizenPhone,
+          clientEmail: case_.citizenEmail,
+          problemCategory: case_.category,
+          clientQuestion: case_.clientQuestion || case_.description,
+          aiResponse: case_.aiResponse,
+          followUpQuestions,
+          followUpAnswers,
+          status: case_.status,
+          isPaid: case_.isPaid,
+          paymentAmount: case_.paymentAmount,
+          createdAt: case_.createdAt,
+          title: case_.title,
+          assignedLawyer: case_.lawyerName ? {
+            name: case_.lawyerName,
+            specialty: case_.category,
+            phone: ''
+          } : null
+        }
+      };
+    } catch (error) {
+      this.logger.error(`Erreur récupération cas par token: ${error.message}`);
+      return {
+        success: false,
+        message: 'Erreur lors de la récupération du dossier'
+      };
+    }
+  }
+
   @Get('test-callback')
   async testCallback(@Req() req: Request, @Res() res: Response) {
     try {
@@ -415,6 +564,7 @@ export class PayTechController {
     caseDescription: string;
     caseCategory: string;
     amount: number;
+    caseId?: string | null;
   }) {
     try {
       this.logger.log(`Création d'un cas après paiement: ${paymentData.paymentReference}`);
@@ -443,12 +593,61 @@ export class PayTechController {
       const explicitTitle = categoryTitles[paymentData.caseCategory] || 'Consultation juridique spécialisée';
       const aiResponse = aiResponses[paymentData.caseCategory] || aiResponses['consultation-generale'];
       
+      // Essayer de récupérer un cas existant avec ce paymentReference
+      let existingCase = await this.caseRepository.findOne({
+        where: { paymentId: paymentData.paymentReference } as any
+      });
+      
+      // Si pas trouvé, chercher par caseId si fourni dans paymentData
+      if (!existingCase && paymentData.caseId) {
+        existingCase = await this.caseRepository.findOne({
+          where: { _id: paymentData.caseId as any }
+        });
+      }
+      
+      if (existingCase) {
+        // Mettre à jour le cas existant avec les données de paiement
+        existingCase.isPaid = true;
+        existingCase.paymentAmount = paymentData.amount;
+        existingCase.paymentId = paymentData.paymentReference;
+        existingCase.status = 'pending';
+        
+        // Mettre à jour UNIQUEMENT téléphone et email (anonymat - pas de nom)
+        if (paymentData.customerPhone && paymentData.customerPhone !== 'À définir') {
+          existingCase.citizenPhone = paymentData.customerPhone;
+        }
+        if (paymentData.customerEmail) {
+          existingCase.citizenEmail = paymentData.customerEmail;
+        }
+        // Ne pas mettre à jour le nom pour préserver l'anonymat
+        // Le nom reste l'identifiant anonyme créé initialement
+        
+        // Conserver la question et réponse IA existantes si elles sont meilleures
+        if (!existingCase.clientQuestion && paymentData.caseDescription) {
+          existingCase.clientQuestion = paymentData.caseDescription;
+        }
+        if (!existingCase.description && paymentData.caseDescription) {
+          existingCase.description = paymentData.caseDescription;
+        }
+        if (!existingCase.aiResponse && aiResponse) {
+          existingCase.aiResponse = aiResponse;
+        }
+        
+        const savedCase = await this.caseRepository.save(existingCase);
+        this.logger.log(`Cas existant mis à jour avec succès: ${savedCase.id}`);
+        return savedCase;
+      }
+      
+      // Créer un nouveau cas seulement si aucun n'existe
+      // Pour l'anonymat : utiliser un identifiant anonyme au lieu du nom réel
+      const anonymousId = `Client-${Date.now().toString().slice(-6)}`;
       const newCase = this.caseRepository.create({
         title: explicitTitle,
         description: paymentData.caseDescription,
         category: paymentData.caseCategory,
-        citizenName: paymentData.customerName,
+        citizenName: anonymousId, // Identifiant anonyme (pas le nom réel)
         citizenPhone: paymentData.customerPhone,
+        citizenEmail: paymentData.customerEmail,
         status: 'pending',
         urgency: 'normal',
         estimatedTime: 30,
@@ -569,13 +768,36 @@ export class PayTechController {
         where: { paymentId: transactionId }
       });
 
-      // 2. Si pas trouvé, essayer de trouver par reference
+      // 2. Si pas trouvé, essayer de trouver par reference ou dans les données stockées
       if (!existingCase) {
         const caseId = await this.getCaseIdFromPaymentReference(transactionId);
         if (caseId) {
           existingCase = await this.caseRepository.findOne({
             where: { _id: caseId as any }
           });
+        }
+        
+        // Si toujours pas trouvé, chercher un cas non payé qui pourrait correspondre
+        // (cas créé avant le paiement avec saveCaseBeforePayment)
+        if (!existingCase) {
+          // Chercher par les infos client du callback
+          const customerPhone = callbackData.customer_phone || callbackData.client_phone;
+          if (customerPhone) {
+            const potentialCases = await this.caseRepository.find({
+              where: { 
+                citizenPhone: customerPhone,
+                isPaid: false
+              } as any
+            });
+            
+            // Prendre le plus récent
+            if (potentialCases && potentialCases.length > 0) {
+              existingCase = potentialCases.sort((a, b) => 
+                new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+              )[0];
+              this.logger.log(`Cas trouvé par téléphone client: ${existingCase.id}`);
+            }
+          }
         }
       }
 
@@ -588,6 +810,11 @@ export class PayTechController {
         existingCase.isPaid = true;
         existingCase.paymentAmount = callbackData.amount || existingCase.paymentAmount || 10000;
         
+        // Si le dossier de suivi n'existe pas encore, le créer
+        if (!existingCase.trackingCode || !existingCase.trackingToken) {
+          await this.createTrackingForCase(existingCase, callbackData);
+        }
+        
         await this.caseRepository.save(existingCase);
         this.logger.log(`Statut de paiement mis à jour pour le cas: ${existingCase.id}`);
         
@@ -597,7 +824,7 @@ export class PayTechController {
         this.logger.log(`Aucun cas trouvé pour transaction ${transactionId}, création d'un nouveau cas`);
         
         // Créer un nouveau cas avec les informations PayTech
-        await this.createCaseAfterPayment({
+        const newCase = await this.createCaseAfterPayment({
           paymentReference: transactionId,
           customerName: callbackData.customer_name || callbackData.client_name || 'Client PayTech',
           customerPhone: callbackData.customer_phone || callbackData.client_phone || '+221 77 000 00 00',
@@ -607,9 +834,164 @@ export class PayTechController {
           caseCategory: callbackData.category || 'consultation-generale',
           amount: callbackData.amount || 10000
         });
+        
+        // Créer le dossier de suivi pour le nouveau cas
+        if (newCase) {
+          await this.createTrackingForCase(newCase, callbackData);
+        }
       }
     } catch (error) {
       this.logger.error(`Erreur traitement paiement réussi: ${error.message}`);
+    }
+  }
+
+  // Méthode pour créer le dossier de suivi complet après paiement
+  private async createTrackingForCase(case_: Case, callbackData: any) {
+    try {
+      this.logger.log(`📋 Création du dossier de suivi pour le cas: ${case_.id}`);
+      
+      // 1. Réutiliser le code de suivi existant si disponible, sinon en générer un nouveau
+      let trackingCode = case_.trackingCode;
+      let trackingToken = case_.trackingToken;
+      
+      if (!trackingCode || !trackingToken) {
+        // Générer un nouveau code seulement si le cas n'en a pas déjà un
+        trackingCode = `XA-${Math.floor(10000 + Math.random() * 90000)}`;
+        trackingToken = uuidv4();
+        this.logger.log(`Nouveau code de suivi généré: ${trackingCode}`);
+      } else {
+        this.logger.log(`Réutilisation du code de suivi existant: ${trackingCode}`);
+      }
+      
+      // 2. Créer le lien de suivi
+      const baseUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+      const trackingLink = `${baseUrl}/suivi/${trackingToken}`;
+      
+      // 3. Mettre à jour le cas avec les informations de suivi
+      case_.trackingCode = trackingCode;
+      case_.trackingToken = trackingToken;
+      case_.isPaid = true;
+      case_.paymentAmount = callbackData.amount || case_.paymentAmount || 10000;
+      case_.status = 'pending';
+      
+      await this.caseRepository.save(case_);
+      this.logger.log(`✅ Dossier de suivi créé: ${trackingCode}`);
+      
+      // 4. Récupérer les informations du client
+      const citizenPhone = case_.citizenPhone || callbackData.customer_phone || callbackData.client_phone || '+221 77 000 00 00';
+      const citizenEmail = case_.citizenEmail || callbackData.customer_email || callbackData.client_email;
+      
+      // 5. Créer automatiquement un compte citoyen si nécessaire (sans nom pour anonymat)
+      await this.createCitizenAccount(citizenPhone, citizenEmail);
+      
+      // 6. Envoyer les notifications (SMS, WhatsApp, Email)
+      await this.sendTrackingNotifications(citizenPhone, citizenEmail, trackingCode, trackingLink, case_.paymentAmount);
+      
+      this.logger.log(`📧 Notifications envoyées pour le dossier ${trackingCode}`);
+      
+      return {
+        trackingCode,
+        trackingToken,
+        trackingLink
+      };
+    } catch (error) {
+      this.logger.error(`❌ Erreur création dossier de suivi: ${error.message}`);
+      throw error;
+    }
+  }
+
+  // Méthode pour créer un compte citoyen automatiquement (anonyme - pas de nom)
+  private async createCitizenAccount(phone: string, email?: string) {
+    try {
+      // Vérifier si le compte existe déjà
+      const existingCitizen = await this.citizenRepository.findOne({
+        where: { phone }
+      });
+
+      if (!existingCitizen) {
+        // Créer un nouveau compte citoyen avec identifiant anonyme
+        const anonymousName = `Client-${phone.slice(-4)}`; // Identifiant anonyme basé sur les 4 derniers chiffres
+        const citizen = this.citizenRepository.create({
+          name: anonymousName, // Pas de nom réel pour préserver l'anonymat
+          phone,
+          email: email || `${phone.replace(/[^0-9]/g, '')}@xaali.temp`,
+          password: this.generateRandomPassword(),
+          createdAt: new Date()
+        });
+
+        await this.citizenRepository.save(citizen);
+        this.logger.log(`✅ Compte citoyen créé automatiquement (anonyme): ${phone}`);
+      } else {
+        // Mettre à jour uniquement l'email si nécessaire (pas le nom pour anonymat)
+        if (email && !existingCitizen.email?.includes('@xaali.temp')) {
+          existingCitizen.email = email;
+          await this.citizenRepository.save(existingCitizen);
+        }
+      }
+    } catch (error) {
+      this.logger.error(`❌ Erreur création compte citoyen: ${error.message}`);
+    }
+  }
+
+  // Méthode pour générer un mot de passe aléatoire
+  private generateRandomPassword(): string {
+    return Math.random().toString(36).slice(-8);
+  }
+
+  // Méthode pour envoyer les notifications de suivi (unifié avec simulation)
+  private async sendTrackingNotifications(phone: string, email: string | undefined, trackingCode: string, trackingLink: string, amount: number) {
+    try {
+      // Utiliser l'endpoint de notifications unifié (même que simulation)
+      const apiUrl = process.env.BACKEND_URL || 'http://localhost:3000';
+      
+      // Utiliser le service de notifications directement au lieu de fetch
+      try {
+        // Appeler directement le service de notifications via l'endpoint
+        // Note: On pourrait aussi injecter NotificationsController, mais pour l'instant on utilise l'emailService
+        // Les SMS/WhatsApp seront gérés par l'endpoint /notifications/send-tracking
+        this.logger.log(`📧 Envoi notifications via service unifié pour ${trackingCode}`);
+        
+        // Envoyer Email si fourni (via EmailService)
+        if (email && !email.includes('@xaali.temp')) {
+          await this.emailService.sendTrackingNotification(
+            email,
+            trackingCode,
+            trackingLink,
+            amount
+          );
+          this.logger.log(`📧 Email de suivi envoyé à ${email}`);
+        }
+        
+        // SMS et WhatsApp seront logués (à intégrer avec vraie API)
+        this.logger.log(`📱 SMS/WhatsApp: Merci, votre dossier ${trackingCode} a été créé. Suivez-le ici : ${trackingLink}`);
+        
+        this.logger.log(`✅ Notifications envoyées via service unifié pour ${trackingCode}`);
+        return;
+      } catch (apiError) {
+        this.logger.warn('Service notifications non disponible, envoi direct...');
+      }
+      
+      // Fallback : envoi direct si l'API échoue
+      // Envoyer SMS (simulation - à remplacer par une vraie API SMS)
+      this.logger.log(`📱 SMS envoyé à ${phone}: Merci, votre dossier ${trackingCode} a été créé. Suivez-le ici : ${trackingLink}`);
+      
+      // Envoyer WhatsApp (simulation - à remplacer par une vraie API WhatsApp)
+      this.logger.log(`📱 WhatsApp envoyé à ${phone}: Bonjour, votre dossier juridique Xaali.net est créé. Code : ${trackingCode}. Lien de suivi : ${trackingLink}`);
+      
+      // Envoyer Email si fourni
+      if (email && !email.includes('@xaali.temp')) {
+        await this.emailService.sendTrackingNotification(
+          email,
+          trackingCode,
+          trackingLink,
+          amount
+        );
+        this.logger.log(`📧 Email de suivi envoyé à ${email}`);
+      }
+
+      this.logger.log(`✅ Notifications envoyées directement pour le dossier ${trackingCode}`);
+    } catch (error) {
+      this.logger.error(`❌ Erreur envoi notifications: ${error.message}`);
     }
   }
 }
