@@ -6,6 +6,7 @@ import { Case } from './case.entity';
 import { Lawyer } from './lawyer.entity';
 import { Citizen } from './citizen.entity';
 import { EmailService } from './email.service';
+import { NotificationService } from './notification.service';
 
 @Controller('messages')
 export class MessagesController {
@@ -21,6 +22,7 @@ export class MessagesController {
     @InjectRepository(Citizen)
     private citizenRepository: Repository<Citizen>,
     private emailService: EmailService,
+    private notificationService: NotificationService,
   ) {}
 
   @Get(':caseId')
@@ -96,7 +98,31 @@ export class MessagesController {
       
       console.log('✅ Message sauvegardé:', savedMessage.id);
 
-      // Envoyer notification email au destinataire
+      // Récupérer le cas pour les notifications
+      const case_ = await this.caseRepository.findOne({
+        where: { _id: messageData.caseId as any }
+      });
+
+      if (case_) {
+        // Notifier le destinataire selon le type d'expéditeur
+        if (messageData.sender === 'lawyer') {
+          // Message d'avocat → notifier le citoyen
+          await this.notificationService.notifyCitizenNewMessage(
+            case_,
+            messageData.senderName,
+            messageData.content
+          );
+        } else {
+          // Message de citoyen → notifier l'avocat
+          await this.notificationService.notifyLawyerNewMessage(
+            case_,
+            messageData.senderName,
+            messageData.content
+          );
+        }
+      }
+
+      // Envoyer notification email au destinataire (méthode existante)
       await this.sendEmailNotification(messageData);
 
       return {

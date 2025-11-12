@@ -25,7 +25,7 @@ import { SeedDataService } from './seed-data.service';
 import { RealAuthController } from './real-auth.controller';
 import { CitizenAuthController } from './citizen-auth.controller';
 import { MessagesController } from './messages.controller';
-import { NotificationService } from './notification.service';
+import { NotificationModule } from './notification.module';
 import { GoogleAuthService } from './google-auth.service';
 import { LegalDocumentsService } from './legal-documents.service';
 import { LegalDocumentsController } from './legal-documents.controller';
@@ -65,6 +65,7 @@ import { Message } from './message.entity';
     ConsultationsModule,
     PaymentsModule,
     NotificationsModule,
+    NotificationModule, // Module pour NotificationService (partagé)
     CitizensModule,
     AuthModule,
     PineconeModule,
@@ -77,6 +78,6 @@ import { Message } from './message.entity';
   ],
   controllers: [AppController, RealAuthController, CitizenAuthController, MessagesController, LegalDocumentsController, SimplifiedCaseController, TrackingController],
   providers: [
-    GoogleAuthService, NotificationService, AppService, WebRTCSignalingGateway, FineTuningService, LegalDocumentsService, EmailService, SimplifiedCaseService, TrackingService],
+    GoogleAuthService, AppService, WebRTCSignalingGateway, FineTuningService, LegalDocumentsService, EmailService, SimplifiedCaseService, TrackingService],
 })
 export class AppModule {}

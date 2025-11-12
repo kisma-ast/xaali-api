@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Case } from './case.entity';
 import { Lawyer } from './lawyer.entity';
+import { NotificationService } from './notification.service';
 // import { LawyerNotification } from './lawyer-notification.entity';
 
 @Injectable()
@@ -12,6 +13,7 @@ export class CasesService {
     private casesRepository: Repository<Case>,
     @InjectRepository(Lawyer)
     private lawyersRepository: Repository<Lawyer>,
+    private notificationService: NotificationService,
     // @InjectRepository(LawyerNotification)
     // private notificationsRepository: Repository<LawyerNotification>,
   ) {}
@@ -85,11 +87,30 @@ export class CasesService {
         throw new Error('Case not found');
       }
 
+      const lawyer = await this.lawyersRepository.findOne({
+        where: { _id: lawyerId as any }
+      });
+
+      if (!lawyer) {
+        throw new Error('Lawyer not found');
+      }
+
       case_.lawyerId = lawyerId;
+      case_.lawyerName = lawyer.name;
       case_.status = 'accepted';
       case_.acceptedAt = new Date();
       
-      return await this.casesRepository.save(case_);
+      const savedCase = await this.casesRepository.save(case_);
+      
+      // Notifier le citoyen qu'un avocat a accepté son dossier
+      await this.notificationService.notifyCitizenLawyerAssigned(savedCase, lawyer);
+      
+      // Notifier l'avocat qu'un cas lui a été assigné
+      await this.notificationService.notifyLawyerCaseAssigned(savedCase, lawyer);
+      
+      console.log(`✅ Avocat ${lawyerId} assigné au cas ${caseId} - Notifications envoyées`);
+      
+      return savedCase;
     } catch (error) {
       console.error('Erreur assignLawyer:', error);
       throw error;

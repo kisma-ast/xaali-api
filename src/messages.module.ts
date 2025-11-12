@@ -6,9 +6,13 @@ import { Case } from './case.entity';
 import { Lawyer } from './lawyer.entity';
 import { Citizen } from './citizen.entity';
 import { EmailService } from './email.service';
+import { NotificationModule } from './notification.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Message, Case, Lawyer, Citizen])],
+  imports: [
+    TypeOrmModule.forFeature([Message, Case, Lawyer, Citizen]),
+    NotificationModule, // Importer NotificationModule pour avoir accès à NotificationService
+  ],
   controllers: [MessagesController],
   providers: [EmailService],
   exports: [TypeOrmModule],

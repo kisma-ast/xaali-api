@@ -739,19 +739,18 @@ export class PayTechController {
       });
       
       if (existingCase) {
-        // Mettre à jour avec les vraies infos PayTech si elles sont meilleures
-        if (customerInfo.name && customerInfo.name !== 'Client PayTech') {
-          existingCase.citizenName = customerInfo.name;
-        }
+        // Mettre à jour UNIQUEMENT téléphone et email (anonymat - pas de nom)
         if (customerInfo.phone && customerInfo.phone !== '+221 77 000 00 00') {
           existingCase.citizenPhone = customerInfo.phone;
         }
         if (customerInfo.email) {
           existingCase.citizenEmail = customerInfo.email;
         }
+        // Ne pas mettre à jour le nom pour préserver l'anonymat
+        // Le nom reste l'identifiant anonyme créé initialement
         
         await this.caseRepository.save(existingCase);
-        this.logger.log(`✅ Infos client mises à jour pour le cas: ${existingCase.id}`);
+        this.logger.log(`✅ Infos client mises à jour (anonymat préservé) pour le cas: ${existingCase.id}`);
       }
     } catch (error) {
       this.logger.error(`❌ Erreur sauvegarde infos client: ${error.message}`);
@@ -803,7 +802,7 @@ export class PayTechController {
 
       // 3. Si un cas existe, mettre à jour son statut de paiement
       if (existingCase) {
-        this.logger.log(`Cas trouvé pour transaction ${transactionId}: ${existingCase.id}`);
+        this.logger.log(`✅ Cas trouvé pour transaction ${transactionId}: ${existingCase.id}`);
         
         // Mettre à jour le statut de paiement
         existingCase.paymentId = transactionId;
@@ -818,8 +817,16 @@ export class PayTechController {
         await this.caseRepository.save(existingCase);
         this.logger.log(`Statut de paiement mis à jour pour le cas: ${existingCase.id}`);
         
+        // Notifier le citoyen que le paiement est confirmé
+        await this.notificationService.notifyCitizenCaseCreated(existingCase);
+        
         // Notifier les avocats du cas payé
         await this.notificationService.notifyNewCase(existingCase);
+        
+        // Si un avocat est déjà assigné, le notifier du paiement
+        if (existingCase.lawyerId) {
+          await this.notificationService.notifyLawyerPaymentReceived(existingCase);
+        }
       } else {
         this.logger.log(`Aucun cas trouvé pour transaction ${transactionId}, création d'un nouveau cas`);
         
@@ -838,10 +845,21 @@ export class PayTechController {
         // Créer le dossier de suivi pour le nouveau cas
         if (newCase) {
           await this.createTrackingForCase(newCase, callbackData);
+        } else {
+          // Fallback : si la création du cas échoue, logger l'erreur mais ne pas faire échouer le callback
+          this.logger.error(`❌ Échec création cas après paiement PayTech - Transaction: ${transactionId}`);
+          this.logger.error(`   Données callback: ${JSON.stringify(callbackData)}`);
+          // Le paiement est validé par PayTech, mais le cas n'a pas pu être créé
+          // On retourne quand même un succès pour ne pas bloquer PayTech
         }
       }
     } catch (error) {
-      this.logger.error(`Erreur traitement paiement réussi: ${error.message}`);
+      // Gestion d'erreur globale avec fallback
+      this.logger.error(`❌ Erreur critique traitement paiement réussi: ${error.message}`);
+      this.logger.error(`   Stack: ${error.stack}`);
+      this.logger.error(`   Transaction ID: ${transactionId}`);
+      // Ne pas faire échouer le callback PayTech - le paiement est validé
+      // Les données seront récupérées plus tard via polling ou manuellement
     }
   }
 
@@ -886,9 +904,15 @@ export class PayTechController {
       
       // 6. Envoyer les notifications (SMS, WhatsApp, Email)
       await this.sendTrackingNotifications(citizenPhone, citizenEmail, trackingCode, trackingLink, case_.paymentAmount);
-      
+
+      // 7. Notifier le citoyen que le dossier est créé
+      await this.notificationService.notifyCitizenCaseCreated(case_);
+
+      // 8. Notifier tous les avocats qu'un nouveau cas payé est disponible
+      await this.notificationService.notifyNewCase(case_);
+
       this.logger.log(`📧 Notifications envoyées pour le dossier ${trackingCode}`);
-      
+
       return {
         trackingCode,
         trackingToken,

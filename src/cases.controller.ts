@@ -43,6 +43,69 @@ export class CasesController {
     }
   }
 
+  @Get('tracking-code/:trackingCode')
+  async findByTrackingCode(@Param('trackingCode') trackingCode: string) {
+    try {
+      const case_ = await this.casesService.findByTrackingCode(trackingCode);
+      if (!case_) {
+        return {
+          success: false,
+          message: 'Dossier introuvable'
+        };
+      }
+      
+      // Construire les follow-up questions et answers
+      const followUpQuestions: string[] = [];
+      const followUpAnswers: string[] = [];
+      
+      if (case_.firstQuestion) {
+        followUpQuestions.push(case_.firstQuestion);
+        if (case_.firstResponse) followUpAnswers.push(case_.firstResponse);
+      }
+      if (case_.secondQuestion) {
+        followUpQuestions.push(case_.secondQuestion);
+        if (case_.secondResponse) followUpAnswers.push(case_.secondResponse);
+      }
+      if (case_.thirdQuestion) {
+        followUpQuestions.push(case_.thirdQuestion);
+        if (case_.thirdResponse) followUpAnswers.push(case_.thirdResponse);
+      }
+      
+      return {
+        success: true,
+        case: {
+          id: case_.id,
+          trackingCode: case_.trackingCode,
+          trackingToken: case_.trackingToken,
+          trackingLink: `${process.env.FRONTEND_URL || 'http://localhost:5173'}/suivi/${case_.trackingToken}`,
+          clientName: case_.citizenName,
+          clientPhone: case_.citizenPhone,
+          clientEmail: case_.citizenEmail,
+          problemCategory: case_.category,
+          clientQuestion: case_.clientQuestion || case_.description,
+          aiResponse: case_.aiResponse,
+          followUpQuestions,
+          followUpAnswers,
+          status: case_.status,
+          isPaid: case_.isPaid,
+          createdAt: case_.createdAt,
+          paymentAmount: case_.paymentAmount,
+          assignedLawyer: case_.lawyerName ? {
+            name: case_.lawyerName,
+            specialty: case_.category || '',
+            phone: ''
+          } : undefined
+        }
+      };
+    } catch (error) {
+      console.error('Erreur récupération par trackingCode:', error);
+      return {
+        success: false,
+        message: 'Erreur lors de la récupération du dossier'
+      };
+    }
+  }
+
   @Get(':id')
   findOne(@Param('id') id: string): Promise<Case | null> {
     return this.casesService.findOne(id);
@@ -100,6 +163,10 @@ export class CasesController {
     console.log('📋 [CASES] Données reçues:', JSON.stringify(body, null, 2));
     
     try {
+      // Générer les codes de suivi
+      const trackingCode = `XA-${Math.floor(10000 + Math.random() * 90000)}`;
+      const trackingToken = require('crypto').randomUUID();
+      
       const caseData = {
         title: this.generateCaseTitle(body.category, body.question),
         description: body.question,
@@ -113,6 +180,8 @@ export class CasesController {
         isPaid: false,
         aiResponse: body.aiResponse,
         clientQuestion: body.question,
+        trackingCode: trackingCode,
+        trackingToken: trackingToken,
         createdAt: new Date()
       };
       
@@ -128,7 +197,9 @@ export class CasesController {
       return {
         success: true,
         case: newCase,
-        caseId: newCase.id
+        caseId: newCase.id,
+        trackingCode: newCase.trackingCode,
+        trackingToken: newCase.trackingToken
       };
     } catch (error) {
       console.error('Erreur création cas avant paiement:', error);
