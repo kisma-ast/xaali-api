@@ -2,6 +2,7 @@ import { Controller, Post, Get, Body, Param, Query, Req, Res, HttpStatus, HttpEx
 import { PayTechService } from './paytech.service';
 import { NotificationService } from './notification.service';
 import { EmailService } from './email.service';
+import { DossiersService } from './dossiers.service';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Case } from './case.entity';
@@ -18,6 +19,7 @@ export class PayTechController {
     private readonly payTechService: PayTechService,
     private readonly notificationService: NotificationService,
     private readonly emailService: EmailService,
+    private readonly dossiersService: DossiersService,
     @InjectRepository(Case)
     private caseRepository: Repository<Case>,
     @InjectRepository(Consultation)
@@ -817,6 +819,14 @@ export class PayTechController {
         await this.caseRepository.save(existingCase);
         this.logger.log(`Statut de paiement mis à jour pour le cas: ${existingCase.id}`);
         
+        // Créer automatiquement le dossier dans la collection dossiers
+        try {
+          await this.dossiersService.createFromCase(existingCase);
+          this.logger.log(`✅ Dossier créé automatiquement: ${existingCase.trackingCode}`);
+        } catch (dossierError) {
+          this.logger.error(`❌ Erreur création dossier: ${dossierError.message}`);
+        }
+        
         // Notifier le citoyen que le paiement est confirmé
         await this.notificationService.notifyCitizenCaseCreated(existingCase);
         
@@ -845,6 +855,14 @@ export class PayTechController {
         // Créer le dossier de suivi pour le nouveau cas
         if (newCase) {
           await this.createTrackingForCase(newCase, callbackData);
+          
+          // Créer automatiquement le dossier dans la collection dossiers
+          try {
+            await this.dossiersService.createFromCase(newCase);
+            this.logger.log(`✅ Dossier créé automatiquement: ${newCase.trackingCode}`);
+          } catch (dossierError) {
+            this.logger.error(`❌ Erreur création dossier: ${dossierError.message}`);
+          }
         } else {
           // Fallback : si la création du cas échoue, logger l'erreur mais ne pas faire échouer le callback
           this.logger.error(`❌ Échec création cas après paiement PayTech - Transaction: ${transactionId}`);

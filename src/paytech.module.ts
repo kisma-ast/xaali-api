@@ -8,11 +8,13 @@ import { Lawyer } from './lawyer.entity';
 import { Consultation } from './consultation.entity';
 import { Citizen } from './citizen.entity';
 import { NotificationModule } from './notification.module';
+import { DossiersModule } from './dossiers.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([Case, Lawyer, Consultation, Citizen]),
     NotificationModule, // Importer NotificationModule pour avoir accès à NotificationService
+    DossiersModule,
   ],
   controllers: [PayTechController],
   providers: [PayTechService, EmailService],

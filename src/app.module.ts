@@ -41,6 +41,8 @@ import { Case } from './case.entity';
 import { Citizen } from './citizen.entity';
 import { Consultation } from './consultation.entity';
 import { Message } from './message.entity';
+import { DossiersModule } from './dossiers.module';
+import { Dossier } from './dossier.entity';
 
 @Module({
   imports: [
@@ -52,7 +54,7 @@ import { Message } from './message.entity';
         url: configService.get<string>('MONGODB_URI'),
         useNewUrlParser: true,
         useUnifiedTopology: true,
-        entities: [Lawyer, Case, Citizen, Consultation, Message, Tracking],
+        entities: [Lawyer, Case, Citizen, Consultation, Message, Tracking, Dossier],
         synchronize: true,
         ssl: true,
         tlsAllowInvalidCertificates: true,
@@ -74,7 +76,8 @@ import { Message } from './message.entity';
     PayTechModule,
     PaymentModule,
     MessagesModule,
-    TypeOrmModule.forFeature([Lawyer, Case, Citizen, Consultation, Message, Tracking]),
+    DossiersModule,
+    TypeOrmModule.forFeature([Lawyer, Case, Citizen, Consultation, Message, Tracking, Dossier]),
   ],
   controllers: [AppController, RealAuthController, CitizenAuthController, MessagesController, LegalDocumentsController, SimplifiedCaseController, TrackingController],
   providers: [

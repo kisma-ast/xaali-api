@@ -156,6 +156,7 @@ export class CasesService {
       // Si le paiement est confirmé, notifier les avocats
       if (paymentData.isPaid) {
         await this.notifyAllLawyers(updatedCase.id);
+        console.log(`✅ Cas payé: ${updatedCase.trackingCode}`);
       }
       
       return updatedCase;
