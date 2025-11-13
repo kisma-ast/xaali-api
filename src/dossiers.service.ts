@@ -14,10 +14,35 @@ export class DossiersService {
   ) {}
 
   async createFromCase(caseData: Case): Promise<Dossier> {
+    console.log(`📋 Création dossier depuis cas: ${caseData.id}`);
+    console.log(`   - trackingCode: ${caseData.trackingCode}`);
+    console.log(`   - trackingToken: ${caseData.trackingToken}`);
+    
+    // Vérifier si un dossier existe déjà pour ce cas
+    const existingDossier = await this.dossierRepository.findOne({
+      where: { caseId: caseData.id }
+    });
+    
+    if (existingDossier) {
+      console.log(`✅ Dossier existant trouvé: ${existingDossier.trackingCode}`);
+      return existingDossier;
+    }
+    
     const dossier = new Dossier();
-    dossier.trackingCode = caseData.trackingCode || `XA-${Math.floor(Math.random() * 100000)}`;
-    dossier.trackingToken = caseData.trackingToken || `token-${Date.now()}`;
+    // UTILISER EXACTEMENT les mêmes identifiants que le cas (pas de génération aléatoire)
+    dossier.trackingCode = caseData.trackingCode;
+    dossier.trackingToken = caseData.trackingToken;
     dossier.caseId = caseData.id;
+    
+    // Si les identifiants n'existent pas dans le cas, les générer maintenant
+    if (!dossier.trackingCode) {
+      dossier.trackingCode = `XA-${Math.floor(10000 + Math.random() * 90000)}`;
+      console.log(`⚠️ Génération nouveau trackingCode: ${dossier.trackingCode}`);
+    }
+    if (!dossier.trackingToken) {
+      dossier.trackingToken = require('crypto').randomUUID();
+      console.log(`⚠️ Génération nouveau trackingToken: ${dossier.trackingToken}`);
+    }
     dossier.clientName = caseData.citizenName || 'Client';
     dossier.clientPhone = caseData.citizenPhone || '';
     if (caseData.citizenEmail) {
@@ -52,10 +77,31 @@ export class DossiersService {
   }
 
   async findByTrackingCode(trackingCode: string): Promise<Dossier | null> {
-    return this.dossierRepository.findOne({
+    console.log(`🔍 Recherche dossier avec trackingCode: ${trackingCode}`);
+    
+    // Recherche exacte d'abord
+    let dossier = await this.dossierRepository.findOne({
       where: { trackingCode },
       relations: ['case']
     });
+    
+    if (dossier) {
+      console.log(`✅ Dossier trouvé avec trackingCode exact: ${trackingCode}`);
+      return dossier;
+    }
+    
+    // Si pas trouvé, chercher dans les cases aussi (au cas où le trackingCode serait là)
+    const caseData = await this.caseRepository.findOne({
+      where: { trackingCode }
+    });
+    
+    if (caseData) {
+      console.log(`✅ Case trouvée avec trackingCode: ${trackingCode}, création du dossier`);
+      return this.createFromCase(caseData);
+    }
+    
+    console.log(`❌ Aucun dossier trouvé pour trackingCode: ${trackingCode}`);
+    return null;
   }
 
   async findByTrackingToken(trackingToken: string): Promise<Dossier | null> {
@@ -87,5 +133,12 @@ export class DossiersService {
     dossier.isPaid = caseData.isPaid;
 
     return this.dossierRepository.save(dossier);
+  }
+
+  async findAll(): Promise<Dossier[]> {
+    return this.dossierRepository.find({
+      relations: ['case'],
+      order: { createdAt: 'DESC' }
+    });
   }
 }

@@ -811,9 +811,12 @@ export class PayTechController {
         existingCase.isPaid = true;
         existingCase.paymentAmount = callbackData.amount || existingCase.paymentAmount || 10000;
         
-        // Si le dossier de suivi n'existe pas encore, le créer
+        // GARANTIR que le cas a des identifiants avant création dossier
         if (!existingCase.trackingCode || !existingCase.trackingToken) {
+          console.log(`⚠️ Cas sans identifiants, création: ${existingCase.id}`);
           await this.createTrackingForCase(existingCase, callbackData);
+          // Recharger le cas avec les nouveaux identifiants
+          existingCase = await this.caseRepository.findOne({ where: { id: existingCase.id } });
         }
         
         await this.caseRepository.save(existingCase);
@@ -821,8 +824,20 @@ export class PayTechController {
         
         // Créer automatiquement le dossier dans la collection dossiers
         try {
-          await this.dossiersService.createFromCase(existingCase);
-          this.logger.log(`✅ Dossier créé automatiquement: ${existingCase.trackingCode}`);
+          // VÉRIFICATION AVANT création
+          if (!existingCase.trackingCode || !existingCase.trackingToken) {
+            this.logger.error(`❌ IMPOSSIBLE: Cas ${existingCase.id} sans identifiants`);
+            throw new Error('Cas sans identifiants de suivi');
+          }
+          
+          const createdDossier = await this.dossiersService.createFromCase(existingCase);
+          this.logger.log(`✅ Dossier créé: ${createdDossier.trackingCode} (ID: ${createdDossier.id})`);
+          
+          // Vérification de cohérence OBLIGATOIRE
+          if (createdDossier.trackingCode !== existingCase.trackingCode) {
+            this.logger.error(`❌ INCOHÉRENCE: Case=${existingCase.trackingCode}, Dossier=${createdDossier.trackingCode}`);
+            throw new Error('Incohérence identifiants cas/dossier');
+          }
         } catch (dossierError) {
           this.logger.error(`❌ Erreur création dossier: ${dossierError.message}`);
         }
@@ -858,8 +873,20 @@ export class PayTechController {
           
           // Créer automatiquement le dossier dans la collection dossiers
           try {
-            await this.dossiersService.createFromCase(newCase);
-            this.logger.log(`✅ Dossier créé automatiquement: ${newCase.trackingCode}`);
+            // VÉRIFICATION AVANT création
+            if (!newCase.trackingCode || !newCase.trackingToken) {
+              this.logger.error(`❌ IMPOSSIBLE: Nouveau cas ${newCase.id} sans identifiants`);
+              throw new Error('Nouveau cas sans identifiants de suivi');
+            }
+            
+            const createdDossier = await this.dossiersService.createFromCase(newCase);
+            this.logger.log(`✅ Dossier créé: ${createdDossier.trackingCode} (ID: ${createdDossier.id})`);
+            
+            // Vérification de cohérence OBLIGATOIRE
+            if (createdDossier.trackingCode !== newCase.trackingCode) {
+              this.logger.error(`❌ INCOHÉRENCE: Case=${newCase.trackingCode}, Dossier=${createdDossier.trackingCode}`);
+              throw new Error('Incohérence identifiants cas/dossier');
+            }
           } catch (dossierError) {
             this.logger.error(`❌ Erreur création dossier: ${dossierError.message}`);
           }

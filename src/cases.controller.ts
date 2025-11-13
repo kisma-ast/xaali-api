@@ -163,9 +163,11 @@ export class CasesController {
     console.log('📋 [CASES] Données reçues:', JSON.stringify(body, null, 2));
     
     try {
-      // Générer les codes de suivi
+      // Générer les codes de suivi (OBLIGATOIRES pour cohérence)
       const trackingCode = `XA-${Math.floor(10000 + Math.random() * 90000)}`;
       const trackingToken = require('crypto').randomUUID();
+      
+      console.log('🔑 Identifiants générés:', { trackingCode, trackingToken });
       
       const caseData = {
         title: this.generateCaseTitle(body.category, body.question),
@@ -277,6 +279,78 @@ export class CasesController {
       return {
         success: false,
         message: 'Erreur lors de la sauvegarde'
+      };
+    }
+  }
+
+  @Post('create-tracking')
+  async createTrackingCase(@Body() body: {
+    caseId: string;
+    citizenPhone: string;
+    citizenEmail?: string;
+    paymentAmount: number;
+  }) {
+    try {
+      console.log('📋 Création dossier de suivi pour cas:', body.caseId);
+      
+      // Récupérer le cas existant
+      const existingCase = await this.casesService.findOne(body.caseId);
+      if (!existingCase) {
+        return {
+          success: false,
+          message: 'Cas introuvable'
+        };
+      }
+      
+      // Générer les codes de suivi s'ils n'existent pas
+      let trackingCode = existingCase.trackingCode;
+      let trackingToken = existingCase.trackingToken;
+      
+      if (!trackingCode) {
+        trackingCode = `XA-${Math.floor(10000 + Math.random() * 90000)}`;
+      }
+      if (!trackingToken) {
+        trackingToken = require('crypto').randomUUID();
+      }
+      
+      // Mettre à jour le cas avec les informations de suivi et de paiement
+      const updatedCase = await this.casesService.update(body.caseId, {
+        trackingCode,
+        trackingToken,
+        isPaid: true,
+        paymentAmount: body.paymentAmount,
+        citizenPhone: body.citizenPhone,
+        citizenEmail: body.citizenEmail,
+        status: 'paid'
+      });
+      
+      if (!updatedCase) {
+        return {
+          success: false,
+          message: 'Erreur mise à jour du cas'
+        };
+      }
+      
+      const trackingLink = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/suivi/${trackingToken}`;
+      
+      console.log('✅ Dossier de suivi créé:', {
+        caseId: updatedCase.id,
+        trackingCode,
+        trackingToken
+      });
+      
+      return {
+        success: true,
+        trackingCode,
+        trackingToken,
+        trackingLink,
+        case: updatedCase
+      };
+    } catch (error) {
+      console.error('❌ Erreur création dossier de suivi:', error);
+      return {
+        success: false,
+        message: 'Erreur lors de la création du dossier de suivi'
       };
     }
   }

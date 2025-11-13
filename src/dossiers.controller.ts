@@ -8,12 +8,16 @@ export class DossiersController {
   @Get('tracking-code/:trackingCode')
   async getByTrackingCode(@Param('trackingCode') trackingCode: string) {
     try {
+      console.log(`🔍 Recherche dossier avec trackingCode: ${trackingCode}`);
       const dossier = await this.dossiersService.findByTrackingCode(trackingCode);
       if (!dossier) {
+        console.log(`❌ Dossier non trouvé pour trackingCode: ${trackingCode}`);
         return { success: false, message: 'Dossier non trouvé' };
       }
+      console.log(`✅ Dossier trouvé: ${dossier.id} - ${dossier.trackingCode}`);
       return { success: true, dossier };
     } catch (error) {
+      console.error(`❌ Erreur recherche dossier: ${error.message}`);
       return { success: false, message: error.message };
     }
   }
@@ -39,6 +43,16 @@ export class DossiersController {
         return { success: false, message: 'Cas non trouvé' };
       }
       return { success: true, dossier };
+    } catch (error) {
+      return { success: false, message: error.message };
+    }
+  }
+
+  @Get('list')
+  async listAll() {
+    try {
+      const dossiers = await this.dossiersService.findAll();
+      return { success: true, dossiers, count: dossiers.length };
     } catch (error) {
       return { success: false, message: error.message };
     }
