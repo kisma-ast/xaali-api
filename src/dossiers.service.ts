@@ -30,8 +30,8 @@ export class DossiersService {
     
     const dossier = new Dossier();
     // UTILISER EXACTEMENT les mêmes identifiants que le cas (pas de génération aléatoire)
-    dossier.trackingCode = caseData.trackingCode;
-    dossier.trackingToken = caseData.trackingToken;
+    dossier.trackingCode = caseData.trackingCode || '';
+    dossier.trackingToken = caseData.trackingToken || '';
     dossier.caseId = caseData.id;
     
     // Si les identifiants n'existent pas dans le cas, les générer maintenant

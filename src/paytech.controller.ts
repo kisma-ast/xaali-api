@@ -819,38 +819,40 @@ export class PayTechController {
           existingCase = await this.caseRepository.findOne({ where: { id: existingCase.id } });
         }
         
-        await this.caseRepository.save(existingCase);
-        this.logger.log(`Statut de paiement mis à jour pour le cas: ${existingCase.id}`);
-        
-        // Créer automatiquement le dossier dans la collection dossiers
-        try {
-          // VÉRIFICATION AVANT création
-          if (!existingCase.trackingCode || !existingCase.trackingToken) {
-            this.logger.error(`❌ IMPOSSIBLE: Cas ${existingCase.id} sans identifiants`);
-            throw new Error('Cas sans identifiants de suivi');
+        if (existingCase) {
+          await this.caseRepository.save(existingCase);
+          this.logger.log(`Statut de paiement mis à jour pour le cas: ${existingCase.id}`);
+          
+          // Créer automatiquement le dossier dans la collection dossiers
+          try {
+            // VÉRIFICATION AVANT création
+            if (!existingCase.trackingCode || !existingCase.trackingToken) {
+              this.logger.error(`❌ IMPOSSIBLE: Cas ${existingCase.id} sans identifiants`);
+              throw new Error('Cas sans identifiants de suivi');
+            }
+            
+            const createdDossier = await this.dossiersService.createFromCase(existingCase);
+            this.logger.log(`✅ Dossier créé: ${createdDossier.trackingCode} (ID: ${createdDossier.id})`);
+            
+            // Vérification de cohérence OBLIGATOIRE
+            if (createdDossier.trackingCode !== existingCase.trackingCode) {
+              this.logger.error(`❌ INCOHÉRENCE: Case=${existingCase.trackingCode}, Dossier=${createdDossier.trackingCode}`);
+              throw new Error('Incohérence identifiants cas/dossier');
+            }
+          } catch (dossierError) {
+            this.logger.error(`❌ Erreur création dossier: ${dossierError.message}`);
           }
           
-          const createdDossier = await this.dossiersService.createFromCase(existingCase);
-          this.logger.log(`✅ Dossier créé: ${createdDossier.trackingCode} (ID: ${createdDossier.id})`);
+          // Notifier le citoyen que le paiement est confirmé
+          await this.notificationService.notifyCitizenCaseCreated(existingCase);
           
-          // Vérification de cohérence OBLIGATOIRE
-          if (createdDossier.trackingCode !== existingCase.trackingCode) {
-            this.logger.error(`❌ INCOHÉRENCE: Case=${existingCase.trackingCode}, Dossier=${createdDossier.trackingCode}`);
-            throw new Error('Incohérence identifiants cas/dossier');
+          // Notifier les avocats du cas payé
+          await this.notificationService.notifyNewCase(existingCase);
+          
+          // Si un avocat est déjà assigné, le notifier du paiement
+          if (existingCase.lawyerId) {
+            await this.notificationService.notifyLawyerPaymentReceived(existingCase);
           }
-        } catch (dossierError) {
-          this.logger.error(`❌ Erreur création dossier: ${dossierError.message}`);
-        }
-        
-        // Notifier le citoyen que le paiement est confirmé
-        await this.notificationService.notifyCitizenCaseCreated(existingCase);
-        
-        // Notifier les avocats du cas payé
-        await this.notificationService.notifyNewCase(existingCase);
-        
-        // Si un avocat est déjà assigné, le notifier du paiement
-        if (existingCase.lawyerId) {
-          await this.notificationService.notifyLawyerPaymentReceived(existingCase);
         }
       } else {
         this.logger.log(`Aucun cas trouvé pour transaction ${transactionId}, création d'un nouveau cas`);
