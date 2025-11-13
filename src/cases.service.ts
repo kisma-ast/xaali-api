@@ -182,4 +182,18 @@ export class CasesService {
       return null;
     }
   }
+
+  async findByPhoneNumber(phoneNumber: string): Promise<Case | null> {
+    try {
+      // Chercher le dossier le plus récent avec ce numéro de téléphone
+      return await this.casesRepository.findOne({
+        where: { citizenPhone: phoneNumber },
+        relations: ['citizen', 'lawyer'],
+        order: { createdAt: 'DESC' } // Le plus récent en premier
+      });
+    } catch (error) {
+      console.error('Erreur findByPhoneNumber:', error);
+      return null;
+    }
+  }
 } 

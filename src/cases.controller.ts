@@ -43,6 +43,65 @@ export class CasesController {
     }
   }
 
+  @Get('by-phone/:phoneNumber')
+  async findByPhoneNumber(@Param('phoneNumber') phoneNumber: string) {
+    try {
+      console.log('🔍 Recherche dossier par téléphone:', phoneNumber);
+      
+      // Chercher le dossier le plus récent avec ce numéro de téléphone
+      const case_ = await this.casesService.findByPhoneNumber(phoneNumber);
+      
+      if (!case_) {
+        return {
+          success: false,
+          message: 'Aucun dossier trouvé pour ce numéro de téléphone'
+        };
+      }
+      
+      // Vérifier que le dossier est payé
+      if (!case_.isPaid) {
+        return {
+          success: false,
+          message: 'Ce dossier n\'est pas encore payé'
+        };
+      }
+      
+      console.log('✅ Dossier trouvé:', case_.trackingCode);
+      
+      return {
+        success: true,
+        case: {
+          id: case_.id,
+          trackingCode: case_.trackingCode,
+          trackingToken: case_.trackingToken,
+          clientName: case_.citizenName,
+          clientPhone: case_.citizenPhone,
+          clientEmail: case_.citizenEmail,
+          problemCategory: case_.category,
+          clientQuestion: case_.clientQuestion || case_.description,
+          aiResponse: case_.aiResponse,
+          status: case_.status,
+          isPaid: case_.isPaid,
+          createdAt: case_.createdAt,
+          paymentAmount: case_.paymentAmount,
+          firstQuestion: case_.firstQuestion,
+          firstResponse: case_.firstResponse,
+          secondQuestion: case_.secondQuestion,
+          secondResponse: case_.secondResponse,
+          thirdQuestion: case_.thirdQuestion,
+          thirdResponse: case_.thirdResponse,
+          lawyerName: case_.lawyerName
+        }
+      };
+    } catch (error) {
+      console.error('❌ Erreur recherche par téléphone:', error);
+      return {
+        success: false,
+        message: 'Erreur lors de la recherche'
+      };
+    }
+  }
+
   @Get('tracking-code/:trackingCode')
   async findByTrackingCode(@Param('trackingCode') trackingCode: string) {
     try {
