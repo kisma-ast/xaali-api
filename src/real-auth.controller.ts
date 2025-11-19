@@ -40,7 +40,14 @@ export class RealAuthController {
         return { success: false, message: 'Cet email est déjà utilisé' };
       }
 
-      const hashedPassword = await bcrypt.hash(registerDto.password, 10);
+      // Utiliser le même salt rounds que auth.service.ts pour cohérence
+      const saltRounds = 12;
+      const hashedPassword = await bcrypt.hash(registerDto.password, saltRounds);
+      console.log(`🔐 [REAL-AUTH] Hashage mot de passe pour ${registerDto.email}:`, {
+        original: registerDto.password,
+        hashed: hashedPassword,
+        saltRounds
+      });
 
       const lawyer = this.lawyerRepository.create({
         name: registerDto.name,
@@ -87,10 +94,20 @@ export class RealAuthController {
         return { success: false, message: 'Email ou mot de passe incorrect' };
       }
 
+      console.log(`🔑 [REAL-AUTH] Vérification mot de passe pour ${loginDto.email}:`, {
+        provided: loginDto.password,
+        stored: lawyer.password
+      });
+      
       const isPasswordValid = await bcrypt.compare(loginDto.password, lawyer.password);
+      console.log(`🔑 [REAL-AUTH] Résultat vérification: ${isPasswordValid}`);
+      
       if (!isPasswordValid) {
+        console.log(`❌ [REAL-AUTH] Mot de passe incorrect pour: ${loginDto.email}`);
         return { success: false, message: 'Email ou mot de passe incorrect' };
       }
+      
+      console.log(`✅ [REAL-AUTH] Connexion réussie pour: ${loginDto.email}`);
 
       const { password, ...lawyerData } = lawyer;
 

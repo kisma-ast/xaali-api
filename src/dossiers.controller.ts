@@ -5,6 +5,29 @@ import { DossiersService } from './dossiers.service';
 export class DossiersController {
   constructor(private readonly dossiersService: DossiersService) {}
 
+  @Get('by-phone/:phoneNumber')
+  async getByPhoneNumber(@Param('phoneNumber') phoneNumber: string) {
+    try {
+      console.log(`🔍 Recherche dossier par téléphone: ${phoneNumber}`);
+      const dossier = await this.dossiersService.findByPhoneNumber(phoneNumber);
+      if (!dossier) {
+        console.log(`❌ Aucun dossier trouvé pour téléphone: ${phoneNumber}`);
+        return { success: false, message: 'Aucun dossier trouvé pour ce numéro de téléphone' };
+      }
+      
+      // Vérifier que le dossier est payé
+      if (!dossier.isPaid) {
+        return { success: false, message: 'Ce dossier n\'est pas encore payé' };
+      }
+      
+      console.log(`✅ Dossier trouvé: ${dossier.id} - ${dossier.trackingCode}`);
+      return { success: true, dossier };
+    } catch (error) {
+      console.error(`❌ Erreur recherche par téléphone: ${error.message}`);
+      return { success: false, message: error.message };
+    }
+  }
+
   @Get('tracking-code/:trackingCode')
   async getByTrackingCode(@Param('trackingCode') trackingCode: string) {
     try {

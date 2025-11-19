@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, IsNull } from 'typeorm';
 import { Case } from './case.entity';
 import { Lawyer } from './lawyer.entity';
 import { NotificationService } from './notification.service';
@@ -67,6 +67,18 @@ export class CasesService {
   async getPendingCases(): Promise<Case[]> {
     return this.casesRepository.find({
       where: { status: 'pending' },
+      relations: ['citizen'],
+      order: { createdAt: 'DESC' },
+    });
+  }
+
+  async getPaidAndAvailableCases(): Promise<Case[]> {
+    // Récupérer les cas payés ET non assignés (disponibles pour les avocats)
+    return this.casesRepository.find({
+      where: [
+        { isPaid: true, lawyerId: IsNull() }, // Cas payés sans avocat assigné
+        { status: 'paid', lawyerId: IsNull() } // Cas avec status paid sans avocat
+      ],
       relations: ['citizen'],
       order: { createdAt: 'DESC' },
     });

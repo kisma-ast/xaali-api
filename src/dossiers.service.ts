@@ -135,6 +135,25 @@ export class DossiersService {
     return this.dossierRepository.save(dossier);
   }
 
+  async findByPhoneNumber(phoneNumber: string): Promise<Dossier | null> {
+    console.log(`🔍 Recherche dossier par téléphone: ${phoneNumber}`);
+    
+    // Chercher le dossier le plus récent avec ce numéro de téléphone
+    const dossier = await this.dossierRepository.findOne({
+      where: { clientPhone: phoneNumber },
+      relations: ['case'],
+      order: { createdAt: 'DESC' } // Le plus récent en premier
+    });
+    
+    if (dossier) {
+      console.log(`✅ Dossier trouvé par téléphone: ${dossier.trackingCode}`);
+      return dossier;
+    }
+    
+    console.log(`❌ Aucun dossier trouvé pour téléphone: ${phoneNumber}`);
+    return null;
+  }
+
   async findAll(): Promise<Dossier[]> {
     return this.dossierRepository.find({
       relations: ['case'],

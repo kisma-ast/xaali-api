@@ -38,8 +38,13 @@ export class AuthService {
       throw new UnauthorizedException('Un avocat avec cet email existe déjà');
     }
 
-    // Hasher le mot de passe
-    const hashedPassword = await bcrypt.hash(lawyerData.password, 10);
+    // Hasher le mot de passe avec bcrypt (salt rounds = 12 pour plus de sécurité)
+    const saltRounds = 12;
+    const hashedPassword = await bcrypt.hash(lawyerData.password, saltRounds);
+    console.log(`🔑 Hashage mot de passe pour ${lawyerData.email}:`, {
+      original: lawyerData.password,
+      hashed: hashedPassword
+    });
 
     // Créer le nouvel avocat
     const lawyer = this.lawyersRepository.create({
@@ -74,20 +79,34 @@ export class AuthService {
   }
 
   async login(email: string, password: string): Promise<{ lawyer: Lawyer; token: string }> {
+    console.log(`🔑 Tentative de connexion pour: ${email}`);
+    
     // Trouver l'avocat par email
     const lawyer = await this.lawyersRepository.findOne({
       where: { email },
     });
 
     if (!lawyer) {
+      console.log(`❌ Avocat non trouvé pour email: ${email}`);
       throw new UnauthorizedException('Email ou mot de passe incorrect');
     }
 
-    // Vérifier le mot de passe
+    console.log(`🔍 Avocat trouvé: ${lawyer.name}`);
+    console.log(`🔑 Vérification mot de passe:`, {
+      provided: password,
+      stored: lawyer.password
+    });
+
+    // Vérifier le mot de passe avec bcrypt.compare
     const isPasswordValid = await bcrypt.compare(password, lawyer.password);
+    console.log(`🔑 Résultat vérification: ${isPasswordValid}`);
+    
     if (!isPasswordValid) {
+      console.log(`❌ Mot de passe incorrect pour: ${email}`);
       throw new UnauthorizedException('Email ou mot de passe incorrect');
     }
+    
+    console.log(`✅ Connexion réussie pour: ${email}`);
 
     // Générer le token JWT
     const payload = { sub: lawyer.id, email: lawyer.email };
