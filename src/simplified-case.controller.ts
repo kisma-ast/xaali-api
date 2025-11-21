@@ -3,7 +3,7 @@ import { SimplifiedCaseService } from './simplified-case.service';
 
 @Controller('cases')
 export class SimplifiedCaseController {
-  constructor(private readonly simplifiedCaseService: SimplifiedCaseService) {}
+  constructor(private readonly simplifiedCaseService: SimplifiedCaseService) { }
 
   @Post('create-tracking-simplified')
   async createTrackingSimplified(@Body() createData: {
@@ -96,7 +96,7 @@ export class SimplifiedCaseController {
       // Créer un cas avec codes de suivi immédiatement
       const result = await this.simplifiedCaseService.createCaseWithTracking({
         question: createData.question,
-        aiResponse: createData.aiResponse || 'Réponse en cours de génération...',
+        aiResponse: createData.aiResponse || '',
         category: createData.category,
         citizenName: createData.citizenName,
         citizenPhone: createData.citizenPhone,
@@ -104,7 +104,7 @@ export class SimplifiedCaseController {
         paymentAmount: 0, // Pas encore payé
         isPaid: false
       });
-      
+
       return {
         success: true,
         caseId: result.caseId,
@@ -132,7 +132,7 @@ export class SimplifiedCaseController {
         citizenEmail: "test@example.com",
         paymentAmount: 10000
       };
-      
+
       const result = await this.simplifiedCaseService.createSimplifiedCase(testData);
       return {
         success: true,

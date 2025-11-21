@@ -17,7 +17,7 @@ export class EmailService {
         pass: process.env.EMAIL_PASS,
       },
     });
-    
+
     this.logger.log('📧 Service Email configuré avec:', {
       host: process.env.EMAIL_HOST,
       port: process.env.EMAIL_PORT,
@@ -33,7 +33,7 @@ export class EmailService {
   ) {
     try {
       this.logger.log(`🚀 Tentative d'envoi email à: ${email}`);
-      
+
       const mailOptions = {
         from: process.env.EMAIL_FROM || process.env.EMAIL_USER,
         to: email,
@@ -74,12 +74,134 @@ export class EmailService {
     }
   }
 
-  async sendNewCaseNotificationToLawyers(caseData: any): Promise<boolean> {
+  async sendNewCaseNotificationToLawyers(email: string, name: string, caseData: any): Promise<boolean> {
     try {
-      this.logger.log('Notification avocats pour nouveau cas');
+      this.logger.log(`📧 Envoi notification nouveau cas à l'avocat: ${email}`);
+
+      const mailOptions = {
+        from: process.env.EMAIL_FROM || process.env.EMAIL_USER,
+        to: email,
+        subject: `Nouveau dossier disponible - ${caseData.category}`,
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <h2 style="color: #2563eb;">Nouveau dossier disponible</h2>
+            <p>Bonjour Maître ${name},</p>
+            <p>Un nouveau dossier correspondant à vos compétences est disponible sur la plateforme Xaali.</p>
+            
+            <div style="background-color: #f3f4f6; padding: 20px; border-radius: 8px; margin: 20px 0;">
+              <h3 style="margin: 0 0 10px 0; color: #1f2937;">Détails du dossier</h3>
+              <p><strong>Catégorie:</strong> ${caseData.category}</p>
+              <p><strong>Titre:</strong> ${caseData.title}</p>
+              <p><strong>Description:</strong> ${caseData.description ? caseData.description.substring(0, 150) + '...' : 'Non spécifiée'}</p>
+              <p><strong>Montant:</strong> ${caseData.paymentAmount || 'Standard'} FCFA</p>
+            </div>
+            
+            <div style="text-align: center; margin: 30px 0;">
+              <a href="${process.env.FRONTEND_URL || 'http://localhost:5173'}/lawyer/dashboard" 
+                 style="background-color: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block; font-weight: bold;">
+                Voir le dossier
+              </a>
+            </div>
+          </div>
+        `,
+      };
+
+      await this.transporter.sendMail(mailOptions);
       return true;
     } catch (error) {
-      this.logger.error('Erreur notification avocats:', error);
+      this.logger.error(`❌ Erreur notification avocat (${email}):`, error);
+      return false;
+    }
+  }
+
+  async sendCaseAssignedNotificationToLawyer(email: string, name: string, caseData: any): Promise<boolean> {
+    try {
+      this.logger.log(`📧 Envoi confirmation assignation à l'avocat: ${email}`);
+
+      const mailOptions = {
+        from: process.env.EMAIL_FROM || process.env.EMAIL_USER,
+        to: email,
+        subject: `Dossier attribué - ${caseData.trackingCode}`,
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <h2 style="color: #16a34a;">Dossier attribué avec succès</h2>
+            <p>Bonjour Maître ${name},</p>
+            <p>Le dossier <strong>${caseData.trackingCode}</strong> vous a été attribué avec succès.</p>
+            
+            <div style="background-color: #f0f9ff; padding: 20px; border-radius: 8px; margin: 20px 0;">
+              <h3 style="margin: 0 0 10px 0; color: #1e40af;">Récapitulatif</h3>
+              <p><strong>Client:</strong> ${caseData.citizenName || 'Client Xaali'}</p>
+              <p><strong>Catégorie:</strong> ${caseData.category}</p>
+              <p><strong>Date:</strong> ${new Date().toLocaleDateString()}</p>
+            </div>
+            
+            <p>Vous pouvez dès maintenant prendre contact avec le client via la messagerie sécurisée.</p>
+            
+            <div style="text-align: center; margin: 30px 0;">
+              <a href="${process.env.FRONTEND_URL || 'http://localhost:5173'}/lawyer/cases/${caseData.id}" 
+                 style="background-color: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block; font-weight: bold;">
+                Accéder au dossier
+              </a>
+            </div>
+          </div>
+        `,
+      };
+
+      await this.transporter.sendMail(mailOptions);
+      return true;
+    } catch (error) {
+      this.logger.error(`❌ Erreur notification assignation avocat (${email}):`, error);
+      return false;
+    }
+  }
+
+  async sendCitizenLawyerAssignedNotification(
+    email: string,
+    trackingCode: string,
+    trackingLink: string,
+    lawyer: any
+  ): Promise<boolean> {
+    try {
+      this.logger.log(`📧 Envoi notification avocat assigné au citoyen: ${email}`);
+
+      const mailOptions = {
+        from: process.env.EMAIL_FROM || process.env.EMAIL_USER,
+        to: email,
+        subject: `✅ Avocat assigné - Dossier ${trackingCode}`,
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <h2 style="color: #16a34a;">✅ Votre dossier a été accepté !</h2>
+            <p>Bonjour,</p>
+            <p>Un avocat a accepté de prendre en charge votre dossier <strong>${trackingCode}</strong>.</p>
+            
+            <div style="background-color: #f0f9ff; padding: 20px; border-radius: 8px; margin: 20px 0;">
+              <h3 style="margin: 0 0 10px 0; color: #1e40af;">Votre avocat</h3>
+              <p style="margin: 5px 0;"><strong>${lawyer.name}</strong></p>
+              <p style="margin: 5px 0;">${lawyer.specialty || 'Spécialiste juridique'}</p>
+              ${lawyer.email ? `<p style="margin: 5px 0;">📧 ${lawyer.email}</p>` : ''}
+              ${lawyer.phone ? `<p style="margin: 5px 0;">📞 ${lawyer.phone}</p>` : ''}
+            </div>
+            
+            <p>Vous pouvez maintenant communiquer avec votre avocat via la plateforme.</p>
+            
+            <div style="text-align: center; margin: 30px 0;">
+              <a href="${trackingLink}" 
+                 style="background-color: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block; font-weight: bold;">
+                📋 Accéder à mon dossier
+              </a>
+            </div>
+            
+            <p style="font-size: 12px; color: #6b7280;">
+              - Équipe Xaali
+            </p>
+          </div>
+        `,
+      };
+
+      await this.transporter.sendMail(mailOptions);
+      return true;
+    } catch (error) {
+      this.logger.error(`❌ Erreur notification citoyen avocat assigné (${email}):`, error);
       return false;
     }
   }
@@ -88,7 +210,7 @@ export class EmailService {
     try {
       // Stocker le dossier pour accès via lien
       this.caseStorage.set(trackingCode, caseData);
-      
+
       const mailOptions = {
         from: process.env.EMAIL_FROM || process.env.EMAIL_USER,
         to: customerEmail,

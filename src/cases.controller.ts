@@ -3,13 +3,15 @@ import { CasesService } from './cases.service';
 import { Case } from './case.entity';
 import { LawyerNotification } from './lawyer-notification.entity';
 import { EmailService } from './email.service';
+import { NotificationService } from './notification.service';
 
 @Controller('cases')
 export class CasesController {
   constructor(
     private readonly casesService: CasesService,
-    private readonly emailService: EmailService
-  ) {}
+    private readonly emailService: EmailService,
+    private readonly notificationService: NotificationService
+  ) { }
 
   @Get()
   findAll(): Promise<Case[]> {
@@ -47,17 +49,17 @@ export class CasesController {
   async findByPhoneNumber(@Param('phoneNumber') phoneNumber: string) {
     try {
       console.log('🔍 Recherche dossier par téléphone:', phoneNumber);
-      
+
       // Chercher le dossier le plus récent avec ce numéro de téléphone
       const case_ = await this.casesService.findByPhoneNumber(phoneNumber);
-      
+
       if (!case_) {
         return {
           success: false,
           message: 'Aucun dossier trouvé pour ce numéro de téléphone'
         };
       }
-      
+
       // Vérifier que le dossier est payé
       if (!case_.isPaid) {
         return {
@@ -65,9 +67,9 @@ export class CasesController {
           message: 'Ce dossier n\'est pas encore payé'
         };
       }
-      
+
       console.log('✅ Dossier trouvé:', case_.trackingCode);
-      
+
       return {
         success: true,
         case: {
@@ -112,11 +114,11 @@ export class CasesController {
           message: 'Dossier introuvable'
         };
       }
-      
+
       // Construire les follow-up questions et answers
       const followUpQuestions: string[] = [];
       const followUpAnswers: string[] = [];
-      
+
       if (case_.firstQuestion) {
         followUpQuestions.push(case_.firstQuestion);
         if (case_.firstResponse) followUpAnswers.push(case_.firstResponse);
@@ -129,7 +131,7 @@ export class CasesController {
         followUpQuestions.push(case_.thirdQuestion);
         if (case_.thirdResponse) followUpAnswers.push(case_.thirdResponse);
       }
-      
+
       return {
         success: true,
         case: {
@@ -220,14 +222,14 @@ export class CasesController {
   }) {
     console.log('🆕 [CASES] Création cas avant paiement');
     console.log('📋 [CASES] Données reçues:', JSON.stringify(body, null, 2));
-    
+
     try {
       // Générer les codes de suivi (OBLIGATOIRES pour cohérence)
       const trackingCode = `XA-${Math.floor(10000 + Math.random() * 90000)}`;
       const trackingToken = require('crypto').randomUUID();
-      
+
       console.log('🔑 Identifiants générés:', { trackingCode, trackingToken });
-      
+
       const caseData = {
         title: this.generateCaseTitle(body.category, body.question),
         description: body.question,
@@ -245,16 +247,16 @@ export class CasesController {
         trackingToken: trackingToken,
         createdAt: new Date()
       };
-      
+
       console.log('💾 [CASES] Données à sauvegarder:', JSON.stringify(caseData, null, 2));
-      
+
       const newCase = await this.casesService.createBeforePayment(caseData);
-      
+
       console.log('✅ [CASES] Cas créé avec succès:', newCase.id);
-      
-      // Notifier les avocats du nouveau cas
-      await this.emailService.sendNewCaseNotificationToLawyers(newCase);
-      
+
+      // Notifier les avocats du nouveau cas via NotificationService
+      await this.notificationService.notifyNewCase(newCase);
+
       return {
         success: true,
         case: newCase,
@@ -283,12 +285,12 @@ export class CasesController {
         paymentAmount: body.paymentAmount,
         isPaid: body.isPaid
       });
-      
-      // Si le cas est maintenant payé, notifier les avocats
+
+      // Si le cas est maintenant payé, notifier les avocats via NotificationService
       if (body.isPaid && updatedCase) {
-        await this.emailService.sendNewCaseNotificationToLawyers(updatedCase);
+        await this.notificationService.notifyNewCase(updatedCase);
       }
-      
+
       return {
         success: true,
         case: updatedCase
@@ -316,7 +318,7 @@ export class CasesController {
   ) {
     try {
       const clientId = `client_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-      
+
       // Sauvegarder les informations client
       console.log('💾 Sauvegarde informations client:', {
         clientId,
@@ -327,7 +329,7 @@ export class CasesController {
         category: clientData.category,
         amount: clientData.amount
       });
-      
+
       return {
         success: true,
         clientId: clientId,
@@ -351,7 +353,7 @@ export class CasesController {
   }) {
     try {
       console.log('📋 Création dossier de suivi pour cas:', body.caseId);
-      
+
       // Récupérer le cas existant
       const existingCase = await this.casesService.findOne(body.caseId);
       if (!existingCase) {
@@ -360,18 +362,18 @@ export class CasesController {
           message: 'Cas introuvable'
         };
       }
-      
+
       // Générer les codes de suivi s'ils n'existent pas
       let trackingCode = existingCase.trackingCode;
       let trackingToken = existingCase.trackingToken;
-      
+
       if (!trackingCode) {
         trackingCode = `XA-${Math.floor(10000 + Math.random() * 90000)}`;
       }
       if (!trackingToken) {
         trackingToken = require('crypto').randomUUID();
       }
-      
+
       // Mettre à jour le cas avec les informations de suivi et de paiement
       const updatedCase = await this.casesService.update(body.caseId, {
         trackingCode,
@@ -382,22 +384,22 @@ export class CasesController {
         citizenEmail: body.citizenEmail,
         status: 'paid'
       });
-      
+
       if (!updatedCase) {
         return {
           success: false,
           message: 'Erreur mise à jour du cas'
         };
       }
-      
+
       const trackingLink = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/suivi/${trackingToken}`;
-      
+
       console.log('✅ Dossier de suivi créé:', {
         caseId: updatedCase.id,
         trackingCode,
         trackingToken
       });
-      
+
       return {
         success: true,
         trackingCode,
@@ -427,26 +429,7 @@ export class CasesController {
       'civil': 'Litige de droit civil',
       'consultation-generale': 'Consultation juridique générale'
     };
-    
+
     return categoryTitles[category] || 'Consultation juridique';
   }
-
-  // Endpoints temporairement désactivés
-  // @Get('lawyer/:lawyerId/notifications')
-  // getLawyerNotifications(@Param('lawyerId') lawyerId: string): Promise<LawyerNotification[]> {
-  //   return [];
-  // }
-
-  // @Post('notifications/:notificationId/read')
-  // markNotificationAsRead(@Param('notificationId') notificationId: string): Promise<void> {
-  //   return Promise.resolve();
-  // }
-
-  // @Post('notifications/:notificationId/accept')
-  // acceptCase(
-  //   @Param('notificationId') notificationId: string,
-  //   @Body() body: { lawyerId: string },
-  // ): Promise<Case> {
-  //   return this.casesService.assignLawyer(caseId, body.lawyerId);
-  // }
-} 
+}

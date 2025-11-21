@@ -19,7 +19,7 @@ export class NotificationService {
     @InjectRepository(Citizen)
     private citizenRepository: Repository<Citizen>,
     private emailService: EmailService,
-  ) {}
+  ) { }
 
   // Enregistrer une connexion WebSocket d'avocat
   registerLawyerConnection(lawyerId: string, socket: any) {
@@ -56,12 +56,22 @@ export class NotificationService {
 
       let notifiedCount = 0;
 
-      // Envoyer notification via WebSocket aux avocats connectés
+      // Envoyer notification via WebSocket aux avocats connectés ET Email à tous
       for (const lawyer of activeLawyers) {
+        // WebSocket
         const socket = this.connectedLawyers.get(lawyer.id);
         if (socket) {
           socket.emit('newCase', notification);
           notifiedCount++;
+        }
+
+        // Email (si l'avocat a un email configuré)
+        if (lawyer.email) {
+          // Ne pas attendre la promesse pour ne pas bloquer la boucle
+          this.emailService.sendNewCaseNotificationToLawyers(lawyer.email, lawyer.name, {
+            ...newCase,
+            paymentAmount: newCase.paymentAmount
+          }).catch(err => this.logger.error(`Erreur envoi email avocat ${lawyer.email}:`, err));
         }
       }
 
@@ -172,50 +182,16 @@ export class NotificationService {
       // Email
       if (citizen.email && !citizen.email.includes('@xaali.temp')) {
         try {
-          // Utiliser EmailService pour envoyer l'email
           const trackingLink = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/suivi/${case_.trackingToken}`;
-          
-          // Créer un email personnalisé pour l'assignation d'avocat
-          const emailContent = `
-            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-              <h2 style="color: #16a34a;">✅ Votre dossier a été accepté !</h2>
-              <p>Bonjour,</p>
-              <p>Un avocat a accepté de prendre en charge votre dossier <strong>${case_.trackingCode}</strong>.</p>
-              
-              <div style="background-color: #f0f9ff; padding: 20px; border-radius: 8px; margin: 20px 0;">
-                <h3 style="margin: 0 0 10px 0; color: #1e40af;">Votre avocat</h3>
-                <p style="margin: 5px 0;"><strong>${lawyer.name}</strong></p>
-                <p style="margin: 5px 0;">${lawyer.specialty || 'Spécialiste juridique'}</p>
-                ${lawyer.email ? `<p style="margin: 5px 0;">📧 ${lawyer.email}</p>` : ''}
-                ${lawyer.phone ? `<p style="margin: 5px 0;">📞 ${lawyer.phone}</p>` : ''}
-              </div>
-              
-              <p>Vous pouvez maintenant communiquer avec votre avocat via la plateforme.</p>
-              
-              <div style="text-align: center; margin: 30px 0;">
-                <a href="${trackingLink}" 
-                   style="background-color: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block; font-weight: bold;">
-                  📋 Accéder à mon dossier
-                </a>
-              </div>
-              
-              <p style="font-size: 12px; color: #6b7280;">
-                - Équipe Xaali
-              </p>
-            </div>
-          `;
+          const emailAddress = citizen.email as string;
 
-          // Utiliser le transporter d'EmailService
-          const transporter = (this.emailService as any).transporter;
-          if (transporter) {
-            await transporter.sendMail({
-              from: process.env.EMAIL_FROM || process.env.EMAIL_USER,
-              to: citizen.email,
-              subject: `✅ Avocat assigné - Dossier ${case_.trackingCode}`,
-              html: emailContent
-            });
-            this.logger.log(`📧 Email avocat assigné envoyé à ${citizen.email}`);
-          }
+          await this.emailService.sendCitizenLawyerAssignedNotification(
+            emailAddress,
+            case_.trackingCode || 'N/A',
+            trackingLink,
+            lawyer
+          );
+          this.logger.log(`📧 Email avocat assigné envoyé à ${citizen.email}`);
         } catch (error) {
           this.logger.error(`❌ Erreur envoi email avocat assigné: ${error.message}`);
         }
@@ -298,7 +274,10 @@ export class NotificationService {
         // Email
         if (lawyer.email) {
           this.logger.log(`📧 Email nouveau cas envoyé à ${lawyer.email}`);
-          // TODO: Envoyer email
+          await this.emailService.sendNewCaseNotificationToLawyers(lawyer.email, lawyer.name, {
+            ...case_,
+            paymentAmount: case_.paymentAmount
+          });
         }
 
         this.logger.log(`✅ Avocat ${lawyerId} notifié du nouveau cas ${case_.id}`);
@@ -335,7 +314,7 @@ export class NotificationService {
       // Email
       if (lawyer.email) {
         this.logger.log(`📧 Email cas assigné envoyé à ${lawyer.email}`);
-        // TODO: Envoyer email
+        await this.emailService.sendCaseAssignedNotificationToLawyer(lawyer.email, lawyer.name, case_);
       }
 
       this.logger.log(`✅ Avocat ${lawyer.id} notifié de l'assignation du cas ${case_.id}`);

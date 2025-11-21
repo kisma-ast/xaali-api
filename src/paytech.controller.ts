@@ -26,7 +26,7 @@ export class PayTechController {
     private consultationRepository: Repository<Consultation>,
     @InjectRepository(Citizen)
     private citizenRepository: Repository<Citizen>,
-  ) {}
+  ) { }
 
   @Post('create-simplified-payment')
   async createSimplifiedPayment(@Body() body: {
@@ -45,14 +45,14 @@ export class PayTechController {
   }) {
     try {
       const { amount, customerName, customerPhone, customerEmail, question, aiResponse, category } = body;
-      
+
       if (!amount || !customerName || !customerPhone || !question) {
         return { success: false, message: 'Données manquantes' };
       }
 
       // Générer une référence unique
       const reference = this.payTechService.generateReference('XAALI_SIMP');
-      
+
       // Créer le paiement PayTech
       const paymentRequest = {
         amount,
@@ -65,7 +65,7 @@ export class PayTechController {
       };
 
       const result = await this.payTechService.initiatePayment(paymentRequest);
-      
+
       if (result.success) {
         // Stocker les données pour création automatique du dossier
         await this.storeSimplifiedCaseData(reference, {
@@ -78,7 +78,7 @@ export class PayTechController {
           amount
         });
       }
-      
+
       return result;
     } catch (error) {
       this.logger.error('Erreur paiement simplifié:', error);
@@ -87,8 +87,8 @@ export class PayTechController {
   }
 
   @Post('create-payment')
-  async createPayment(@Body() body: { 
-    amount: number; 
+  async createPayment(@Body() body: {
+    amount: number;
     currency?: string;
     customerEmail?: string;
     customerName?: string;
@@ -108,7 +108,7 @@ export class PayTechController {
   }) {
     try {
       const { amount, currency, customerEmail, customerName, description, commandeId, testRealApi } = body;
-      
+
       if (!amount || amount <= 0) {
         return { success: false, message: 'Montant invalide' };
       }
@@ -121,7 +121,7 @@ export class PayTechController {
 
       // Generate a unique reference
       const reference = this.payTechService.generateReference('XAALI');
-      
+
       // For production, always use real API
       // In development, you can set testRealApi to true to test real API calls
       if (testRealApi || process.env.NODE_ENV === 'production') {
@@ -141,14 +141,28 @@ export class PayTechController {
 
       // Initiate payment with PayTech
       const result = await this.payTechService.initiatePayment(paymentRequest);
-      
+
       // Si le paiement est créé avec succès et qu'on a un ID de cas, le stocker pour mise à jour ultérieure
       if (result.success && body.caseId) {
-        // Stocker l'association payment reference -> case ID pour le callback
-        await this.storeCasePaymentMapping(reference, body.caseId);
-        this.logger.log(`Association créée: ${reference} -> ${body.caseId}`);
+        // Mettre à jour immédiatement le cas avec la référence de paiement pour éviter les duplications
+        try {
+          const { ObjectId } = require('mongodb');
+          const existingCase = await this.caseRepository.findOne({
+            where: { _id: new ObjectId(body.caseId) } as any
+          });
+
+          if (existingCase) {
+            existingCase.paymentId = reference;
+            await this.caseRepository.save(existingCase);
+            this.logger.log(`Association immédiate: Cas ${body.caseId} lié au paiement ${reference}`);
+          } else {
+            this.logger.warn(`Cas ${body.caseId} introuvable pour liaison paiement`);
+          }
+        } catch (err) {
+          this.logger.error(`Erreur liaison cas-paiement: ${err.message}`);
+        }
       }
-      
+
       // Si le paiement est créé avec succès mais pas d'ID de cas, sauvegarder comme avant
       if (result.success && body.firstQuestion && !body.caseId) {
         await this.saveConsultationData({
@@ -164,12 +178,12 @@ export class PayTechController {
           amount: amount
         });
       }
-      
+
       // Reset test flag
       if (testRealApi && process.env.NODE_ENV !== 'production') {
         delete process.env.TEST_REAL_PAYTECH;
       }
-      
+
       return result;
     } catch (error) {
       this.logger.error('Error creating PayTech payment:', error);
@@ -201,7 +215,7 @@ export class PayTechController {
       }
 
       this.logger.log(`[PayTech] Processing callback data: ${JSON.stringify(data)}`);
-      
+
       // Logger les informations client reçues
       this.logger.log(`[PayTech] Informations client:`);
       this.logger.log(`  - customer_name: ${data.customer_name || 'Non fourni'}`);
@@ -217,20 +231,20 @@ export class PayTechController {
         email: data.customer_email || data.client_email,
         phone: data.customer_phone || data.client_phone
       };
-      
+
       // Sauvegarder les infos client pour utilisation ultérieure
       await this.saveCustomerInfoFromPayTech(data.ref_command, customerInfo);
 
       // Process the callback
       const result = await this.payTechService.processCallback(data);
-      
+
       // Si le paiement est confirmé, notifier les avocats
       if (result.status === 'success') {
         await this.handleSuccessfulPayment(result.transactionId, data);
       }
-      
+
       this.logger.log(`[PayTech] Callback processed successfully for transaction: ${result.transactionId}`);
-      
+
       return res.status(HttpStatus.OK).json({
         status: 'success',
         message: 'Callback processed successfully',
@@ -239,8 +253,8 @@ export class PayTechController {
       });
     } catch (error) {
       this.logger.error(`[PayTech] Callback error: ${error.message}`);
-      return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ 
-        error: `Callback processing failed: ${error.message}` 
+      return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
+        error: `Callback processing failed: ${error.message}`
       });
     }
   }
@@ -253,9 +267,9 @@ export class PayTechController {
       }
 
       this.logger.log(`Verifying PayTech payment: ${transactionId}`);
-      
+
       const result = await this.payTechService.checkPaymentStatus(transactionId);
-      
+
       return {
         success: true,
         payment: result,
@@ -264,7 +278,7 @@ export class PayTechController {
     } catch (error) {
       this.logger.error(`Error verifying PayTech payment ${transactionId}:`, error);
       throw new HttpException(
-        `Payment verification failed: ${error.message}`, 
+        `Payment verification failed: ${error.message}`,
         HttpStatus.INTERNAL_SERVER_ERROR
       );
     }
@@ -275,7 +289,7 @@ export class PayTechController {
   async getCaseByPaymentId(@Param('paymentId') paymentId: string) {
     try {
       this.logger.log(`Récupération du cas pour paymentId: ${paymentId}`);
-      
+
       const case_ = await this.caseRepository.findOne({
         where: { paymentId: paymentId } as any
       });
@@ -290,7 +304,7 @@ export class PayTechController {
       // Construire les follow-up questions et answers
       const followUpQuestions: string[] = [];
       const followUpAnswers: string[] = [];
-      
+
       if (case_.firstQuestion) {
         followUpQuestions.push(case_.firstQuestion);
         if (case_.firstResponse) followUpAnswers.push(case_.firstResponse);
@@ -311,7 +325,7 @@ export class PayTechController {
           id: case_.id,
           trackingCode: case_.trackingCode,
           trackingToken: case_.trackingToken,
-          trackingLink: case_.trackingToken 
+          trackingLink: case_.trackingToken
             ? `${process.env.FRONTEND_URL || 'http://localhost:5173'}/suivi/${case_.trackingToken}`
             : null,
           clientName: case_.citizenName,
@@ -348,7 +362,7 @@ export class PayTechController {
   async getCaseByTrackingToken(@Param('token') token: string) {
     try {
       this.logger.log(`Récupération du cas pour trackingToken: ${token}`);
-      
+
       const case_ = await this.caseRepository.findOne({
         where: { trackingToken: token } as any
       });
@@ -363,7 +377,7 @@ export class PayTechController {
       // Construire les follow-up questions et answers
       const followUpQuestions: string[] = [];
       const followUpAnswers: string[] = [];
-      
+
       if (case_.firstQuestion) {
         followUpQuestions.push(case_.firstQuestion);
         if (case_.firstResponse) followUpAnswers.push(case_.firstResponse);
@@ -451,12 +465,12 @@ export class PayTechController {
   async getCustomerInfo(@Param('transactionId') transactionId: string) {
     try {
       this.logger.log(`Récupération infos client pour: ${transactionId}`);
-      
+
       // Chercher le cas associé à cette transaction
       const existingCase = await this.caseRepository.findOne({
         where: { paymentId: transactionId }
       });
-      
+
       if (existingCase) {
         return {
           success: true,
@@ -546,7 +560,7 @@ export class PayTechController {
           paymentAmount: data.amount
         })
       });
-      
+
       if (response.ok) {
         const result = await response.json();
         this.logger.log(`Consultation sauvegardée: ${result.consultation?.id}`);
@@ -584,36 +598,30 @@ export class PayTechController {
         'civil': 'Litige de droit civil',
         'consultation-generale': 'Consultation juridique générale'
       };
-      
-      const aiResponses: { [key: string]: string } = {
-        'divorce': 'Selon l\'article 229 du Code civil, le divorce peut être prononcé en cas de rupture irrémédiable du lien conjugal. Je recommande de rassembler tous les documents relatifs aux biens communs et de privilégier une procédure amiable si possible.',
-        'succession': 'D\'après les articles 720 et suivants du Code civil, la succession s\'ouvre au lieu du dernier domicile du défunt. Il est essentiel d\'établir un inventaire des biens et de vérifier l\'existence d\'un testament.',
-        'contrat': 'L\'article 1134 du Code civil stipule que les conventions légalement formées tiennent lieu de loi à ceux qui les ont faites. En cas de non-respect, vous pouvez demander l\'exécution forcée ou des dommages-intérêts.',
-        'consultation-generale': 'Après analyse de votre situation, plusieurs options s\'offrent à vous selon le droit applicable. Je recommande une approche progressive en privilégiant d\'abord les solutions amiables avant d\'envisager une procédure judiciaire.'
-      };
-      
+
       const explicitTitle = categoryTitles[paymentData.caseCategory] || 'Consultation juridique spécialisée';
-      const aiResponse = aiResponses[paymentData.caseCategory] || aiResponses['consultation-generale'];
-      
+      // Ne plus utiliser de réponses hardcodées
+      const aiResponse = undefined;
+
       // Essayer de récupérer un cas existant avec ce paymentReference
       let existingCase = await this.caseRepository.findOne({
         where: { paymentId: paymentData.paymentReference } as any
       });
-      
+
       // Si pas trouvé, chercher par caseId si fourni dans paymentData
       if (!existingCase && paymentData.caseId) {
         existingCase = await this.caseRepository.findOne({
           where: { _id: paymentData.caseId as any }
         });
       }
-      
+
       if (existingCase) {
         // Mettre à jour le cas existant avec les données de paiement
         existingCase.isPaid = true;
         existingCase.paymentAmount = paymentData.amount;
         existingCase.paymentId = paymentData.paymentReference;
         existingCase.status = 'pending';
-        
+
         // Mettre à jour UNIQUEMENT téléphone et email (anonymat - pas de nom)
         if (paymentData.customerPhone && paymentData.customerPhone !== 'À définir') {
           existingCase.citizenPhone = paymentData.customerPhone;
@@ -623,7 +631,7 @@ export class PayTechController {
         }
         // Ne pas mettre à jour le nom pour préserver l'anonymat
         // Le nom reste l'identifiant anonyme créé initialement
-        
+
         // Conserver la question et réponse IA existantes si elles sont meilleures
         if (!existingCase.clientQuestion && paymentData.caseDescription) {
           existingCase.clientQuestion = paymentData.caseDescription;
@@ -634,12 +642,12 @@ export class PayTechController {
         if (!existingCase.aiResponse && aiResponse) {
           existingCase.aiResponse = aiResponse;
         }
-        
+
         const savedCase = await this.caseRepository.save(existingCase);
         this.logger.log(`Cas existant mis à jour avec succès: ${savedCase.id}`);
         return savedCase;
       }
-      
+
       // Créer un nouveau cas seulement si aucun n'existe
       // Pour l'anonymat : utiliser un identifiant anonyme au lieu du nom réel
       const anonymousId = `Client-${Date.now().toString().slice(-6)}`;
@@ -691,11 +699,11 @@ export class PayTechController {
       const existingCase = await this.caseRepository.findOne({
         where: { paymentId: paymentReference }
       });
-      
+
       if (existingCase) {
         return existingCase.id;
       }
-      
+
       // Si pas trouvé, chercher par d'autres critères
       return null;
     } catch (error) {
@@ -734,12 +742,12 @@ export class PayTechController {
       this.logger.log(`   - Nom: ${customerInfo.name}`);
       this.logger.log(`   - Email: ${customerInfo.email || 'Non fourni'}`);
       this.logger.log(`   - Téléphone: ${customerInfo.phone || 'Non fourni'}`);
-      
+
       // Chercher le cas associé et mettre à jour les infos client
       const existingCase = await this.caseRepository.findOne({
         where: { paymentId: transactionId }
       });
-      
+
       if (existingCase) {
         // Mettre à jour UNIQUEMENT téléphone et email (anonymat - pas de nom)
         if (customerInfo.phone && customerInfo.phone !== '+221 77 000 00 00') {
@@ -750,7 +758,7 @@ export class PayTechController {
         }
         // Ne pas mettre à jour le nom pour préserver l'anonymat
         // Le nom reste l'identifiant anonyme créé initialement
-        
+
         await this.caseRepository.save(existingCase);
         this.logger.log(`✅ Infos client mises à jour (anonymat préservé) pour le cas: ${existingCase.id}`);
       }
@@ -777,7 +785,7 @@ export class PayTechController {
             where: { _id: caseId as any }
           });
         }
-        
+
         // Si toujours pas trouvé, chercher un cas non payé qui pourrait correspondre
         // (cas créé avant le paiement avec saveCaseBeforePayment)
         if (!existingCase) {
@@ -785,15 +793,15 @@ export class PayTechController {
           const customerPhone = callbackData.customer_phone || callbackData.client_phone;
           if (customerPhone) {
             const potentialCases = await this.caseRepository.find({
-              where: { 
+              where: {
                 citizenPhone: customerPhone,
                 isPaid: false
               } as any
             });
-            
+
             // Prendre le plus récent
             if (potentialCases && potentialCases.length > 0) {
-              existingCase = potentialCases.sort((a, b) => 
+              existingCase = potentialCases.sort((a, b) =>
                 new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
               )[0];
               this.logger.log(`Cas trouvé par téléphone client: ${existingCase.id}`);
@@ -805,12 +813,12 @@ export class PayTechController {
       // 3. Si un cas existe, mettre à jour son statut de paiement
       if (existingCase) {
         this.logger.log(`✅ Cas trouvé pour transaction ${transactionId}: ${existingCase.id}`);
-        
+
         // Mettre à jour le statut de paiement
         existingCase.paymentId = transactionId;
         existingCase.isPaid = true;
         existingCase.paymentAmount = callbackData.amount || existingCase.paymentAmount || 10000;
-        
+
         // GARANTIR que le cas a des identifiants avant création dossier
         if (!existingCase.trackingCode || !existingCase.trackingToken) {
           console.log(`⚠️ Cas sans identifiants, création: ${existingCase.id}`);
@@ -818,11 +826,11 @@ export class PayTechController {
           // Recharger le cas avec les nouveaux identifiants
           existingCase = await this.caseRepository.findOne({ where: { id: existingCase.id } });
         }
-        
+
         if (existingCase) {
           await this.caseRepository.save(existingCase);
           this.logger.log(`Statut de paiement mis à jour pour le cas: ${existingCase.id}`);
-          
+
           // Créer automatiquement le dossier dans la collection dossiers
           try {
             // VÉRIFICATION AVANT création
@@ -830,10 +838,10 @@ export class PayTechController {
               this.logger.error(`❌ IMPOSSIBLE: Cas ${existingCase.id} sans identifiants`);
               throw new Error('Cas sans identifiants de suivi');
             }
-            
+
             const createdDossier = await this.dossiersService.createFromCase(existingCase);
             this.logger.log(`✅ Dossier créé: ${createdDossier.trackingCode} (ID: ${createdDossier.id})`);
-            
+
             // Vérification de cohérence OBLIGATOIRE
             if (createdDossier.trackingCode !== existingCase.trackingCode) {
               this.logger.error(`❌ INCOHÉRENCE: Case=${existingCase.trackingCode}, Dossier=${createdDossier.trackingCode}`);
@@ -842,13 +850,13 @@ export class PayTechController {
           } catch (dossierError) {
             this.logger.error(`❌ Erreur création dossier: ${dossierError.message}`);
           }
-          
+
           // Notifier le citoyen que le paiement est confirmé
           await this.notificationService.notifyCitizenCaseCreated(existingCase);
-          
+
           // Notifier les avocats du cas payé
           await this.notificationService.notifyNewCase(existingCase);
-          
+
           // Si un avocat est déjà assigné, le notifier du paiement
           if (existingCase.lawyerId) {
             await this.notificationService.notifyLawyerPaymentReceived(existingCase);
@@ -856,7 +864,7 @@ export class PayTechController {
         }
       } else {
         this.logger.log(`Aucun cas trouvé pour transaction ${transactionId}, création d'un nouveau cas`);
-        
+
         // Créer un nouveau cas avec les informations PayTech
         const newCase = await this.createCaseAfterPayment({
           paymentReference: transactionId,
@@ -868,11 +876,11 @@ export class PayTechController {
           caseCategory: callbackData.category || 'consultation-generale',
           amount: callbackData.amount || 10000
         });
-        
+
         // Créer le dossier de suivi pour le nouveau cas
         if (newCase) {
           await this.createTrackingForCase(newCase, callbackData);
-          
+
           // Créer automatiquement le dossier dans la collection dossiers
           try {
             // VÉRIFICATION AVANT création
@@ -880,10 +888,10 @@ export class PayTechController {
               this.logger.error(`❌ IMPOSSIBLE: Nouveau cas ${newCase.id} sans identifiants`);
               throw new Error('Nouveau cas sans identifiants de suivi');
             }
-            
+
             const createdDossier = await this.dossiersService.createFromCase(newCase);
             this.logger.log(`✅ Dossier créé: ${createdDossier.trackingCode} (ID: ${createdDossier.id})`);
-            
+
             // Vérification de cohérence OBLIGATOIRE
             if (createdDossier.trackingCode !== newCase.trackingCode) {
               this.logger.error(`❌ INCOHÉRENCE: Case=${newCase.trackingCode}, Dossier=${createdDossier.trackingCode}`);
@@ -914,11 +922,11 @@ export class PayTechController {
   private async createTrackingForCase(case_: Case, callbackData: any) {
     try {
       this.logger.log(`📋 Création du dossier de suivi pour le cas: ${case_.id}`);
-      
+
       // 1. Réutiliser le code de suivi existant si disponible, sinon en générer un nouveau
       let trackingCode = case_.trackingCode;
       let trackingToken = case_.trackingToken;
-      
+
       if (!trackingCode || !trackingToken) {
         // Générer un nouveau code seulement si le cas n'en a pas déjà un
         trackingCode = `XA-${Math.floor(10000 + Math.random() * 90000)}`;
@@ -927,28 +935,28 @@ export class PayTechController {
       } else {
         this.logger.log(`Réutilisation du code de suivi existant: ${trackingCode}`);
       }
-      
+
       // 2. Créer le lien de suivi
       const baseUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
       const trackingLink = `${baseUrl}/suivi/${trackingToken}`;
-      
+
       // 3. Mettre à jour le cas avec les informations de suivi
       case_.trackingCode = trackingCode;
       case_.trackingToken = trackingToken;
       case_.isPaid = true;
       case_.paymentAmount = callbackData.amount || case_.paymentAmount || 10000;
       case_.status = 'pending';
-      
+
       await this.caseRepository.save(case_);
       this.logger.log(`✅ Dossier de suivi créé: ${trackingCode}`);
-      
+
       // 4. Récupérer les informations du client
       const citizenPhone = case_.citizenPhone || callbackData.customer_phone || callbackData.client_phone || '+221 77 000 00 00';
       const citizenEmail = case_.citizenEmail || callbackData.customer_email || callbackData.client_email;
-      
+
       // 5. Créer automatiquement un compte citoyen si nécessaire (sans nom pour anonymat)
       await this.createCitizenAccount(citizenPhone, citizenEmail);
-      
+
       // 6. Envoyer les notifications (SMS, WhatsApp, Email)
       await this.sendTrackingNotifications(citizenPhone, citizenEmail, trackingCode, trackingLink, case_.paymentAmount);
 
@@ -1014,14 +1022,14 @@ export class PayTechController {
     try {
       // Utiliser l'endpoint de notifications unifié (même que simulation)
       const apiUrl = process.env.BACKEND_URL || 'http://localhost:3000';
-      
+
       // Utiliser le service de notifications directement au lieu de fetch
       try {
         // Appeler directement le service de notifications via l'endpoint
         // Note: On pourrait aussi injecter NotificationsController, mais pour l'instant on utilise l'emailService
         // Les SMS/WhatsApp seront gérés par l'endpoint /notifications/send-tracking
         this.logger.log(`📧 Envoi notifications via service unifié pour ${trackingCode}`);
-        
+
         // Envoyer Email si fourni (via EmailService)
         if (email && !email.includes('@xaali.temp')) {
           await this.emailService.sendTrackingNotification(
@@ -1032,23 +1040,23 @@ export class PayTechController {
           );
           this.logger.log(`📧 Email de suivi envoyé à ${email}`);
         }
-        
+
         // SMS et WhatsApp seront logués (à intégrer avec vraie API)
         this.logger.log(`📱 SMS/WhatsApp: Merci, votre dossier ${trackingCode} a été créé. Suivez-le ici : ${trackingLink}`);
-        
+
         this.logger.log(`✅ Notifications envoyées via service unifié pour ${trackingCode}`);
         return;
       } catch (apiError) {
         this.logger.warn('Service notifications non disponible, envoi direct...');
       }
-      
+
       // Fallback : envoi direct si l'API échoue
       // Envoyer SMS (simulation - à remplacer par une vraie API SMS)
       this.logger.log(`📱 SMS envoyé à ${phone}: Merci, votre dossier ${trackingCode} a été créé. Suivez-le ici : ${trackingLink}`);
-      
+
       // Envoyer WhatsApp (simulation - à remplacer par une vraie API WhatsApp)
       this.logger.log(`📱 WhatsApp envoyé à ${phone}: Bonjour, votre dossier juridique Xaali.net est créé. Code : ${trackingCode}. Lien de suivi : ${trackingLink}`);
-      
+
       // Envoyer Email si fourni
       if (email && !email.includes('@xaali.temp')) {
         await this.emailService.sendTrackingNotification(
