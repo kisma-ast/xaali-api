@@ -24,13 +24,13 @@ export class RealAuthController {
     private notificationService: NotificationService,
     private fineTuningService: FineTuningService,
     private emailService: EmailService,
-  ) {}
+  ) { }
 
   @Post('register')
   async registerLawyer(@Body() registerDto: any) {
     console.log('🔍 [REAL-AUTH] Tentative d\'inscription avocat');
     console.log('📋 [REAL-AUTH] Données reçues:', JSON.stringify(registerDto, null, 2));
-    
+
     try {
       const existingLawyer = await this.lawyerRepository.findOne({
         where: { email: registerDto.email }
@@ -64,9 +64,17 @@ export class RealAuthController {
 
       const savedLawyer = await this.lawyerRepository.save(lawyer);
       const { password, ...lawyerData } = savedLawyer;
-      
+
       console.log('✅ [REAL-AUTH] Avocat créé avec succès:', savedLawyer.id);
       console.log('📄 [REAL-AUTH] Données sauvegardées:', JSON.stringify(lawyerData, null, 2));
+
+      // Envoyer l'email de bienvenue
+      try {
+        await this.emailService.sendLawyerWelcomeEmail(savedLawyer.email, savedLawyer.name);
+      } catch (emailError) {
+        console.error('⚠️ [REAL-AUTH] Erreur envoi email bienvenue:', emailError);
+        // Ne pas bloquer l'inscription si l'email échoue
+      }
 
       return {
         success: true,
@@ -84,7 +92,7 @@ export class RealAuthController {
   async loginLawyer(@Body() loginDto: { email: string; password: string }) {
     console.log('🔍 [REAL-AUTH] Tentative de connexion avocat');
     console.log('📧 [REAL-AUTH] Email:', loginDto.email);
-    
+
     try {
       const lawyer = await this.lawyerRepository.findOne({
         where: { email: loginDto.email }
@@ -98,21 +106,21 @@ export class RealAuthController {
         provided: loginDto.password,
         stored: lawyer.password
       });
-      
+
       const isPasswordValid = await bcrypt.compare(loginDto.password, lawyer.password);
       console.log(`🔑 [REAL-AUTH] Résultat vérification: ${isPasswordValid}`);
-      
+
       if (!isPasswordValid) {
         console.log(`❌ [REAL-AUTH] Mot de passe incorrect pour: ${loginDto.email}`);
         return { success: false, message: 'Email ou mot de passe incorrect' };
       }
-      
+
       console.log(`✅ [REAL-AUTH] Connexion réussie pour: ${loginDto.email}`);
 
       const { password, ...lawyerData } = lawyer;
 
       console.log('✅ [REAL-AUTH] Connexion avocat réussie:', lawyer.id);
-      
+
       return {
         success: true,
         lawyer: lawyerData,
@@ -194,7 +202,7 @@ export class RealAuthController {
   async createCase(@Body() caseDto: any) {
     console.log('🆕 [REAL-AUTH] Création d\'un nouveau cas');
     console.log('📋 [REAL-AUTH] Données du cas:', JSON.stringify(caseDto, null, 2));
-    
+
     try {
       const newCase = this.caseRepository.create({
         title: caseDto.title || 'Demande de consultation juridique',
@@ -235,41 +243,41 @@ export class RealAuthController {
   async createCaseAfterPayment(@Body() paymentData: any) {
     console.log('💳 [REAL-AUTH] Création de cas après paiement réussi');
     console.log('💰 [REAL-AUTH] Données de paiement:', JSON.stringify(paymentData, null, 2));
-    
+
     try {
       // Générer un titre intelligent avec l'IA fine-tunée
       const generateAITitle = async (question: string, category: string): Promise<string> => {
         try {
           console.log('🤖 [REAL-AUTH] Génération de titre IA pour:', question);
-          
+
           const titleResponse = await this.fineTuningService.processFineTunedQuery({
             question: `Génère un titre court et précis (maximum 8 mots) pour cette consultation juridique: "${question}". Catégorie: ${category}. Le titre doit être professionnel et indiquer clairement le type de problème juridique.`,
             category: category,
             context: 'title_generation'
           });
-          
+
           // Extraire le titre de la réponse IA
           let aiTitle = titleResponse.answer?.title || titleResponse.answer?.content || '';
-          
+
           // Nettoyer le titre (supprimer guillemets, points, etc.)
           aiTitle = aiTitle.replace(/["'`]/g, '').replace(/\.$/, '').trim();
-          
+
           // Vérifier que le titre n'est pas trop long
           if (aiTitle.length > 80) {
             aiTitle = aiTitle.substring(0, 77) + '...';
           }
-          
+
           console.log('✅ [REAL-AUTH] Titre IA généré:', aiTitle);
           return aiTitle || this.getFallbackTitle(question, category);
-          
+
         } catch (error) {
           console.error('❌ [REAL-AUTH] Erreur génération titre IA:', error);
           return this.getFallbackTitle(question, category);
         }
       };
-      
+
       const explicitTitle = await generateAITitle(paymentData.clientQuestion || '', paymentData.category || 'consultation-generale');
-      
+
       // Générer une réponse IA simulée basée sur la catégorie
       const aiResponses: { [key: string]: string } = {
         'divorce': 'Selon l\'article 229 du Code civil, le divorce peut être prononcé en cas de rupture irrémédiable du lien conjugal. Je recommande de rassembler tous les documents relatifs aux biens communs et de privilégier une procédure amiable si possible.',
@@ -279,9 +287,9 @@ export class RealAuthController {
         'foncier': 'Le droit de propriété est protégé par l\'article 544 du Code civil. Pour les conflits fonciers, il faut vérifier les titres de propriété et procéder si nécessaire à un bornage contradictoire.',
         'consultation-generale': 'Après analyse de votre situation, plusieurs options s\'offrent à vous selon le droit applicable. Je recommande une approche progressive en privilégiant d\'abord les solutions amiables avant d\'envisager une procédure judiciaire.'
       };
-      
+
       const aiResponse = aiResponses[paymentData.category] || aiResponses['consultation-generale'];
-      
+
       // Créer le cas avec les informations du paiement
       const caseData = {
         title: explicitTitle,
@@ -297,7 +305,7 @@ export class RealAuthController {
         aiResponse: aiResponse,
         clientQuestion: paymentData.clientQuestion || 'Question non spécifiée'
       };
-      
+
       return await this.createCase(caseData);
     } catch (error) {
       console.error('❌ [REAL-AUTH] Erreur création cas après paiement:', error);
@@ -310,16 +318,16 @@ export class RealAuthController {
     try {
       // Récupérer uniquement les cas payés et en attente
       const cases = await this.caseRepository.find({
-        where: { 
+        where: {
           status: 'pending'
         },
         order: { createdAt: 'DESC' }
       });
-      
+
       // Filtrer les cas payés uniquement (exclure isPaid:false et status:unpaid)
-      const paidCases = cases.filter(c => 
-        c.paymentId != null && 
-        c.isPaid !== false && 
+      const paidCases = cases.filter(c =>
+        c.paymentId != null &&
+        c.isPaid !== false &&
         c.status !== 'unpaid'
       );
 
@@ -338,7 +346,7 @@ export class RealAuthController {
     try {
       console.log('🔍 [REAL-AUTH] Tentative d\'acceptation du cas:', caseId);
       console.log('👨⚖️ [REAL-AUTH] ID Avocat:', body.lawyerId);
-      
+
       const caseToUpdate = await this.caseRepository.findOne({
         where: { _id: new ObjectId(caseId) }
       });
@@ -356,7 +364,7 @@ export class RealAuthController {
       caseToUpdate.acceptedAt = new Date();
 
       await this.caseRepository.save(caseToUpdate);
-      
+
       console.log('✅ [REAL-AUTH] Cas accepté avec succès:', caseId);
 
       // Notifier que le cas a été accepté
@@ -394,7 +402,7 @@ export class RealAuthController {
   async getUnpaidCases() {
     try {
       const unpaidCases = await this.caseRepository.find({
-        where: { 
+        where: {
           status: 'unpaid'
         },
         order: { createdAt: 'DESC' }
@@ -414,7 +422,7 @@ export class RealAuthController {
   async getAllAcceptedCases() {
     try {
       const acceptedCases = await this.caseRepository.find({
-        where: { 
+        where: {
           status: 'accepted'
         },
         order: { acceptedAt: 'DESC' }
@@ -437,9 +445,9 @@ export class RealAuthController {
   async getAcceptedCasesByLawyer(@Param('lawyerId') lawyerId: string) {
     try {
       console.log('🔍 [REAL-AUTH] Recherche cas acceptés pour avocat:', lawyerId);
-      
+
       const acceptedCases = await this.caseRepository.find({
-        where: { 
+        where: {
           status: 'accepted',
           lawyerId: lawyerId
         },
@@ -643,13 +651,13 @@ export class RealAuthController {
         'Problème d\'occupation illégale'
       ]
     };
-    
+
     const titles = categoryTitles[category] || [
       'Consultation juridique spécialisée',
       'Demande de conseil juridique',
       'Problème juridique à résoudre'
     ];
-    
+
     // Sélection basée sur des mots-clés
     const questionLower = question.toLowerCase();
     if (questionLower.includes('licenci')) return 'Licenciement abusif - Demande d\'indemnisation';
@@ -657,7 +665,7 @@ export class RealAuthController {
     if (questionLower.includes('hérit')) return 'Conflit successoral entre héritiers';
     if (questionLower.includes('contrat')) return 'Rupture de contrat commercial';
     if (questionLower.includes('terrain')) return 'Conflit de bornage entre voisins';
-    
+
     return titles[Math.floor(Math.random() * titles.length)];
   }
 }

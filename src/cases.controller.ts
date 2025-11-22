@@ -4,6 +4,7 @@ import { Case } from './case.entity';
 import { LawyerNotification } from './lawyer-notification.entity';
 import { EmailService } from './email.service';
 import { NotificationService } from './notification.service';
+import { normalizePhoneNumber } from './utils/phone.utils';
 
 @Controller('cases')
 export class CasesController {
@@ -236,7 +237,7 @@ export class CasesController {
         category: body.category,
         citizenId: body.citizenId || undefined,
         citizenName: body.citizenName || undefined,
-        citizenPhone: body.citizenPhone || undefined,
+        citizenPhone: body.citizenPhone ? normalizePhoneNumber(body.citizenPhone) : undefined,
         status: 'pending',
         urgency: body.urgency || 'normal',
         estimatedTime: body.estimatedTime || 30,

@@ -4,6 +4,7 @@ import { MongoRepository } from 'typeorm';
 import { Lawyer } from './lawyer.entity';
 import { Case } from './case.entity';
 import { ObjectId } from 'mongodb';
+import { EmailService } from './email.service';
 
 @Injectable()
 export class LawyersService {
@@ -12,7 +13,8 @@ export class LawyersService {
   constructor(
     @InjectRepository(Lawyer)
     private lawyersRepository: MongoRepository<Lawyer>,
-  ) {}
+    private emailService: EmailService,
+  ) { }
 
   findAll(): Promise<Lawyer[]> {
     return this.lawyersRepository.find();
@@ -25,23 +27,27 @@ export class LawyersService {
   async create(lawyer: Partial<Lawyer>): Promise<Lawyer> {
     try {
       this.logger.log(`Création d'un avocat: ${lawyer.name}`);
-      
+
       // Validation des champs requis
       if (!lawyer.name || !lawyer.email) {
         throw new Error('Nom et email sont requis');
       }
-      
+
       // Vérifier si l'email existe déjà
       const existingLawyer = await this.lawyersRepository.findOne({ where: { email: lawyer.email } });
       if (existingLawyer) {
         this.logger.warn(`Email déjà utilisé: ${lawyer.email}`);
         throw new Error('Cet email est déjà utilisé');
       }
-      
+
       const newLawyer = this.lawyersRepository.create(lawyer);
       const savedLawyer = await this.lawyersRepository.save(newLawyer);
-      
+
       this.logger.log(`Avocat créé avec succès: ID ${savedLawyer.id}`);
+
+      // Envoyer l'email de bienvenue
+      await this.emailService.sendLawyerWelcomeEmail(savedLawyer.email, savedLawyer.name);
+
       return savedLawyer;
     } catch (error) {
       this.logger.error(`Erreur lors de la création de l'avocat:`, error);
@@ -114,4 +120,4 @@ export class LawyersService {
       stats
     };
   }
-} 
+}

@@ -304,4 +304,68 @@ export class EmailService {
       this.logger.error('Erreur envoi email:', error);
     }
   }
+
+  async sendLawyerWelcomeEmail(email: string, name: string): Promise<boolean> {
+    try {
+      this.logger.log(`📧 Envoi email de bienvenue avocat à: ${email}`);
+
+      // Log transporter config (safe)
+      this.logger.debug(`Configuration SMTP: Host=${process.env.EMAIL_HOST}, Port=${process.env.EMAIL_PORT}, User=${process.env.EMAIL_USER ? 'Défini' : 'Non défini'}`);
+
+      const mailOptions = {
+        from: process.env.EMAIL_FROM || process.env.EMAIL_USER,
+        to: email,
+        subject: `Bienvenue sur Xaali - Votre compte avocat est créé`,
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <div style="text-align: center; margin-bottom: 30px;">
+              <h1 style="color: #2563eb;">Bienvenue sur Xaali</h1>
+            </div>
+
+            <p>Bonjour Maître <strong>${name}</strong>,</p>
+            
+            <p>Nous sommes ravis de vous compter parmi nos partenaires juridiques. Votre compte avocat a été créé avec succès.</p>
+            
+            <div style="background-color: #f0f9ff; padding: 20px; border-radius: 8px; margin: 20px 0;">
+              <h3 style="margin: 0 0 10px 0; color: #1e40af;">Ce que vous pouvez faire maintenant :</h3>
+              <ul style="color: #1e3a8a;">
+                <li>Compléter votre profil professionnel</li>
+                <li>Consulter les dossiers disponibles</li>
+                <li>Accepter des missions et interagir avec les clients</li>
+              </ul>
+            </div>
+
+            <p>Pour commencer, connectez-vous à votre tableau de bord :</p>
+            
+            <div style="text-align: center; margin: 30px 0;">
+              <a href="${process.env.FRONTEND_URL || 'http://localhost:5173'}/lawyer/login" 
+                 style="background-color: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block; font-weight: bold;">
+                Accéder à mon compte
+              </a>
+            </div>
+            
+            <hr style="margin: 30px 0; border: none; border-top: 1px solid #e5e7eb;">
+            
+            <p style="font-size: 14px; color: #6b7280;">
+              Si vous avez des questions, notre équipe support est à votre disposition.
+            </p>
+            <p style="font-size: 14px; color: #6b7280;">
+              Cordialement,<br>
+              L'équipe Xaali
+            </p>
+          </div>
+        `,
+      };
+
+      const info = await this.transporter.sendMail(mailOptions);
+      this.logger.log(`✅ Email de bienvenue envoyé avec succès à ${email}. MessageId: ${info.messageId}`);
+      return true;
+    } catch (error) {
+      this.logger.error(`❌ Erreur envoi email bienvenue avocat à ${email}:`, error);
+      if (error.response) {
+        this.logger.error(`Détails erreur SMTP: ${JSON.stringify(error.response)}`);
+      }
+      return false;
+    }
+  }
 }

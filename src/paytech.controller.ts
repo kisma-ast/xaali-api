@@ -3,6 +3,7 @@ import { PayTechService } from './paytech.service';
 import { NotificationService } from './notification.service';
 import { EmailService } from './email.service';
 import { DossiersService } from './dossiers.service';
+import { normalizePhoneNumber } from './utils/phone.utils';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Case } from './case.entity';
@@ -92,6 +93,7 @@ export class PayTechController {
     currency?: string;
     customerEmail?: string;
     customerName?: string;
+    customerPhone?: string;
     description: string;
     commandeId?: number;
     testRealApi?: boolean;
@@ -107,7 +109,7 @@ export class PayTechController {
     category?: string;
   }) {
     try {
-      const { amount, currency, customerEmail, customerName, description, commandeId, testRealApi } = body;
+      const { amount, currency, customerEmail, customerName, description, commandeId, testRealApi, citizenPhone } = body;
 
       if (!amount || amount <= 0) {
         return { success: false, message: 'Montant invalide' };
@@ -128,12 +130,19 @@ export class PayTechController {
         process.env.TEST_REAL_PAYTECH = 'true';
       }
 
+      // Normaliser le numéro de téléphone
+      let normalizedPhone = '';
+      if (citizenPhone) {
+        normalizedPhone = normalizePhoneNumber(citizenPhone);
+      }
+
       // Create payment request
       const paymentRequest = {
         amount,
         currency: currency || 'XOF',
         customerEmail,
         customerName,
+        customerPhone: normalizedPhone || '+221770000000', // Fallback si pas de numéro (ne devrait pas arriver avec le frontend à jour)
         description,
         reference,
         commandeId
@@ -790,11 +799,31 @@ export class PayTechController {
         // (cas créé avant le paiement avec saveCaseBeforePayment)
         if (!existingCase) {
           // Chercher par les infos client du callback
-          const customerPhone = callbackData.customer_phone || callbackData.client_phone;
-          if (customerPhone) {
+          const rawPhone = callbackData.customer_phone || callbackData.client_phone;
+
+          if (rawPhone) {
+            const normalizedPhone = normalizePhoneNumber(rawPhone);
+            this.logger.log(`🔍 Recherche cas par téléphone: ${rawPhone} -> ${normalizedPhone}`);
+
+            // Stratégie de recherche multi-format pour maximiser les chances
+            const searchPhones = [
+              normalizedPhone, // Format normalisé (+221...)
+              rawPhone,        // Format brut reçu
+              rawPhone.replace(/\s/g, ''), // Sans espaces
+              rawPhone.replace(/^\+221/, ''), // Sans préfixe +221
+              rawPhone.replace(/^00221/, ''), // Sans préfixe 00221
+              `+221${rawPhone.replace(/\s/g, '')}` // Avec préfixe forcé
+            ];
+
+            // Éliminer les doublons et les valeurs vides
+            const uniquePhones = [...new Set(searchPhones.filter(p => p))];
+
+            this.logger.log(`📱 Formats testés: ${uniquePhones.join(', ')}`);
+
+            // Chercher un cas correspondant à l'un des formats
             const potentialCases = await this.caseRepository.find({
               where: {
-                citizenPhone: customerPhone,
+                citizenPhone: { $in: uniquePhones },
                 isPaid: false
               } as any
             });
@@ -804,7 +833,15 @@ export class PayTechController {
               existingCase = potentialCases.sort((a, b) =>
                 new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
               )[0];
-              this.logger.log(`Cas trouvé par téléphone client: ${existingCase.id}`);
+              this.logger.log(`✅ Cas trouvé par téléphone (${existingCase.citizenPhone}): ${existingCase.id}`);
+
+              // Mettre à jour avec le numéro normalisé pour le futur
+              if (existingCase.citizenPhone !== normalizedPhone) {
+                existingCase.citizenPhone = normalizedPhone;
+                await this.caseRepository.save(existingCase);
+              }
+            } else {
+              this.logger.warn(`⚠️ Aucun cas trouvé pour les numéros: ${uniquePhones.join(', ')}`);
             }
           }
         }
