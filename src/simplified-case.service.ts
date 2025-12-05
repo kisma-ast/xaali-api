@@ -11,7 +11,7 @@ export class SimplifiedCaseService {
     @InjectRepository(Case)
     private caseRepository: Repository<Case>,
     private emailService: EmailService,
-  ) {}
+  ) { }
 
   async createSimplifiedCase(data: {
     question: string;
@@ -24,19 +24,19 @@ export class SimplifiedCaseService {
     existingCaseId?: string;
   }) {
     console.log('🚀 Début création/mise à jour dossier simplifié:', data);
-    
+
     let savedCase;
     let trackingToken;
     let trackingCode;
-    
+
     // Vérifier s'il y a un cas existant à mettre à jour
     if (data.existingCaseId) {
       console.log('🔄 Mise à jour du cas existant:', data.existingCaseId);
-      
+
       const existingCase = await this.caseRepository.findOne({
         where: { id: data.existingCaseId }
       });
-      
+
       if (existingCase) {
         // Mettre à jour le cas existant avec les VRAIES informations de paiement
         console.log('🔍 Données avant mise à jour:', {
@@ -49,20 +49,20 @@ export class SimplifiedCaseService {
           nouveau_telephone: data.citizenPhone,
           nouveau_email: data.citizenEmail
         });
-        
+
         existingCase.citizenName = data.citizenName || existingCase.citizenName;
         existingCase.citizenPhone = data.citizenPhone || existingCase.citizenPhone;
         existingCase.citizenEmail = data.citizenEmail || existingCase.citizenEmail;
         existingCase.paymentAmount = data.paymentAmount;
         existingCase.isPaid = true;
         existingCase.status = 'pending';
-        
+
         console.log('📝 Mise à jour avec vraies données:', {
           nom_final: existingCase.citizenName,
           telephone_final: existingCase.citizenPhone,
           email_final: existingCase.citizenEmail
         });
-        
+
         // Générer les codes de suivi s'ils n'existent pas
         if (!existingCase.trackingToken) {
           existingCase.trackingToken = uuidv4();
@@ -70,10 +70,10 @@ export class SimplifiedCaseService {
         if (!existingCase.trackingCode) {
           existingCase.trackingCode = `XL-${Math.floor(Math.random() * 90000) + 10000}`;
         }
-        
+
         trackingToken = existingCase.trackingToken;
         trackingCode = existingCase.trackingCode;
-        
+
         savedCase = await this.caseRepository.save(existingCase);
         console.log('✅ Cas existant mis à jour avec ID:', savedCase.id);
       } else {
@@ -81,14 +81,14 @@ export class SimplifiedCaseService {
         data.existingCaseId = undefined; // Forcer la création
       }
     }
-    
+
     // Créer un nouveau cas si pas de cas existant
     if (!data.existingCaseId || !savedCase) {
       trackingToken = uuidv4();
       trackingCode = `XL-${Math.floor(Math.random() * 90000) + 10000}`;
-      
+
       console.log('📝 Données générées:', { trackingCode, trackingToken });
-      
+
       const newCase = this.caseRepository.create({
         title: data.question.substring(0, 100),
         description: data.question,
@@ -104,7 +104,7 @@ export class SimplifiedCaseService {
         isPaid: true,
         createdAt: new Date()
       });
-      
+
       console.log('💾 Sauvegarde nouveau cas...');
       savedCase = await this.caseRepository.save(newCase);
       console.log('✅ Nouveau dossier sauvegardé avec ID:', Array.isArray(savedCase) ? savedCase[0]?.id : savedCase.id);
@@ -114,7 +114,7 @@ export class SimplifiedCaseService {
     const verifyCase = await this.caseRepository.findOne({
       where: { trackingToken }
     });
-    
+
     if (verifyCase) {
       console.log('✅ Vérification: Dossier trouvé en BD avec code:', verifyCase.trackingCode);
     } else {
@@ -130,9 +130,11 @@ export class SimplifiedCaseService {
       ...data,
       aiResponse: savedCase.aiResponse || data.aiResponse // Utiliser la réponse stockée
     };
-    if (trackingCode && trackingToken) {
-      await this.sendNotifications(trackingCode, trackingToken, notificationData);
-    }
+    // NE PAS envoyer d'email ici - sera envoyé après paiement confirmé par dossiers.service.ts
+    console.log(`📧 Email sera envoyé après confirmation du paiement pour ${trackingCode}`);
+    // if (trackingCode && trackingToken) {
+    //   await this.sendNotifications(trackingCode, trackingToken, notificationData);
+    // }
 
     return {
       trackingCode,
@@ -145,11 +147,11 @@ export class SimplifiedCaseService {
     const caseData = await this.caseRepository.findOne({
       where: { trackingToken: token }
     });
-    
+
     if (!caseData) {
       throw new Error('Dossier non trouvé');
     }
-    
+
     console.log('🔍 Données du dossier récupérées depuis BD:', {
       id: caseData.id,
       trackingCode: caseData.trackingCode,
@@ -158,7 +160,7 @@ export class SimplifiedCaseService {
       citizenEmail: caseData.citizenEmail,
       isPaid: caseData.isPaid
     });
-    
+
     const result = {
       id: caseData.id,
       trackingCode: caseData.trackingCode,
@@ -170,9 +172,9 @@ export class SimplifiedCaseService {
       citizenEmail: caseData.citizenEmail,
       createdAt: caseData.createdAt.toISOString()
     };
-    
+
     console.log('📤 Données retournées au frontend:', result);
-    
+
     return result;
   }
 
@@ -180,9 +182,9 @@ export class SimplifiedCaseService {
     const cases = await this.caseRepository.find({
       order: { createdAt: 'DESC' }
     });
-    
+
     console.log(`📊 Total des dossiers en BD: ${cases.length}`);
-    
+
     return cases.map(caseData => ({
       id: caseData.id,
       trackingCode: caseData.trackingCode,
@@ -198,11 +200,11 @@ export class SimplifiedCaseService {
     const caseData = await this.caseRepository.findOne({
       where: { id: caseId }
     });
-    
+
     if (!caseData) {
       throw new Error('Dossier non trouvé');
     }
-    
+
     return {
       id: caseData.id,
       trackingCode: caseData.trackingCode,
@@ -230,22 +232,22 @@ export class SimplifiedCaseService {
     console.log(`   Nom anonyme: ${anonymousName}`);
     console.log(`   Email: ${email || 'Non fourni'}`);
     console.log(`   Mot de passe: Généré automatiquement`);
-    
+
     // TODO: Créer réellement le compte dans la base de données si nécessaire
     // Pour l'instant, c'est juste logué pour la simulation
   }
 
   private async sendNotifications(trackingCode: string, trackingToken: string, data: any) {
     const trackingLink = `https://xaali.net/suivi/${trackingToken}`;
-    
+
     // SMS
     console.log(`📱 SMS envoyé à ${data.citizenPhone}:`);
     console.log(`Merci, votre dossier ${trackingCode} a été créé. Suivez-le ici : ${trackingLink}`);
-    
+
     // WhatsApp
     console.log(`📱 WhatsApp envoyé à ${data.citizenPhone}:`);
     console.log(`Bonjour, votre dossier juridique Xaali.net est créé. Code : ${trackingCode}. Lien de suivi : ${trackingLink}`);
-    
+
     // Email réel si fourni
     if (data.citizenEmail) {
       try {
@@ -277,10 +279,10 @@ export class SimplifiedCaseService {
     isPaid: boolean;
   }) {
     console.log('🚀 Création cas avec codes de suivi:', data);
-    
+
     const trackingToken = uuidv4();
     const trackingCode = `XA-${Math.floor(10000 + Math.random() * 90000)}`;
-    
+
     const newCase = this.caseRepository.create({
       title: data.question.substring(0, 100),
       description: data.question,
@@ -310,13 +312,13 @@ export class SimplifiedCaseService {
 
   async getPendingPaidCases() {
     const cases = await this.caseRepository.find({
-      where: { 
+      where: {
         isPaid: true,
         status: 'pending'
       },
       order: { createdAt: 'DESC' }
     });
-    
+
     return cases.map(caseData => ({
       id: caseData.id,
       _id: caseData.id,
@@ -335,12 +337,12 @@ export class SimplifiedCaseService {
 
   async getAcceptedCases() {
     const cases = await this.caseRepository.find({
-      where: { 
+      where: {
         status: 'accepted'
       },
       order: { createdAt: 'DESC' }
     });
-    
+
     return cases.map(caseData => ({
       id: caseData.id,
       _id: caseData.id,
@@ -362,18 +364,18 @@ export class SimplifiedCaseService {
     const caseToUpdate = await this.caseRepository.findOne({
       where: { id: caseId }
     });
-    
+
     if (!caseToUpdate) {
       throw new Error('Cas non trouvé');
     }
-    
+
     caseToUpdate.status = 'accepted';
     caseToUpdate.lawyerId = lawyerId;
     caseToUpdate.lawyerName = lawyerName;
     caseToUpdate.acceptedAt = new Date();
-    
+
     await this.caseRepository.save(caseToUpdate);
-    
+
     console.log(`✅ Cas ${caseId} accepté par ${lawyerName}`);
   }
 
@@ -382,9 +384,9 @@ export class SimplifiedCaseService {
       select: ['id', 'trackingCode', 'trackingToken', 'citizenName', 'citizenPhone', 'status', 'createdAt', 'acceptedAt'],
       order: { createdAt: 'DESC' }
     });
-    
+
     console.log(`📋 Historique de traçabilité: ${cases.length} codes générés`);
-    
+
     return cases.map(caseData => ({
       id: caseData.id,
       trackingCode: caseData.trackingCode,
@@ -401,13 +403,13 @@ export class SimplifiedCaseService {
     const caseData = await this.caseRepository.findOne({
       where: { trackingCode }
     });
-    
+
     if (!caseData) {
       throw new Error(`Aucun dossier trouvé avec le code ${trackingCode}`);
     }
-    
+
     console.log(`✅ Code ${trackingCode} trouvé en BD - Traçabilité confirmée`);
-    
+
     return {
       id: caseData.id,
       trackingCode: caseData.trackingCode,
@@ -421,18 +423,18 @@ export class SimplifiedCaseService {
 
   async cleanupUnpaidCases() {
     console.log('🧹 Début du nettoyage des cas non payés...');
-    
+
     // Compter tous les cas
     const totalCount = await this.caseRepository.count();
     console.log(`📋 ${totalCount} cas au total`);
-    
+
     // Trouver les cas non payés
     const unpaidCases = await this.caseRepository.find({
       where: { isPaid: false }
     });
-    
+
     console.log(`🚫 ${unpaidCases.length} cas non payés trouvés`);
-    
+
     if (unpaidCases.length === 0) {
       return {
         deletedCount: 0,
@@ -440,16 +442,16 @@ export class SimplifiedCaseService {
         message: 'Aucun cas non payé à supprimer'
       };
     }
-    
+
     // Supprimer les cas non payés
     await this.caseRepository.remove(unpaidCases);
-    
+
     // Vérifier après suppression
     const countAfter = await this.caseRepository.count();
     console.log(`📋 ${countAfter} cas restants après nettoyage`);
-    
+
     console.log('✅ Nettoyage des cas non payés terminé');
-    
+
     return {
       deletedCount: unpaidCases.length,
       remainingCount: countAfter,
@@ -460,13 +462,13 @@ export class SimplifiedCaseService {
   async fixMissingTrackingCodes() {
     // Trouver tous les cas sans codes de suivi
     const casesWithoutTracking = await this.caseRepository.find();
-    
-    const casesToFix = casesWithoutTracking.filter(caseItem => 
+
+    const casesToFix = casesWithoutTracking.filter(caseItem =>
       !caseItem.trackingCode || !caseItem.trackingToken
     );
-    
+
     console.log(`🔧 ${casesToFix.length} cas sans codes de suivi trouvés`);
-    
+
     let fixed = 0;
     for (const caseItem of casesToFix) {
       // Générer les codes manquants
@@ -476,12 +478,12 @@ export class SimplifiedCaseService {
       if (!caseItem.trackingToken) {
         caseItem.trackingToken = uuidv4();
       }
-      
+
       await this.caseRepository.save(caseItem);
       console.log(`✅ Codes générés pour cas ${caseItem.id}: ${caseItem.trackingCode}`);
       fixed++;
     }
-    
+
     return {
       total: casesToFix.length,
       fixed,

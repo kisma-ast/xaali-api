@@ -4,11 +4,12 @@ import { DossiersController } from './dossiers.controller';
 import { DossiersService } from './dossiers.service';
 import { Dossier } from './dossier.entity';
 import { Case } from './case.entity';
+import { EmailService } from './email.service';
 
 @Module({
   imports: [TypeOrmModule.forFeature([Dossier, Case])],
   controllers: [DossiersController],
-  providers: [DossiersService],
+  providers: [DossiersService, EmailService],
   exports: [DossiersService, TypeOrmModule],
 })
-export class DossiersModule {}
+export class DossiersModule { }

@@ -120,6 +120,7 @@ export class PayTechController {
       }
 
       this.logger.log(`Creating PayTech payment: ${amount} ${currency || 'XOF'} for ${description}`);
+      this.logger.log(`📧 Email client fourni: ${customerEmail || body.citizenEmail || 'AUCUN'}`);
 
       // Generate a unique reference
       const reference = this.payTechService.generateReference('XAALI');
@@ -137,23 +138,29 @@ export class PayTechController {
       }
 
       // Create payment request
+      const finalEmail = customerEmail || body.citizenEmail;
+      this.logger.log(`📧 Email final pour paiement: ${finalEmail || 'AUCUN EMAIL'}`);
+
       const paymentRequest = {
         amount,
         currency: currency || 'XOF',
-        customerEmail,
+        customerEmail: finalEmail,
         customerName,
-        customerPhone: normalizedPhone || '+221770000000', // Fallback si pas de numéro (ne devrait pas arriver avec le frontend à jour)
+        customerPhone: normalizedPhone || '+221770000000',
         description,
         reference,
         commandeId
       };
+
+      // TEST EMAIL AVANT PAIEMENT SUPPRIMÉ
+      // L'email sera envoyé uniquement après confirmation du paiement via le callback
 
       // Initiate payment with PayTech
       const result = await this.payTechService.initiatePayment(paymentRequest);
 
       // Si le paiement est créé avec succès et qu'on a un ID de cas, le stocker pour mise à jour ultérieure
       if (result.success && body.caseId) {
-        // Mettre à jour immédiatement le cas avec la référence de paiement pour éviter les duplications
+        // Mettre à jour immédiatement le cas avec la référence de paiement ET les infos client pour éviter les duplications
         try {
           const { ObjectId } = require('mongodb');
           const existingCase = await this.caseRepository.findOne({
@@ -162,6 +169,17 @@ export class PayTechController {
 
           if (existingCase) {
             existingCase.paymentId = reference;
+
+            // ✅ CORRECTIF: Mettre à jour l'email et le téléphone du cas si fournis
+            if (body.citizenEmail && !existingCase.citizenEmail) {
+              existingCase.citizenEmail = body.citizenEmail;
+              this.logger.log(`📧 Email ajouté au cas: ${body.citizenEmail}`);
+            }
+            if (body.citizenPhone && !existingCase.citizenPhone) {
+              existingCase.citizenPhone = body.citizenPhone;
+              this.logger.log(`📱 Téléphone ajouté au cas: ${body.citizenPhone}`);
+            }
+
             await this.caseRepository.save(existingCase);
             this.logger.log(`Association immédiate: Cas ${body.caseId} lié au paiement ${reference}`);
           } else {
@@ -241,14 +259,20 @@ export class PayTechController {
         phone: data.customer_phone || data.client_phone
       };
 
+      this.logger.log(`📧 Infos client extraites du callback:`);
+      this.logger.log(`   - Nom: ${customerInfo.name}`);
+      this.logger.log(`   - Email: ${customerInfo.email || 'Non fourni'}`);
+      this.logger.log(`   - Téléphone: ${customerInfo.phone || 'Non fourni'}`);
+
       // Sauvegarder les infos client pour utilisation ultérieure
       await this.saveCustomerInfoFromPayTech(data.ref_command, customerInfo);
 
       // Process the callback
       const result = await this.payTechService.processCallback(data);
 
-      // Si le paiement est confirmé, notifier les avocats
+      // Si le paiement est confirmé, notifier les avocats ET envoyer email client
       if (result.status === 'success') {
+        this.logger.log(`💳 Paiement confirmé - Traitement notifications pour: ${result.transactionId}`);
         await this.handleSuccessfulPayment(result.transactionId, data);
       }
 
@@ -368,9 +392,10 @@ export class PayTechController {
 
   // Endpoint pour récupérer le dossier par trackingToken
   @Get('case-by-token/:token')
-  async getCaseByTrackingToken(@Param('token') token: string) {
+  @Get('case-by-token/:token')
+  async getCaseByTrackingToken(@Param('token') token: string, @Query('phone') phone?: string) {
     try {
-      this.logger.log(`Récupération du cas pour trackingToken: ${token}`);
+      this.logger.log(`Récupération du cas pour trackingToken: ${token} (Phone fourni: ${phone || 'Non'})`);
 
       const case_ = await this.caseRepository.findOne({
         where: { trackingToken: token } as any
@@ -383,6 +408,33 @@ export class PayTechController {
         };
       }
 
+      // SÉCURITÉ: Vérifier si le téléphone correspond pour donner accès aux données sensibles
+      // Normaliser les numéros pour la comparaison (enlever espaces, tirets, etc.)
+      const normalizePhone = (p: string) => p ? p.replace(/[\s\-\.\+]/g, '') : '';
+
+      const isVerified = phone && case_.citizenPhone &&
+        normalizePhone(phone) === normalizePhone(case_.citizenPhone);
+
+      // Données de base toujours accessibles (pour le statut de paiement)
+      const baseData = {
+        id: case_.id,
+        trackingCode: case_.trackingCode,
+        status: case_.status,
+        isPaid: case_.isPaid,
+        paymentAmount: case_.paymentAmount,
+        createdAt: case_.createdAt,
+      };
+
+      if (!isVerified) {
+        // Retourner uniquement les données publiques si non vérifié
+        return {
+          success: true,
+          case: baseData,
+          requiresVerification: true
+        };
+      }
+
+      // Si vérifié, retourner toutes les données sensibles
       // Construire les follow-up questions et answers
       const followUpQuestions: string[] = [];
       const followUpAnswers: string[] = [];
@@ -403,8 +455,7 @@ export class PayTechController {
       return {
         success: true,
         case: {
-          id: case_.id,
-          trackingCode: case_.trackingCode,
+          ...baseData,
           trackingToken: case_.trackingToken,
           trackingLink: `${process.env.FRONTEND_URL || 'http://localhost:5173'}/suivi/${case_.trackingToken}`,
           clientName: case_.citizenName,
@@ -415,10 +466,6 @@ export class PayTechController {
           aiResponse: case_.aiResponse,
           followUpQuestions,
           followUpAnswers,
-          status: case_.status,
-          isPaid: case_.isPaid,
-          paymentAmount: case_.paymentAmount,
-          createdAt: case_.createdAt,
           title: case_.title,
           assignedLawyer: case_.lawyerName ? {
             name: case_.lawyerName,
@@ -514,6 +561,61 @@ export class PayTechController {
       developmentMode: process.env.NODE_ENV !== 'production',
       paytechConfigured: !!(process.env.PAYTECH_API_KEY && process.env.PAYTECH_SECRET_KEY)
     };
+  }
+
+  @Get('test-simple-email')
+  async testSimpleEmail() {
+    try {
+      this.logger.log(`🧪 TEST SIMPLE EMAIL`);
+
+      const result = await this.emailService.sendTrackingNotification(
+        'kismatandia0@gmail.com',
+        'XA-SIMPLE-TEST',
+        'http://localhost:5173/suivi/simple-test',
+        10000
+      );
+
+      return {
+        success: true,
+        message: 'Test simple email terminé',
+        result: result
+      };
+    } catch (error) {
+      this.logger.error(`🧪 TEST SIMPLE EMAIL - Erreur:`, error);
+      return {
+        success: false,
+        error: error.message,
+        stack: error.stack
+      };
+    }
+  }
+
+  @Post('test-email-config')
+  async testEmailConfig() {
+    try {
+      this.logger.log(`🧪 TEST CONFIG EMAIL`);
+      this.logger.log(`   - EMAIL_HOST: ${process.env.EMAIL_HOST}`);
+      this.logger.log(`   - EMAIL_PORT: ${process.env.EMAIL_PORT}`);
+      this.logger.log(`   - EMAIL_USER: ${process.env.EMAIL_USER}`);
+      this.logger.log(`   - EMAIL_PASS: ${process.env.EMAIL_PASS ? 'Défini' : 'Non défini'}`);
+      this.logger.log(`   - EMAIL_FROM: ${process.env.EMAIL_FROM}`);
+
+      return {
+        success: true,
+        config: {
+          host: process.env.EMAIL_HOST,
+          port: process.env.EMAIL_PORT,
+          user: process.env.EMAIL_USER,
+          passwordSet: !!process.env.EMAIL_PASS,
+          from: process.env.EMAIL_FROM
+        }
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error.message
+      };
+    }
   }
 
   // Redirect endpoints for PayTech success/cancel
@@ -764,12 +866,30 @@ export class PayTechController {
         }
         if (customerInfo.email) {
           existingCase.citizenEmail = customerInfo.email;
+          this.logger.log(`📧 Email client mis à jour: ${customerInfo.email}`);
         }
         // Ne pas mettre à jour le nom pour préserver l'anonymat
         // Le nom reste l'identifiant anonyme créé initialement
 
         await this.caseRepository.save(existingCase);
         this.logger.log(`✅ Infos client mises à jour (anonymat préservé) pour le cas: ${existingCase.id}`);
+
+        // ENVOI EMAIL IMMÉDIAT si email disponible et cas payé
+        if (customerInfo.email && existingCase.isPaid && existingCase.trackingCode && existingCase.trackingToken) {
+          this.logger.log(`📧 ENVOI EMAIL IMMÉDIAT après mise à jour infos client`);
+          try {
+            const trackingLink = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/suivi/${existingCase.trackingToken}`;
+            await this.emailService.sendTrackingNotification(
+              customerInfo.email,
+              existingCase.trackingCode,
+              trackingLink,
+              existingCase.paymentAmount || 10000
+            );
+            this.logger.log(`✅ EMAIL IMMÉDIAT envoyé avec succès à ${customerInfo.email}`);
+          } catch (emailError) {
+            this.logger.error(`❌ ÉCHEC EMAIL IMMÉDIAT à ${customerInfo.email}:`, emailError);
+          }
+        }
       }
     } catch (error) {
       this.logger.error(`❌ Erreur sauvegarde infos client: ${error.message}`);
@@ -777,6 +897,104 @@ export class PayTechController {
   }
 
   // Méthode pour gérer les paiements réussis via callback
+  @Post('verify-phone')
+  async verifyPhone(@Body() body: { transactionId: string; phoneNumber: string }) {
+    try {
+      const { transactionId, phoneNumber } = body;
+      this.logger.log(`🔍 Vérification téléphone pour transaction ${transactionId}: ${phoneNumber}`);
+
+      if (!transactionId || !phoneNumber) {
+        return { success: false, message: 'Données manquantes' };
+      }
+
+      // 1. Chercher le cas par transactionId
+      let case_ = await this.caseRepository.findOne({
+        where: { paymentId: transactionId }
+      });
+
+      // 2. Si pas trouvé par transactionId, chercher par numéro de téléphone (le plus récent payé)
+      if (!case_) {
+        this.logger.warn(`⚠️ Cas non trouvé par transaction ${transactionId}, recherche par téléphone`);
+        // Nettoyer le numéro de téléphone pour la recherche
+        const cleanPhone = phoneNumber.replace(/\s/g, '').replace(/^\+221/, '');
+
+        // Chercher les cas récents avec ce numéro
+        // Utilisation de any pour contourner les limitations de typage sur $or et les champs dynamiques
+        const cases = await this.caseRepository.find({
+          where: {
+            $or: [
+              { citizenPhone: { $regex: cleanPhone } },
+              // @ts-ignore
+              { clientPhone: { $regex: cleanPhone } }
+            ],
+            isPaid: true
+          } as any,
+          order: { createdAt: 'DESC' },
+          take: 1
+        });
+
+        if (cases && cases.length > 0) {
+          case_ = cases[0];
+          this.logger.log(`✅ Cas trouvé par téléphone: ${case_.id}`);
+        }
+      }
+
+      if (!case_) {
+        return { success: false, message: 'Aucun dossier trouvé pour ce paiement' };
+      }
+
+      // 3. Vérifier que le numéro correspond (si le cas a un numéro enregistré)
+      // @ts-ignore
+      const casePhone = case_.citizenPhone || case_.clientPhone;
+      if (casePhone) {
+        const cleanInput = phoneNumber.replace(/\s/g, '').replace(/^\+221/, '');
+        const cleanCasePhone = casePhone.replace(/\s/g, '').replace(/^\+221/, '');
+
+        if (!cleanCasePhone.includes(cleanInput) && !cleanInput.includes(cleanCasePhone)) {
+          this.logger.warn(`❌ Numéro ne correspond pas: Input=${cleanInput}, Case=${cleanCasePhone}`);
+          return { success: false, message: 'Le numéro de téléphone ne correspond pas à ce dossier' };
+        }
+      } else {
+        // Si pas de numéro dans le cas, on l'associe maintenant
+        this.logger.log(`📝 Association du numéro ${phoneNumber} au cas ${case_.id}`);
+        case_.citizenPhone = phoneNumber;
+        await this.caseRepository.save(case_);
+      }
+
+      // 4. Retourner les infos du dossier
+      return {
+        success: true,
+        case: {
+          id: case_.id,
+          citizenName: case_.citizenName || 'Client',
+          citizenPhone: case_.citizenPhone,
+          citizenEmail: case_.citizenEmail,
+          category: case_.category,
+          description: case_.description,
+          aiResponse: case_.aiResponse,
+          status: case_.status,
+          isPaid: case_.isPaid,
+          paymentAmount: case_.paymentAmount,
+          trackingCode: case_.trackingCode,
+          trackingToken: case_.trackingToken,
+          // @ts-ignore
+          trackingLink: case_.trackingLink,
+          createdAt: case_.createdAt,
+          firstQuestion: case_.firstQuestion,
+          firstResponse: case_.firstResponse,
+          secondQuestion: case_.secondQuestion,
+          secondResponse: case_.secondResponse,
+          thirdQuestion: case_.thirdQuestion,
+          thirdResponse: case_.thirdResponse
+        }
+      };
+
+    } catch (error) {
+      this.logger.error(`❌ Erreur vérification téléphone: ${error.message}`);
+      return { success: false, message: 'Erreur serveur lors de la vérification' };
+    }
+  }
+
   private async handleSuccessfulPayment(transactionId: string, callbackData: any) {
     try {
       this.logger.log(`Traitement paiement réussi: ${transactionId}`);
@@ -856,6 +1074,15 @@ export class PayTechController {
         existingCase.isPaid = true;
         existingCase.paymentAmount = callbackData.amount || existingCase.paymentAmount || 10000;
 
+        // Mettre à jour l'email si disponible dans le callback
+        if (callbackData.customer_email || callbackData.client_email) {
+          const emailFromCallback = callbackData.customer_email || callbackData.client_email;
+          if (!existingCase.citizenEmail || existingCase.citizenEmail.includes('@xaali.temp')) {
+            existingCase.citizenEmail = emailFromCallback;
+            this.logger.log(`📧 Email mis à jour depuis callback: ${emailFromCallback}`);
+          }
+        }
+
         // GARANTIR que le cas a des identifiants avant création dossier
         if (!existingCase.trackingCode || !existingCase.trackingToken) {
           console.log(`⚠️ Cas sans identifiants, création: ${existingCase.id}`);
@@ -886,6 +1113,47 @@ export class PayTechController {
             }
           } catch (dossierError) {
             this.logger.error(`❌ Erreur création dossier: ${dossierError.message}`);
+          }
+
+          // ENVOI EMAIL DIRECT APRÈS PAIEMENT CONFIRMÉ
+          const finalEmail = existingCase.citizenEmail || callbackData.customer_email || callbackData.client_email;
+
+          // 🐛 DEBUG: Afficher les conditions
+          this.logger.log(`🐛 DEBUG EMAIL - Conditions:`);
+          this.logger.log(`   - finalEmail: ${finalEmail}`);
+          this.logger.log(`   - est @xaali.temp: ${finalEmail?.includes('@xaali.temp')}`);
+          this.logger.log(`   - trackingCode: ${existingCase.trackingCode}`);
+          this.logger.log(`   - trackingToken: ${existingCase.trackingToken}`);
+
+          if (finalEmail && !finalEmail.includes('@xaali.temp') && existingCase.trackingCode && existingCase.trackingToken) {
+            this.logger.log(`📧 ENVOI EMAIL DIRECT après paiement confirmé à: ${finalEmail}`);
+            try {
+              const trackingLink = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/suivi/${existingCase.trackingToken}`;
+
+              this.logger.log(`📧 Appel à emailService.sendTrackingNotification avec:`);
+              this.logger.log(`   - Email: ${finalEmail}`);
+              this.logger.log(`   - Code: ${existingCase.trackingCode}`);
+              this.logger.log(`   - Lien: ${trackingLink}`);
+              this.logger.log(`   - Montant: ${existingCase.paymentAmount || 10000}`);
+
+              await this.emailService.sendTrackingNotification(
+                finalEmail,
+                existingCase.trackingCode,
+                trackingLink,
+                existingCase.paymentAmount || 10000
+              );
+              this.logger.log(`✅ EMAIL DIRECT envoyé avec succès à ${finalEmail}`);
+            } catch (emailError) {
+              this.logger.error(`❌ ÉCHEC EMAIL DIRECT à ${finalEmail}:`, emailError);
+              this.logger.error(`❌ Détails erreur:`, emailError.message);
+              this.logger.error(`❌ Stack:`, emailError.stack);
+            }
+          } else {
+            this.logger.warn(`⚠️ EMAIL NON ENVOYÉ - Raison:`);
+            if (!finalEmail) this.logger.warn(`   - Pas d'email`);
+            if (finalEmail?.includes('@xaali.temp')) this.logger.warn(`   - Email temporaire`);
+            if (!existingCase.trackingCode) this.logger.warn(`   - Pas de trackingCode`);
+            if (!existingCase.trackingToken) this.logger.warn(`   - Pas de trackingToken`);
           }
 
           // Notifier le citoyen que le paiement est confirmé
@@ -1057,57 +1325,41 @@ export class PayTechController {
   // Méthode pour envoyer les notifications de suivi (unifié avec simulation)
   private async sendTrackingNotifications(phone: string, email: string | undefined, trackingCode: string, trackingLink: string, amount: number) {
     try {
-      // Utiliser l'endpoint de notifications unifié (même que simulation)
-      const apiUrl = process.env.BACKEND_URL || 'http://localhost:3000';
+      this.logger.log(`📧 Début envoi notifications pour ${trackingCode}`);
+      this.logger.log(`📧 Email destinataire: ${email || 'Non fourni'}`);
+      this.logger.log(`📱 Téléphone destinataire: ${phone}`);
 
-      // Utiliser le service de notifications directement au lieu de fetch
-      try {
-        // Appeler directement le service de notifications via l'endpoint
-        // Note: On pourrait aussi injecter NotificationsController, mais pour l'instant on utilise l'emailService
-        // Les SMS/WhatsApp seront gérés par l'endpoint /notifications/send-tracking
-        this.logger.log(`📧 Envoi notifications via service unifié pour ${trackingCode}`);
-
-        // Envoyer Email si fourni (via EmailService)
-        if (email && !email.includes('@xaali.temp')) {
-          await this.emailService.sendTrackingNotification(
+      // Envoyer Email si fourni (via EmailService) - PRIORITÉ ABSOLUE
+      if (email && !email.includes('@xaali.temp')) {
+        try {
+          this.logger.log(`🚀 Tentative envoi email à: ${email}`);
+          const emailSent = await this.emailService.sendTrackingNotification(
             email,
             trackingCode,
             trackingLink,
             amount
           );
-          this.logger.log(`📧 Email de suivi envoyé à ${email}`);
+
+          if (emailSent) {
+            this.logger.log(`✅ Email de suivi envoyé avec succès à ${email}`);
+          } else {
+            this.logger.error(`❌ Échec envoi email à ${email}`);
+          }
+        } catch (emailError) {
+          this.logger.error(`❌ Erreur critique envoi email à ${email}:`, emailError);
         }
-
-        // SMS et WhatsApp seront logués (à intégrer avec vraie API)
-        this.logger.log(`📱 SMS/WhatsApp: Merci, votre dossier ${trackingCode} a été créé. Suivez-le ici : ${trackingLink}`);
-
-        this.logger.log(`✅ Notifications envoyées via service unifié pour ${trackingCode}`);
-        return;
-      } catch (apiError) {
-        this.logger.warn('Service notifications non disponible, envoi direct...');
+      } else {
+        this.logger.warn(`⚠️ Pas d'email valide fourni (${email}) - Email non envoyé`);
       }
 
-      // Fallback : envoi direct si l'API échoue
-      // Envoyer SMS (simulation - à remplacer par une vraie API SMS)
-      this.logger.log(`📱 SMS envoyé à ${phone}: Merci, votre dossier ${trackingCode} a été créé. Suivez-le ici : ${trackingLink}`);
+      // SMS et WhatsApp seront logués (à intégrer avec vraie API)
+      this.logger.log(`📱 SMS simulé à ${phone}: Merci, votre dossier ${trackingCode} a été créé. Suivez-le ici : ${trackingLink}`);
+      this.logger.log(`📱 WhatsApp simulé à ${phone}: Bonjour, votre dossier juridique Xaali.net est créé. Code : ${trackingCode}. Lien de suivi : ${trackingLink}`);
 
-      // Envoyer WhatsApp (simulation - à remplacer par une vraie API WhatsApp)
-      this.logger.log(`📱 WhatsApp envoyé à ${phone}: Bonjour, votre dossier juridique Xaali.net est créé. Code : ${trackingCode}. Lien de suivi : ${trackingLink}`);
-
-      // Envoyer Email si fourni
-      if (email && !email.includes('@xaali.temp')) {
-        await this.emailService.sendTrackingNotification(
-          email,
-          trackingCode,
-          trackingLink,
-          amount
-        );
-        this.logger.log(`📧 Email de suivi envoyé à ${email}`);
-      }
-
-      this.logger.log(`✅ Notifications envoyées directement pour le dossier ${trackingCode}`);
+      this.logger.log(`✅ Notifications traitées pour le dossier ${trackingCode}`);
     } catch (error) {
       this.logger.error(`❌ Erreur envoi notifications: ${error.message}`);
+      this.logger.error(`❌ Stack trace:`, error.stack);
     }
   }
 }

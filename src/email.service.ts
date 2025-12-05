@@ -16,12 +16,15 @@ export class EmailService {
         user: process.env.EMAIL_USER,
         pass: process.env.EMAIL_PASS,
       },
+      debug: true, // Activer les logs SMTP
+      logger: true // Loguer dans la console
     });
 
     this.logger.log('📧 Service Email configuré avec:', {
       host: process.env.EMAIL_HOST,
       port: process.env.EMAIL_PORT,
-      user: process.env.EMAIL_USER
+      user: process.env.EMAIL_USER,
+      passLength: process.env.EMAIL_PASS ? process.env.EMAIL_PASS.length : 0
     });
   }
 
