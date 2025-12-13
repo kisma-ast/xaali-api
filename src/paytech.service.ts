@@ -40,15 +40,15 @@ export interface PayTechPaymentStatus {
 @Injectable()
 export class PayTechService {
   private readonly logger = new Logger(PayTechService.name);
-  
+
   // PayTech Configuration (Official API)
   private readonly PAYTECH_API_KEY = PAYTECH_CONFIG.API_KEY;
   private readonly PAYTECH_SECRET_KEY = PAYTECH_CONFIG.SECRET_KEY;
   private readonly PAYTECH_BASE_URL = PAYTECH_CONFIG.BASE_URL;
-  
+
   // Development mode flag
   private readonly DEVELOPMENT_MODE = process.env.NODE_ENV !== 'production' || process.env.PAYTECH_MOCK_MODE === 'true';
-  
+
   // PayTech URLs - Dynamic based on mode
   private readonly PAYTECH_CALLBACK_URL: string;
   private readonly PAYTECH_SUCCESS_URL: string;
@@ -56,23 +56,24 @@ export class PayTechService {
 
   constructor() {
     // FORCE production URLs - PayTech requires HTTPS
+    // Utiliser xaali.net si configuré, sinon xaali-api.onrender.com
     const backendUrl = 'https://xaali-api.onrender.com';
-    const frontendUrl = 'https://xaali.onrender.com';
-    
+    const frontendUrl = 'https://xaali.net';
+
     this.PAYTECH_CALLBACK_URL = `${backendUrl}/paytech/callback`;
-    this.PAYTECH_SUCCESS_URL = `${frontendUrl}#/payment/success`;
-    this.PAYTECH_CANCEL_URL = `${frontendUrl}#/payment/cancel`;
-    
+    this.PAYTECH_SUCCESS_URL = `${frontendUrl}/#/payment/success`;
+    this.PAYTECH_CANCEL_URL = `${frontendUrl}/#/payment/cancel`;
+
     this.logger.log('[PayTech] FORCED production URLs for PayTech HTTPS requirement');
-    
+
     this.logger.log(`Configuration PayTech:`);
-    this.logger.log(`  - API Key: ${this.PAYTECH_API_KEY.substring(0, 10)}...`);
+    this.logger.log(`  - XP API Key: ${this.PAYTECH_API_KEY.substring(0, 10)}...`);
     this.logger.log(`  - Callback URL: ${this.PAYTECH_CALLBACK_URL}`);
     this.logger.log(`  - Success URL: ${this.PAYTECH_SUCCESS_URL}`);
     this.logger.log(`  - Cancel URL: ${this.PAYTECH_CANCEL_URL}`);
     this.logger.log(`  - Backend URL: ${backendUrl}`);
     this.logger.log(`  - Frontend URL: ${frontendUrl}`);
-    this.logger.log('✅ URLs PayTech HTTPS forcées pour production');
+    this.logger.log(`✅ URLs PayTech configurées pour ${frontendUrl}`);
   }
 
   /**
@@ -115,7 +116,7 @@ export class PayTechService {
       };
 
       this.logger.log(`[PayTech] 📡 HEADERS: ${JSON.stringify(headers)}`);
-      
+
       const formData = new URLSearchParams(paytechData as any);
       this.logger.log(`[PayTech] 📦 FORM DATA: ${formData.toString()}`);
 
@@ -170,7 +171,7 @@ export class PayTechService {
       } else {
         this.logger.error(`[PayTech] ❌ HTTP ERROR ${response.status}`);
         this.logger.error(`[PayTech] ❌ RÉPONSE: ${responseText}`);
-        
+
         return {
           success: false,
           message: `Erreur de connexion PayTech: ${response.status} - ${responseText}`,
@@ -238,18 +239,18 @@ export class PayTechService {
       // Extract data from callback
       const refCommand = callbackData.ref_command;
       const typeEvent = callbackData.type_event;
-      
+
       // RÉCUPÉRATION DES INFOS CLIENT DEPUIS PAYTECH
       const customerPhone = callbackData.customer_phone || callbackData.phone;
       const customerEmail = callbackData.customer_email || callbackData.email;
       const customerName = callbackData.customer_name || callbackData.name;
-      
+
       this.logger.log(`[PayTech] 📱 Client récupéré: ${customerName} - ${customerPhone} - ${customerEmail}`);
       this.logger.log(`[PayTech] Processing event ${typeEvent} for reference: ${refCommand}`);
 
       // Map PayTech event types to our status
       let status: 'pending' | 'success' | 'failed' | 'cancelled' = 'pending';
-      
+
       switch (typeEvent) {
         case 'sale_complete':
           status = 'success';
@@ -311,7 +312,7 @@ export class PayTechService {
         .sort()
         .map(key => `${key}=${data[key]}`)
         .join('&');
-      
+
       const expectedSignature = crypto
         .createHmac('sha256', this.PAYTECH_SECRET_KEY)
         .update(message)

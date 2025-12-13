@@ -107,9 +107,12 @@ export class PayTechController {
     secondQuestion?: string;
     secondResponse?: string;
     category?: string;
-  }) {
+  }, @Req() req: any) {
     try {
       const { amount, currency, customerEmail, customerName, description, commandeId, testRealApi, citizenPhone } = body;
+      const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
+      const userAgent = req.headers['user-agent'];
+
 
       if (!amount || amount <= 0) {
         return { success: false, message: 'Montant invalide' };
@@ -179,6 +182,10 @@ export class PayTechController {
               existingCase.citizenPhone = body.citizenPhone;
               this.logger.log(`📱 Téléphone ajouté au cas: ${body.citizenPhone}`);
             }
+
+            // Capture IP/UA de paiement
+            if (ip) existingCase.paymentIp = ip;
+            if (userAgent) existingCase.paymentUserAgent = userAgent;
 
             await this.caseRepository.save(existingCase);
             this.logger.log(`Association immédiate: Cas ${body.caseId} lié au paiement ${reference}`);

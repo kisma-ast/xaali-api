@@ -92,6 +92,18 @@ export class Case {
   @Column()
   createdAt: Date;
 
+  @Column({ nullable: true })
+  creationIp: string;
+
+  @Column({ nullable: true })
+  creationUserAgent: string;
+
+  @Column({ nullable: true })
+  paymentIp: string;
+
+  @Column({ nullable: true })
+  paymentUserAgent: string;
+
   @ManyToOne(() => Citizen, citizen => citizen.cases)
   @JoinColumn({ name: 'citizenId' })
   citizen: Citizen;

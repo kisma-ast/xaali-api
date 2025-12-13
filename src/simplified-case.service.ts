@@ -277,6 +277,8 @@ export class SimplifiedCaseService {
     citizenEmail?: string;
     paymentAmount: number;
     isPaid: boolean;
+    ip?: string;
+    userAgent?: string;
   }) {
     console.log('🚀 Création cas avec codes de suivi:', data);
 
@@ -296,7 +298,9 @@ export class SimplifiedCaseService {
       aiResponse: data.aiResponse,
       paymentAmount: data.paymentAmount,
       isPaid: data.isPaid,
-      createdAt: new Date()
+      createdAt: new Date(),
+      creationIp: data.ip,
+      creationUserAgent: data.userAgent
     });
 
     const savedCase = await this.caseRepository.save(newCase);

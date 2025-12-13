@@ -7,7 +7,7 @@ import { Request, Response } from 'express';
 export class UnifiedPaymentController {
   private readonly logger = new Logger(UnifiedPaymentController.name);
 
-  constructor(private readonly paymentService: PaymentService) {}
+  constructor(private readonly paymentService: PaymentService) { }
 
   @Get('providers')
   getAvailableProviders() {
@@ -47,10 +47,10 @@ export class UnifiedPaymentController {
 
       // Générer une référence unique pour ce provider
       const reference = this.paymentService.generateReference(provider, 'XAALI');
-      
+
       // URLs de callback dynamiques
       const backendUrl = process.env.BACKEND_URL || 'https://xaali-api.onrender.com';
-      const frontendUrl = process.env.FRONTEND_URL || 'https://xaali.onrender.com';
+      const frontendUrl = process.env.FRONTEND_URL || 'https://xaali.net';
 
       const paymentRequest: PaymentRequest = {
         amount: body.amount,
@@ -74,8 +74,8 @@ export class UnifiedPaymentController {
       return result;
     } catch (error) {
       this.logger.error(`Erreur création paiement ${provider}:`, error);
-      return { 
-        success: false, 
+      return {
+        success: false,
         message: `Erreur ${provider}: ${error.message}`,
         provider: provider
       };
@@ -85,7 +85,7 @@ export class UnifiedPaymentController {
   @Post('callback/:provider')
   async handleCallback(
     @Param('provider') provider: string,
-    @Req() req: Request, 
+    @Req() req: Request,
     @Res() res: Response
   ) {
     try {
@@ -94,9 +94,9 @@ export class UnifiedPaymentController {
       this.logger.log(`[${provider}] Body: ${JSON.stringify(req.body)}`);
 
       const result = await this.paymentService.processCallback(provider, req.body);
-      
+
       this.logger.log(`[${provider}] Callback traité: ${result.transactionId} - ${result.status}`);
-      
+
       return res.status(HttpStatus.OK).json({
         status: 'success',
         message: 'Callback traité avec succès',
@@ -106,8 +106,8 @@ export class UnifiedPaymentController {
       });
     } catch (error) {
       this.logger.error(`[${provider}] Erreur callback: ${error.message}`);
-      return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ 
-        error: `Erreur callback ${provider}: ${error.message}` 
+      return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
+        error: `Erreur callback ${provider}: ${error.message}`
       });
     }
   }
@@ -119,9 +119,9 @@ export class UnifiedPaymentController {
   ) {
     try {
       this.logger.log(`Vérification paiement ${provider}: ${transactionId}`);
-      
+
       const result = await this.paymentService.checkPaymentStatus(provider, transactionId);
-      
+
       return {
         success: true,
         payment: result,
@@ -152,30 +152,30 @@ export class UnifiedPaymentController {
   @Get('success/:provider')
   async paymentSuccessRedirect(
     @Param('provider') provider: string,
-    @Query('transaction_id') transactionId: string, 
+    @Query('transaction_id') transactionId: string,
     @Res() res: Response
   ) {
     try {
-      const frontendUrl = `${process.env.FRONTEND_URL || 'https://xaali.onrender.com'}/payment/success?provider=${provider}&transaction_id=${transactionId || ''}`;
+      const frontendUrl = `${process.env.FRONTEND_URL || 'https://xaali.net'}/payment/success?provider=${provider}&transaction_id=${transactionId || ''}`;
       return res.redirect(frontendUrl);
     } catch (error) {
       this.logger.error(`Erreur redirection succès ${provider}: ${error.message}`);
-      return res.redirect(`${process.env.FRONTEND_URL || 'https://xaali.onrender.com'}/payment/error`);
+      return res.redirect(`${process.env.FRONTEND_URL || 'https://xaali.net'}/payment/error`);
     }
   }
 
   @Get('cancel/:provider')
   async paymentCancelRedirect(
     @Param('provider') provider: string,
-    @Query('transaction_id') transactionId: string, 
+    @Query('transaction_id') transactionId: string,
     @Res() res: Response
   ) {
     try {
-      const frontendUrl = `${process.env.FRONTEND_URL || 'https://xaali.onrender.com'}/payment/cancel?provider=${provider}&transaction_id=${transactionId || ''}`;
+      const frontendUrl = `${process.env.FRONTEND_URL || 'https://xaali.net'}/payment/cancel?provider=${provider}&transaction_id=${transactionId || ''}`;
       return res.redirect(frontendUrl);
     } catch (error) {
       this.logger.error(`Erreur redirection annulation ${provider}: ${error.message}`);
-      return res.redirect(`${process.env.FRONTEND_URL || 'https://xaali.onrender.com'}/payment/error`);
+      return res.redirect(`${process.env.FRONTEND_URL || 'https://xaali.net'}/payment/error`);
     }
   }
 }

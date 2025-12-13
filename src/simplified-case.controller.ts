@@ -1,4 +1,4 @@
-import { Controller, Post, Get, Body, Param, Delete } from '@nestjs/common';
+import { Controller, Post, Get, Body, Param, Delete, Req } from '@nestjs/common';
 import { SimplifiedCaseService } from './simplified-case.service';
 
 @Controller('cases')
@@ -91,8 +91,11 @@ export class SimplifiedCaseController {
     urgency?: string;
     estimatedTime?: number;
     generateTracking: boolean;
-  }) {
+  }, @Req() req: any) {
     try {
+      const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
+      const userAgent = req.headers['user-agent'];
+
       // Créer un cas avec codes de suivi immédiatement
       const result = await this.simplifiedCaseService.createCaseWithTracking({
         question: createData.question,
@@ -102,7 +105,9 @@ export class SimplifiedCaseController {
         citizenPhone: createData.citizenPhone,
         citizenEmail: createData.citizenEmail,
         paymentAmount: 0, // Pas encore payé
-        isPaid: false
+        isPaid: false,
+        ip,
+        userAgent
       });
 
       return {
