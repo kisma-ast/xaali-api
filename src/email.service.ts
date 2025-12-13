@@ -72,7 +72,10 @@ export class EmailService {
       this.logger.log(`✅ Email de suivi envoyé avec succès à ${email}`);
       return true;
     } catch (error) {
-      this.logger.error(`❌ Erreur envoi email suivi à ${email}:`, error);
+      this.logger.error(`❌ Erreur envoi email suivi à ${email}: ${error.message}`);
+      if (error.code) this.logger.error(`Code erreur: ${error.code}`);
+      if (error.command) this.logger.error(`Commande: ${error.command}`);
+      if (error.response) this.logger.error(`Réponse SMTP: ${error.response}`);
       return false;
     }
   }
@@ -100,7 +103,7 @@ export class EmailService {
             </div>
             
             <div style="text-align: center; margin: 30px 0;">
-              <a href="${process.env.FRONTEND_URL || 'http://localhost:5173'}/lawyer/dashboard" 
+              <a href="${process.env.FRONTEND_URL || 'https://xaali.net'}/lawyer/dashboard" 
                  style="background-color: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block; font-weight: bold;">
                 Voir le dossier
               </a>
@@ -141,7 +144,7 @@ export class EmailService {
             <p>Vous pouvez dès maintenant prendre contact avec le client via la messagerie sécurisée.</p>
             
             <div style="text-align: center; margin: 30px 0;">
-              <a href="${process.env.FRONTEND_URL || 'http://localhost:5173'}/lawyer/cases/${caseData.id}" 
+              <a href="${process.env.FRONTEND_URL || 'https://xaali.net'}/lawyer/cases/${caseData.id}" 
                  style="background-color: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block; font-weight: bold;">
                 Accéder au dossier
               </a>
@@ -293,7 +296,7 @@ export class EmailService {
               <p style="margin: 0; font-style: italic;">"${messageContent}"</p>
             </div>
             <p>Connectez-vous à votre espace Xaali pour répondre.</p>
-            <a href="${process.env.FRONTEND_URL || 'http://localhost:5173'}" 
+            <a href="${process.env.FRONTEND_URL || 'https://xaali.net'}" 
                style="background-color: #2563eb; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; display: inline-block;">
               Voir le message
             </a>
@@ -341,7 +344,7 @@ export class EmailService {
             <p>Pour commencer, connectez-vous à votre tableau de bord :</p>
             
             <div style="text-align: center; margin: 30px 0;">
-              <a href="${process.env.FRONTEND_URL || 'http://localhost:5173'}/lawyer/login" 
+              <a href="${process.env.FRONTEND_URL || 'https://xaali.net'}/lawyer/login" 
                  style="background-color: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block; font-weight: bold;">
                 Accéder à mon compte
               </a>

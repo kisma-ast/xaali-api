@@ -1138,7 +1138,7 @@ export class PayTechController {
           if (finalEmail && !finalEmail.includes('@xaali.temp') && existingCase.trackingCode && existingCase.trackingToken) {
             this.logger.log(`📧 ENVOI EMAIL DIRECT après paiement confirmé à: ${finalEmail}`);
             try {
-              const trackingLink = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/suivi/${existingCase.trackingToken}`;
+              const trackingLink = `${process.env.FRONTEND_URL || 'https://xaali.net'}/suivi/${existingCase.trackingToken}`;
 
               this.logger.log(`📧 Appel à emailService.sendTrackingNotification avec:`);
               this.logger.log(`   - Email: ${finalEmail}`);
