@@ -905,23 +905,26 @@ export class PayTechController {
 
   // Méthode pour gérer les paiements réussis via callback
   @Post('verify-phone')
-  async verifyPhone(@Body() body: { transactionId: string; phoneNumber: string }) {
+  async verifyPhone(@Body() body: { transactionId?: string; phoneNumber: string }) {
     try {
       const { transactionId, phoneNumber } = body;
-      this.logger.log(`🔍 Vérification téléphone pour transaction ${transactionId}: ${phoneNumber}`);
+      this.logger.log(`🔍 Vérification téléphone: ${phoneNumber} (Trans: ${transactionId || 'N/A'})`);
 
-      if (!transactionId || !phoneNumber) {
-        return { success: false, message: 'Données manquantes' };
+      if (!phoneNumber) {
+        return { success: false, message: 'Numéro de téléphone requis' };
       }
 
-      // 1. Chercher le cas par transactionId
-      let case_ = await this.caseRepository.findOne({
-        where: { paymentId: transactionId }
-      });
+      // 1. Chercher le cas par transactionId si fourni
+      let case_ = null;
+      if (transactionId) {
+        case_ = await this.caseRepository.findOne({
+          where: { paymentId: transactionId }
+        });
+      }
 
       // 2. Si pas trouvé par transactionId, chercher par numéro de téléphone (le plus récent payé)
       if (!case_) {
-        this.logger.warn(`⚠️ Cas non trouvé par transaction ${transactionId}, recherche par téléphone`);
+        this.logger.warn(`⚠️ Cas non trouvé par transaction ou pas de transaction, recherche par téléphone: ${phoneNumber}`);
         // Nettoyer le numéro de téléphone pour la recherche
         const cleanPhone = phoneNumber.replace(/\s/g, '').replace(/^\+221/, '');
 
