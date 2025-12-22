@@ -14,7 +14,7 @@ export class TrackingController {
     private caseRepository: Repository<Case>,
     @InjectRepository(Citizen)
     private citizenRepository: Repository<Citizen>,
-  ) {}
+  ) { }
 
   @Post('create-tracking')
   async createTrackingCase(@Body() data: {
@@ -27,9 +27,9 @@ export class TrackingController {
       // Générer un code de suivi unique
       const trackingCode = `XA-${Math.floor(10000 + Math.random() * 90000)}`;
       const trackingToken = uuidv4();
-      
+
       // Créer le lien de suivi
-      const baseUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+      const baseUrl = process.env.FRONTEND_URL || 'https://xaali.net';
       const trackingLink = `${baseUrl}/suivi/${trackingToken}`;
 
       // Mettre à jour le cas avec les informations de suivi
@@ -144,15 +144,15 @@ export class TrackingController {
       // Envoyer directement les notifications (unifié avec PayTech)
       // SMS
       await this.sendSMS(phone, `Merci, votre dossier ${trackingCode} a été créé. Suivez-le ici : ${trackingLink}`);
-      
+
       // WhatsApp
       await this.sendWhatsApp(phone, `Bonjour, votre dossier juridique Xaali.net est créé. Code : ${trackingCode}. Lien de suivi : ${trackingLink}`);
-      
+
       // Email (si fourni)
       if (email && !email.includes('@xaali.temp')) {
         await this.sendEmail(email, trackingCode, trackingLink);
       }
-      
+
       this.logger.log(`✅ Notifications envoyées pour ${trackingCode}`);
     } catch (error) {
       this.logger.error('Erreur envoi notifications:', error);

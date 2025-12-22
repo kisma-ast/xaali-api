@@ -4,32 +4,30 @@ import { LegalDocumentsService } from './legal-documents.service';
 
 @Controller('legal-documents')
 export class LegalDocumentsController {
-  constructor(private readonly legalDocumentsService: LegalDocumentsService) {}
+  constructor(private readonly legalDocumentsService: LegalDocumentsService) { }
 
   @Post('ingest')
-  async ingestDocuments(@Body() body: {
-    documents: Array<{
-      title: string;
-      content: string;
-      type: 'code' | 'loi' | 'decret' | 'jurisprudence';
-      reference: string;
-    }>
-  }) {
-    return await this.legalDocumentsService.ingestLegalDocuments(body.documents);
+  // Placeholder left for structured ingestion if needed later, or remove
+  async ingestDocuments() {
+    return { message: "Use /upload-pdfs for now with the new RAG system." };
   }
 
   @Post('ask')
   async askQuestion(@Body() body: {
     question: string;
-    assistantId: string;
   }) {
-    return await this.legalDocumentsService.askLegalQuestion(body.question, body.assistantId);
+    // Removed assistantId param as we are using local RAG now
+    return await this.legalDocumentsService.askLegalQuestion(body.question);
   }
 
   @Post('upload-pdfs')
   @UseInterceptors(FilesInterceptor('files'))
   async uploadPdfs(@UploadedFiles() files: Express.Multer.File[]) {
-    return await this.legalDocumentsService.ingestPdfFiles(files);
+    const results = [];
+    for (const file of files) {
+      results.push(await this.legalDocumentsService.ingestPdfFile(file));
+    }
+    return results;
   }
 
 

@@ -34,8 +34,8 @@ export interface BictorysPaymentStatus {
 @Injectable()
 export class BictorysService {
   private readonly logger = new Logger(BictorysService.name);
-  private readonly config = process.env.NODE_ENV === 'production' 
-    ? BICTORYS_CONFIG.PRODUCTION 
+  private readonly config = process.env.NODE_ENV === 'production'
+    ? BICTORYS_CONFIG.PRODUCTION
     : BICTORYS_CONFIG.SANDBOX;
 
   constructor() {
@@ -60,7 +60,7 @@ export class BictorysService {
         description: paymentRequest.description,
         reference: paymentRequest.reference,
         callback_url: paymentRequest.callbackUrl || `${process.env.BACKEND_URL || 'http://localhost:3000'}/payments/bictorys/callback`,
-        return_url: `${process.env.FRONTEND_URL || 'http://localhost:5173'}/payment/status`
+        return_url: `${process.env.FRONTEND_URL || 'https://xaali.net'}/payment/status`
       };
 
       const response = await fetch(`${this.config.API_URL}/payments/initiate`, {
@@ -264,7 +264,7 @@ export class BictorysService {
     // Nettoyer le numéro
     const cleanNumber = phoneNumber.replace(/[\s\-\(\)]/g, '').replace(/^(\+221|221)/, '');
     const prefix = cleanNumber.substring(0, 2);
-    
+
     // Détection simple par préfixe
     switch (prefix) {
       case '77':
@@ -298,7 +298,7 @@ export class BictorysService {
     // Nettoyer le numéro
     const cleanNumber = phoneNumber.replace(/[\s\-\(\)]/g, '');
     let formattedNumber = cleanNumber;
-    
+
     // Ajouter le préfixe pays si manquant
     if (!formattedNumber.startsWith('+221') && !formattedNumber.startsWith('221')) {
       formattedNumber = '+221' + formattedNumber;
@@ -308,13 +308,13 @@ export class BictorysService {
 
     // AUCUNE VALIDATION - Accepter tous les numéros
     const isValid = cleanNumber.length >= 8; // Minimum 8 chiffres
-    
+
     // Détecter l'opérateur (ou utiliser Orange par défaut)
     let provider = this.detectProvider(formattedNumber);
     if (!provider) {
       provider = BICTORYS_CONFIG.MOBILE_MONEY_PROVIDERS.ORANGE_MONEY; // Défaut
     }
-    
+
     return { isValid, provider, formattedNumber };
   }
 }

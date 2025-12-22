@@ -139,7 +139,7 @@ export class CasesController {
           id: case_.id,
           trackingCode: case_.trackingCode,
           trackingToken: case_.trackingToken,
-          trackingLink: `${process.env.FRONTEND_URL || 'http://localhost:5173'}/suivi/${case_.trackingToken}`,
+          trackingLink: `${process.env.FRONTEND_URL || 'https://xaali.net'}/suivi/${case_.trackingToken}`,
           clientName: case_.citizenName,
           clientPhone: case_.citizenPhone,
           clientEmail: case_.citizenEmail,
@@ -393,7 +393,7 @@ export class CasesController {
         };
       }
 
-      const trackingLink = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/suivi/${trackingToken}`;
+      const trackingLink = `${process.env.FRONTEND_URL || 'https://xaali.net'}/suivi/${trackingToken}`;
 
       console.log('✅ Dossier de suivi créé:', {
         caseId: updatedCase.id,

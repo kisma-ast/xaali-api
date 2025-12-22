@@ -7,7 +7,7 @@ export class AppController {
   constructor(
     private readonly appService: AppService,
     private readonly emailService: EmailService
-  ) {}
+  ) { }
 
   @Get()
   getHello(): string {
@@ -29,7 +29,7 @@ export class AppController {
       const result = await this.emailService.sendTrackingNotification(
         'kismatandia0@gmail.com',
         'XA-TEST-' + Date.now(),
-        'http://localhost:5173/suivi/test',
+        'https://xaali.net/suivi/test',
         10000
       );
       return {

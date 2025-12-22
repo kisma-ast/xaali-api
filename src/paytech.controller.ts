@@ -366,7 +366,7 @@ export class PayTechController {
           trackingCode: case_.trackingCode,
           trackingToken: case_.trackingToken,
           trackingLink: case_.trackingToken
-            ? `${process.env.FRONTEND_URL || 'http://localhost:5173'}/suivi/${case_.trackingToken}`
+            ? `${process.env.FRONTEND_URL || 'https://xaali.net'}/suivi/${case_.trackingToken}`
             : null,
           clientName: case_.citizenName,
           clientPhone: case_.citizenPhone,
@@ -464,7 +464,7 @@ export class PayTechController {
         case: {
           ...baseData,
           trackingToken: case_.trackingToken,
-          trackingLink: `${process.env.FRONTEND_URL || 'http://localhost:5173'}/suivi/${case_.trackingToken}`,
+          trackingLink: `${process.env.FRONTEND_URL || 'https://xaali.net'}/suivi/${case_.trackingToken}`,
           clientName: case_.citizenName,
           clientPhone: case_.citizenPhone,
           clientEmail: case_.citizenEmail,
@@ -578,7 +578,7 @@ export class PayTechController {
       const result = await this.emailService.sendTrackingNotification(
         'kismatandia0@gmail.com',
         'XA-SIMPLE-TEST',
-        'http://localhost:5173/suivi/simple-test',
+        'https://xaali.net/suivi/simple-test',
         10000
       );
 
@@ -629,22 +629,22 @@ export class PayTechController {
   @Get('success')
   async paymentSuccessRedirect(@Query('transaction_id') transactionId: string, @Res() res: Response) {
     try {
-      const frontendUrl = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/payment/success?transaction_id=${transactionId || ''}`;
+      const frontendUrl = `${process.env.FRONTEND_URL || 'https://xaali.net'}/payment/success?transaction_id=${transactionId || ''}`;
       return res.redirect(frontendUrl);
     } catch (error) {
       this.logger.error(`Error redirecting to success page: ${error.message}`);
-      return res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:5173'}/payment/error`);
+      return res.redirect(`${process.env.FRONTEND_URL || 'https://xaali.net'}/payment/error`);
     }
   }
 
   @Get('cancel')
   async paymentCancelRedirect(@Query('transaction_id') transactionId: string, @Res() res: Response) {
     try {
-      const frontendUrl = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/payment/cancel?transaction_id=${transactionId || ''}`;
+      const frontendUrl = `${process.env.FRONTEND_URL || 'https://xaali.net'}/payment/cancel?transaction_id=${transactionId || ''}`;
       return res.redirect(frontendUrl);
     } catch (error) {
       this.logger.error(`Error redirecting to cancel page: ${error.message}`);
-      return res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:5173'}/payment/error`);
+      return res.redirect(`${process.env.FRONTEND_URL || 'https://xaali.net'}/payment/error`);
     }
   }
 
@@ -885,7 +885,7 @@ export class PayTechController {
         if (customerInfo.email && existingCase.isPaid && existingCase.trackingCode && existingCase.trackingToken) {
           this.logger.log(`📧 ENVOI EMAIL IMMÉDIAT après mise à jour infos client`);
           try {
-            const trackingLink = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/suivi/${existingCase.trackingToken}`;
+            const trackingLink = `${process.env.FRONTEND_URL || 'https://xaali.net'}/suivi/${existingCase.trackingToken}`;
             await this.emailService.sendTrackingNotification(
               customerInfo.email,
               existingCase.trackingCode,
@@ -1252,7 +1252,7 @@ export class PayTechController {
       }
 
       // 2. Créer le lien de suivi
-      const baseUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+      const baseUrl = process.env.FRONTEND_URL || 'https://xaali.net';
       const trackingLink = `${baseUrl}/suivi/${trackingToken}`;
 
       // 3. Mettre à jour le cas avec les informations de suivi

@@ -69,10 +69,10 @@ async function bootstrap() {
     'https://xaali-w0ilbs.live.cloudoor.com',
     /\.cloudoor\.com$/,
     // Render deployment URLs
-    'https://xaali-frontend.onrender.com',
     'https://xaali-backend.onrender.com',
     // Pour supporter les URLs personnalisées sur Render
-    /\.onrender\.com$/
+    /\.onrender\.com$/,
+    "null"  // Allow local file opening
   ];
 
   // Configuration CORS simplifiée pour le développement

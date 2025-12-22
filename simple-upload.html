@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Xaali - Upload Documents Juridiques</title>
+    <style>
+        body { font-family: sans-serif; max-width: 600px; margin: 40px auto; padding: 20px; text-align: center; }
+        .drop-zone { border: 2px dashed #ccc; padding: 40px; cursor: pointer; margin-bottom: 20px; }
+        .drop-zone:hover { background-color: #f9f9f9; border-color: #666; }
+        button { background-color: #007bff; color: white; border: none; padding: 10px 20px; font-size: 16px; cursor: pointer; }
+        button:hover { background-color: #0056b3; }
+        #status { margin-top: 20px; }
+    </style>
+</head>
+<body>
+    <h1>Upload Documents Juridiques (PDF)</h1>
+    <p>Sélectionnez les codes juridiques (Code de la famille, etc.) à ajouter à la base de connaissances.</p>
+    
+    <div class="drop-zone" id="dropZone">
+        <p>Glissez-déposez vos PDF ici ou cliquez pour sélectionner</p>
+        <input type="file" id="fileInput" multiple accept=".pdf" style="display: none;">
+    </div>
+
+    <div id="fileList"></div>
+    <button onclick="uploadFiles()">Envoyer au Serveur</button>
+
+    <div id="status"></div>
+
+    <script>
+        const dropZone = document.getElementById('dropZone');
+        const fileInput = document.getElementById('fileInput');
+        const fileList = document.getElementById('fileList');
+        const status = document.getElementById('status');
+        let selectedFiles = [];
+
+        dropZone.onclick = () => fileInput.click();
+
+        fileInput.onchange = (e) => handleFiles(e.target.files);
+
+        function handleFiles(files) {
+            selectedFiles = [...files];
+            fileList.innerHTML = selectedFiles.map(f => `<p>📄 ${f.name}</p>`).join('');
+        }
+
+        async function uploadFiles() {
+            if (selectedFiles.length === 0) {
+                alert("Veuillez sélectionner au moins un fichier.");
+                return;
+            }
+
+            status.innerHTML = "⏳ Envoi en cours... Veuillez patienter (Traitement IA)";
+            
+            const formData = new FormData();
+            selectedFiles.forEach(file => formData.append('files', file));
+
+            try {
+                const response = await fetch('http://localhost:3000/legal-documents/upload-pdfs', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const result = await response.json();
+                console.log(result);
+
+                if (response.ok) {
+                    status.innerHTML = `✅ Succès ! ${result.length} documents traités et indexés.`;
+                    selectedFiles = [];
+                    fileList.innerHTML = "";
+                } else {
+                    status.innerHTML = `❌ Erreur: ${JSON.stringify(result)}`;
+                }
+            } catch (error) {
+                status.innerHTML = `❌ Erreur réseau: ${error.message}. Vérifiez que le serveur tourne sur le port 3000.`;
+            }
+        }
+    </script>
+</body>
+</html>

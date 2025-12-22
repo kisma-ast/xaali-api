@@ -12,7 +12,7 @@ import { NotificationsModule } from './notifications.module';
 import { CitizensModule } from './citizens.module';
 import { AuthModule } from './auth.module';
 import { WebRTCSignalingGateway } from './webrtc-signaling.gateway';
-import { PineconeModule } from './pinecone';
+
 import { LegalAssistantModule } from './legal-assistant.index';
 import { BictorysModule } from './bictorys.module';
 import { PayTechModule } from './paytech.module';
@@ -28,6 +28,7 @@ import { MessagesController } from './messages.controller';
 import { NotificationModule } from './notification.module';
 import { GoogleAuthService } from './google-auth.service';
 import { LegalDocumentsService } from './legal-documents.service';
+import { VectorStoreService } from './vector-store.service';
 import { LegalDocumentsController } from './legal-documents.controller';
 import { EmailService } from './email.service';
 
@@ -43,6 +44,8 @@ import { Consultation } from './consultation.entity';
 import { Message } from './message.entity';
 import { DossiersModule } from './dossiers.module';
 import { Dossier } from './dossier.entity';
+import { LegalDocument } from './legal-document.entity';
+import { LegalDocChunk } from './legal-doc-chunk.entity';
 
 @Module({
   imports: [
@@ -54,7 +57,7 @@ import { Dossier } from './dossier.entity';
         url: configService.get<string>('MONGODB_URI'),
         useNewUrlParser: true,
         useUnifiedTopology: true,
-        entities: [Lawyer, Case, Citizen, Consultation, Message, Tracking, Dossier],
+        entities: [Lawyer, Case, Citizen, Consultation, Message, Tracking, Dossier, LegalDocument, LegalDocChunk],
         synchronize: true,
         ssl: true,
         tlsAllowInvalidCertificates: true,
@@ -70,17 +73,17 @@ import { Dossier } from './dossier.entity';
     NotificationModule, // Module pour NotificationService (partagé)
     CitizensModule,
     AuthModule,
-    PineconeModule,
+
     LegalAssistantModule,
     BictorysModule,
     PayTechModule,
     PaymentModule,
     MessagesModule,
     DossiersModule,
-    TypeOrmModule.forFeature([Lawyer, Case, Citizen, Consultation, Message, Tracking, Dossier]),
+    TypeOrmModule.forFeature([Lawyer, Case, Citizen, Consultation, Message, Tracking, Dossier, LegalDocument, LegalDocChunk]),
   ],
   controllers: [AppController, RealAuthController, CitizenAuthController, MessagesController, LegalDocumentsController, SimplifiedCaseController, TrackingController],
   providers: [
-    GoogleAuthService, AppService, WebRTCSignalingGateway, FineTuningService, LegalDocumentsService, EmailService, SimplifiedCaseService, TrackingService],
+    GoogleAuthService, AppService, WebRTCSignalingGateway, FineTuningService, LegalDocumentsService, VectorStoreService, EmailService, SimplifiedCaseService, TrackingService],
 })
-export class AppModule {}
+export class AppModule { }

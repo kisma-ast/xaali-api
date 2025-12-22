@@ -147,7 +147,7 @@ export class NotificationService {
         await this.emailService.sendTrackingNotification(
           citizen.email,
           case_.trackingCode || 'N/A',
-          `${process.env.FRONTEND_URL || 'http://localhost:5173'}/suivi/${case_.trackingToken}`,
+          `${process.env.FRONTEND_URL || 'https://xaali.net'}/suivi/${case_.trackingToken}`,
           case_.paymentAmount || 10000
         );
         this.logger.log(`📧 Email dossier créé envoyé à ${citizen.email}`);
@@ -182,7 +182,7 @@ export class NotificationService {
       // Email
       if (citizen.email && !citizen.email.includes('@xaali.temp')) {
         try {
-          const trackingLink = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/suivi/${case_.trackingToken}`;
+          const trackingLink = `${process.env.FRONTEND_URL || 'https://xaali.net'}/suivi/${case_.trackingToken}`;
           const emailAddress = citizen.email as string;
 
           await this.emailService.sendCitizenLawyerAssignedNotification(

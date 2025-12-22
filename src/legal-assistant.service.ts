@@ -1,6 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { PineconeService } from './pinecone/pinecone.service';
-import { EmbeddingService } from './pinecone/embedding.service';
+import { LegalDocumentsService } from './legal-documents.service';
 import { AIResponseService, FormattedResponse } from './ai-response.service';
 import { FineTuningService } from './fine-tuning.service'; // Add this import
 
@@ -28,18 +27,17 @@ export class LegalAssistantService {
   private readonly logger = new Logger(LegalAssistantService.name);
 
   constructor(
-    private readonly pineconeService: PineconeService,
-    private readonly embeddingService: EmbeddingService,
+    private readonly legalDocumentsService: LegalDocumentsService,
     private readonly aiResponseService: AIResponseService,
-    private readonly fineTuningService: FineTuningService, // Add this
-  ) {}
+    private readonly fineTuningService: FineTuningService,
+  ) { }
 
   private cache = new Map<string, { data: any; timestamp: number }>();
   private readonly CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
   async searchLegalDocuments(legalQuery: LegalQuery): Promise<LegalResponse> {
     const cacheKey = `${legalQuery.query}_${legalQuery.category || 'all'}`;
-    
+
     // Vérifier le cache
     const cached = this.cache.get(cacheKey);
     if (cached && Date.now() - cached.timestamp < this.CACHE_TTL) {
@@ -48,23 +46,70 @@ export class LegalAssistantService {
     }
 
     try {
-      // Use fine-tuning instead of RAG
-      this.logger.log(`🚀 Utilisation du modèle fine-tuned pour: "${legalQuery.query}"`);
-      
-      const fineTuningResponse = await this.fineTuningService.processFineTunedQuery({
+      this.logger.log(`🚀 Utilisation du RAG Mongo pour: "${legalQuery.query}"`);
+
+      // We ignore fine-tuning for now and use the new RAG
+      /*const fineTuningResponse = await this.fineTuningService.processFineTunedQuery({
         question: legalQuery.query,
         category: legalQuery.category,
-      });
+      });*/
+
+      const ragResult = await this.legalDocumentsService.askLegalQuestion(legalQuery.query);
+
+      let content = "";
+      let confidence = 'Moyen';
+      let processingMode = 'RAG';
+
+      if (ragResult.foundContext) {
+        content = ragResult.content || "";
+        processingMode = 'RAG';
+      } else {
+        this.logger.log(`⚠️ Aucun document RAG trouvé pour "${legalQuery.query}" -> Fallback sur Fine-Tuning`);
+
+        // Fallback to Fine-Tuning
+        const ftResponse = await this.fineTuningService.processFineTunedQuery({
+          question: legalQuery.query,
+          category: legalQuery.category
+        });
+
+        // Handle fine-tuning response structure (could be object or string)
+        if (typeof ftResponse.answer === 'string') {
+          content = ftResponse.answer;
+        } else if (ftResponse.answer.content) {
+          content = ftResponse.answer.content;
+        } else {
+          content = JSON.stringify(ftResponse.answer);
+        }
+
+        processingMode = 'FALLBACK_FINE_TUNING';
+        confidence = 'Moyen';
+      }
 
       const result = {
         query: legalQuery.query,
-        relevantDocuments: [], // Empty since we're not using retrieval
-        formattedResponse: fineTuningResponse.answer,
+        relevantDocuments: [],
+
+        formattedResponse: {
+          title: "Réponse Xaali",
+          content: content,
+          articles: [],
+          summary: "Réponse générée par l'IA",
+          disclaimer: "Information à titre indicatif.",
+          confidence: confidence as any,
+          nextSteps: [],
+          relatedTopics: [],
+          ragMetadata: {
+            poweredBy: 'Xaali-MongoDB',
+            systemVersion: '1.0',
+            processingMode: processingMode as any,
+            timestamp: new Date().toISOString(),
+          }
+        },
       };
 
       // Mettre en cache
       this.cache.set(cacheKey, { data: result, timestamp: Date.now() });
-      
+
       return result;
     } catch (error) {
       this.logger.error('Error searching legal documents:', error);
