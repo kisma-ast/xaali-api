@@ -1,15 +1,21 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Case } from './case.entity';
+import { Lawyer } from './lawyer.entity';
 import { EmailService } from './email.service';
 import { v4 as uuidv4 } from 'uuid';
+import { ObjectId } from 'mongodb';
 
 @Injectable()
 export class SimplifiedCaseService {
+  private readonly logger = new Logger(SimplifiedCaseService.name);
+
   constructor(
     @InjectRepository(Case)
     private caseRepository: Repository<Case>,
+    @InjectRepository(Lawyer)
+    private lawyerRepository: Repository<Lawyer>,
     private emailService: EmailService,
   ) { }
 
@@ -381,6 +387,37 @@ export class SimplifiedCaseService {
     await this.caseRepository.save(caseToUpdate);
 
     console.log(`✅ Cas ${caseId} accepté par ${lawyerName}`);
+
+    // Notifier le citoyen
+    try {
+      this.logger.log(`📧 Préparation notification citoyen pour cas ${caseToUpdate.trackingCode}`);
+
+      // Récupérer les détails de l'avocat
+      const lawyer = await this.lawyerRepository.findOne({
+        where: { _id: new ObjectId(lawyerId) } as any
+      });
+
+      if (caseToUpdate.citizenEmail && caseToUpdate.trackingCode && caseToUpdate.trackingToken && lawyer) {
+        const trackingLink = `https://xaali.net/suivi/${caseToUpdate.trackingToken}`;
+
+        await this.emailService.sendCitizenLawyerAssignedNotification(
+          caseToUpdate.citizenEmail,
+          caseToUpdate.trackingCode,
+          trackingLink,
+          {
+            name: lawyer.name,
+            specialty: lawyer.specialty || caseToUpdate.category,
+            email: lawyer.email,
+            phone: lawyer.phone
+          }
+        );
+        this.logger.log(`✅ Notification envoyée au citoyen ${caseToUpdate.citizenEmail}`);
+      } else {
+        this.logger.warn(`⚠️ Notification non envoyée: Données manquantes (Email, Code, Token ou Avocat)`);
+      }
+    } catch (error) {
+      this.logger.error(`❌ Erreur notification acceptation: ${error.message}`);
+    }
   }
 
   async getTrackingHistory() {

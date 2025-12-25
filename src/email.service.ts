@@ -103,7 +103,7 @@ export class EmailService {
             </div>
             
             <div style="text-align: center; margin: 30px 0;">
-              <a href="${process.env.FRONTEND_URL || 'https://xaali.net'}/lawyer/dashboard" 
+              <a href="https://xaali.net/lawyer/dashboard" 
                  style="background-color: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block; font-weight: bold;">
                 Voir le dossier
               </a>
@@ -144,7 +144,7 @@ export class EmailService {
             <p>Vous pouvez dès maintenant prendre contact avec le client via la messagerie sécurisée.</p>
             
             <div style="text-align: center; margin: 30px 0;">
-              <a href="${process.env.FRONTEND_URL || 'https://xaali.net'}/lawyer/cases/${caseData.id}" 
+              <a href="https://xaali.net/lawyer/cases/${caseData.id}" 
                  style="background-color: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block; font-weight: bold;">
                 Accéder au dossier
               </a>
@@ -296,7 +296,7 @@ export class EmailService {
               <p style="margin: 0; font-style: italic;">"${messageContent}"</p>
             </div>
             <p>Connectez-vous à votre espace Xaali pour répondre.</p>
-            <a href="${process.env.FRONTEND_URL || 'https://xaali.net'}" 
+            <a href="https://xaali.net" 
                style="background-color: #2563eb; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; display: inline-block;">
               Voir le message
             </a>
@@ -344,7 +344,7 @@ export class EmailService {
             <p>Pour commencer, connectez-vous à votre tableau de bord :</p>
             
             <div style="text-align: center; margin: 30px 0;">
-              <a href="${process.env.FRONTEND_URL || 'https://xaali.net'}/lawyer/login" 
+              <a href="https://xaali.net/lawyer/login" 
                  style="background-color: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block; font-weight: bold;">
                 Accéder à mon compte
               </a>

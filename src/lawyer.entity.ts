@@ -52,6 +52,15 @@ export class Lawyer {
   @Column({ default: true })
   isActive: boolean;
 
+  @Column({ nullable: true })
+  googleId: string;
+
+  @Column({ nullable: true })
+  clerkId: string;
+
+  @Column({ nullable: true })
+  picture: string;
+
   @Column()
   createdAt: Date;
 

@@ -629,22 +629,22 @@ export class PayTechController {
   @Get('success')
   async paymentSuccessRedirect(@Query('transaction_id') transactionId: string, @Res() res: Response) {
     try {
-      const frontendUrl = `${process.env.FRONTEND_URL || 'https://xaali.net'}/payment/success?transaction_id=${transactionId || ''}`;
+      const frontendUrl = `https://xaali.net/payment/success?transaction_id=${transactionId || ''}`;
       return res.redirect(frontendUrl);
     } catch (error) {
       this.logger.error(`Error redirecting to success page: ${error.message}`);
-      return res.redirect(`${process.env.FRONTEND_URL || 'https://xaali.net'}/payment/error`);
+      return res.redirect(`https://xaali.net/payment/error`);
     }
   }
 
   @Get('cancel')
   async paymentCancelRedirect(@Query('transaction_id') transactionId: string, @Res() res: Response) {
     try {
-      const frontendUrl = `${process.env.FRONTEND_URL || 'https://xaali.net'}/payment/cancel?transaction_id=${transactionId || ''}`;
+      const frontendUrl = `https://xaali.net/payment/cancel?transaction_id=${transactionId || ''}`;
       return res.redirect(frontendUrl);
     } catch (error) {
       this.logger.error(`Error redirecting to cancel page: ${error.message}`);
-      return res.redirect(`${process.env.FRONTEND_URL || 'https://xaali.net'}/payment/error`);
+      return res.redirect(`https://xaali.net/payment/error`);
     }
   }
 
@@ -1252,7 +1252,7 @@ export class PayTechController {
       }
 
       // 2. Créer le lien de suivi
-      const baseUrl = process.env.FRONTEND_URL || 'https://xaali.net';
+      const baseUrl = 'https://xaali.net';
       const trackingLink = `${baseUrl}/suivi/${trackingToken}`;
 
       // 3. Mettre à jour le cas avec les informations de suivi

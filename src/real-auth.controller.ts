@@ -606,20 +606,250 @@ export class RealAuthController {
     }
   }
 
-  // Endpoints Google OAuth (placeholders)
-  @Post('google-auth')
-  async googleAuthLawyer(@Body() body: any) {
-    return { success: false, message: 'Google OAuth à implémenter' };
+  // Endpoints Google OAuth
+  @Post('google-login')
+  async googleLoginLawyer(@Body() body: { googleToken: string; email: string; name: string; picture?: string; googleId: string }) {
+    console.log('🔍 [REAL-AUTH] Tentative de connexion Google avocat');
+    console.log('📧 [REAL-AUTH] Email Google:', body.email);
+
+    try {
+      // Vérifier si l'avocat existe déjà avec cet email
+      let lawyer = await this.lawyerRepository.findOne({
+        where: { email: body.email }
+      });
+
+      if (lawyer) {
+        // L'avocat existe, mettre à jour les infos Google si nécessaire
+        if (!lawyer.googleId) {
+          lawyer.googleId = body.googleId;
+          lawyer.picture = body.picture || lawyer.picture;
+          await this.lawyerRepository.save(lawyer);
+        }
+
+        const { password, ...lawyerData } = lawyer;
+        console.log('✅ [REAL-AUTH] Connexion Google avocat existant réussie:', lawyer.id);
+
+        return {
+          success: true,
+          lawyer: lawyerData,
+          token: `lawyer_${lawyer.id}_${Date.now()}`
+        };
+      } else {
+        // Créer un nouvel avocat avec les infos Google
+        const newLawyer = this.lawyerRepository.create({
+          name: body.name,
+          email: body.email,
+          googleId: body.googleId,
+          picture: body.picture,
+          password: '', // Pas de mot de passe pour les comptes Google
+          specialty: 'autre', // Spécialité par défaut
+          phone: '+221 77 000 00 00',
+          experience: '1 an',
+          lawFirm: 'Cabinet Indépendant',
+          barNumber: `BAR${Date.now()}`,
+          isActive: true,
+          createdAt: new Date(),
+        });
+
+        const savedLawyer = await this.lawyerRepository.save(newLawyer);
+        const { password, ...lawyerData } = savedLawyer;
+
+        console.log('✅ [REAL-AUTH] Nouvel avocat créé via Google:', savedLawyer.id);
+
+        // Envoyer l'email de bienvenue
+        try {
+          await this.emailService.sendLawyerWelcomeEmail(savedLawyer.email, savedLawyer.name);
+        } catch (emailError) {
+          console.error('⚠️ [REAL-AUTH] Erreur envoi email bienvenue:', emailError);
+        }
+
+        return {
+          success: true,
+          lawyer: lawyerData,
+          token: `lawyer_${savedLawyer.id}_${Date.now()}`
+        };
+      }
+    } catch (error) {
+      console.error('❌ [REAL-AUTH] Erreur connexion Google avocat:', error);
+      this.logger.error('Erreur connexion Google avocat:', error);
+      return { success: false, message: 'Erreur de connexion Google: ' + error.message };
+    }
   }
 
-  @Post('notary-google-auth')
-  async googleAuthNotary(@Body() body: any) {
-    return { success: false, message: 'Google OAuth à implémenter' };
+  @Post('notary-google-login')
+  async googleLoginNotary(@Body() body: { googleToken: string; email: string; name: string; picture?: string; googleId: string }) {
+    console.log('🔍 [REAL-AUTH] Tentative de connexion Google notaire');
+
+    try {
+      let notary = await this.lawyerRepository.findOne({
+        where: { email: body.email }
+      });
+
+      if (notary) {
+        if (!notary.googleId) {
+          notary.googleId = body.googleId;
+          notary.picture = body.picture || notary.picture;
+          await this.lawyerRepository.save(notary);
+        }
+
+        const { password, ...notaryData } = notary;
+        return {
+          success: true,
+          notary: notaryData,
+          token: `notary_${notary.id}_${Date.now()}`
+        };
+      } else {
+        const newNotary = this.lawyerRepository.create({
+          name: body.name,
+          email: body.email,
+          googleId: body.googleId,
+          picture: body.picture,
+          password: '',
+          specialty: 'actes-authentiques',
+          phone: '+221 77 000 00 00',
+          experience: '1 an',
+          lawFirm: 'Étude Notariale',
+          barNumber: `NOT${Date.now()}`,
+          isActive: true,
+          createdAt: new Date(),
+        });
+
+        const savedNotary = await this.lawyerRepository.save(newNotary);
+        const { password, ...notaryData } = savedNotary;
+
+        return {
+          success: true,
+          notary: notaryData,
+          token: `notary_${savedNotary.id}_${Date.now()}`
+        };
+      }
+    } catch (error) {
+      console.error('❌ [REAL-AUTH] Erreur connexion Google notaire:', error);
+      return { success: false, message: 'Erreur de connexion Google: ' + error.message };
+    }
   }
 
-  @Post('bailiff-google-auth')
-  async googleAuthBailiff(@Body() body: any) {
-    return { success: false, message: 'Google OAuth à implémenter' };
+  @Post('bailiff-google-login')
+  async googleLoginBailiff(@Body() body: { googleToken: string; email: string; name: string; picture?: string; googleId: string }) {
+    console.log('🔍 [REAL-AUTH] Tentative de connexion Google huissier');
+
+    try {
+      let bailiff = await this.lawyerRepository.findOne({
+        where: { email: body.email }
+      });
+
+      if (bailiff) {
+        if (!bailiff.googleId) {
+          bailiff.googleId = body.googleId;
+          bailiff.picture = body.picture || bailiff.picture;
+          await this.lawyerRepository.save(bailiff);
+        }
+
+        const { password, ...bailiffData } = bailiff;
+        return {
+          success: true,
+          bailiff: bailiffData,
+          token: `bailiff_${bailiff.id}_${Date.now()}`
+        };
+      } else {
+        const newBailiff = this.lawyerRepository.create({
+          name: body.name,
+          email: body.email,
+          googleId: body.googleId,
+          picture: body.picture,
+          password: '',
+          specialty: 'significations',
+          phone: '+221 77 000 00 00',
+          experience: '1 an',
+          lawFirm: 'Étude d\'Huissier',
+          barNumber: `HUI${Date.now()}`,
+          isActive: true,
+          createdAt: new Date(),
+        });
+
+        const savedBailiff = await this.lawyerRepository.save(newBailiff);
+        const { password, ...bailiffData } = savedBailiff;
+
+        return {
+          success: true,
+          bailiff: bailiffData,
+          token: `bailiff_${savedBailiff.id}_${Date.now()}`
+        };
+      }
+    } catch (error) {
+      console.error('❌ [REAL-AUTH] Erreur connexion Google huissier:', error);
+      return { success: false, message: 'Erreur de connexion Google: ' + error.message };
+    }
+  }
+
+  // Clerk Authentication Endpoints
+  @Post('clerk-login')
+  async clerkLoginLawyer(@Body() body: { clerkUserId: string; email: string; name: string; picture?: string; clerkToken?: string }) {
+    console.log('🔍 [REAL-AUTH] Tentative de connexion Clerk avocat');
+    console.log('📧 [REAL-AUTH] Email Clerk:', body.email);
+
+    try {
+      // Vérifier si l'avocat existe déjà avec cet email
+      let lawyer = await this.lawyerRepository.findOne({
+        where: { email: body.email }
+      });
+
+      if (lawyer) {
+        // L'avocat existe, mettre à jour les infos Clerk si nécessaire
+        if (!lawyer.clerkId) {
+          lawyer.clerkId = body.clerkUserId;
+          lawyer.picture = body.picture || lawyer.picture;
+          await this.lawyerRepository.save(lawyer);
+        }
+
+        const { password, ...lawyerData } = lawyer;
+        console.log('✅ [REAL-AUTH] Connexion Clerk avocat existant réussie:', lawyer.id);
+
+        return {
+          success: true,
+          lawyer: lawyerData,
+          token: `lawyer_${lawyer.id}_${Date.now()}`
+        };
+      } else {
+        // Créer un nouvel avocat avec les infos Clerk
+        const newLawyer = this.lawyerRepository.create({
+          name: body.name,
+          email: body.email,
+          clerkId: body.clerkUserId,
+          picture: body.picture,
+          password: '', // Pas de mot de passe pour les comptes Clerk
+          specialty: 'autre', // Spécialité par défaut
+          phone: '+221 77 000 00 00',
+          experience: '1 an',
+          lawFirm: 'Cabinet Indépendant',
+          barNumber: `BAR${Date.now()}`,
+          isActive: true,
+          createdAt: new Date(),
+        });
+
+        const savedLawyer = await this.lawyerRepository.save(newLawyer);
+        const { password, ...lawyerData } = savedLawyer;
+
+        console.log('✅ [REAL-AUTH] Nouvel avocat créé via Clerk:', savedLawyer.id);
+
+        // Envoyer l'email de bienvenue
+        try {
+          await this.emailService.sendLawyerWelcomeEmail(savedLawyer.email, savedLawyer.name);
+        } catch (emailError) {
+          console.error('⚠️ [REAL-AUTH] Erreur envoi email bienvenue:', emailError);
+        }
+
+        return {
+          success: true,
+          lawyer: lawyerData,
+          token: `lawyer_${savedLawyer.id}_${Date.now()}`
+        };
+      }
+    } catch (error) {
+      console.error('❌ [REAL-AUTH] Erreur connexion Clerk avocat:', error);
+      this.logger.error('Erreur connexion Clerk avocat:', error);
+      return { success: false, message: 'Erreur de connexion Clerk: ' + error.message };
+    }
   }
 
   // Méthode helper pour les titres de fallback
