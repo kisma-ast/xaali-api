@@ -1,4 +1,4 @@
-import { Controller, Post, Body, Logger, Get, Param } from '@nestjs/common';
+import { Controller, Post, Body, Logger, Get, Param, Req } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { ObjectId } from 'mongodb';
@@ -119,11 +119,17 @@ export class RealAuthController {
 
       const { password, ...lawyerData } = lawyer;
 
-      console.log('✅ [REAL-AUTH] Connexion avocat réussie:', lawyer.id);
+      // Ajouter explicitement l'id car le getter n'est pas copié par le spread
+      const lawyerResponse = {
+        ...lawyerData,
+        id: lawyer.id || lawyer._id?.toString()
+      };
+
+      console.log('✅ [REAL-AUTH] Connexion avocat réussie:', lawyerResponse.id);
 
       return {
         success: true,
-        lawyer: lawyerData,
+        lawyer: lawyerResponse,
         token: `lawyer_${lawyer.id}_${Date.now()}`
       };
     } catch (error) {
@@ -342,10 +348,31 @@ export class RealAuthController {
   }
 
   @Post('case-accept/:id')
-  async acceptCase(@Param('id') caseId: string, @Body() body: { lawyerId: string }) {
+  async acceptCase(
+    @Param('id') caseId: string,
+    @Body() body: { lawyerId: string },
+    @Req() request: any
+  ) {
     try {
       console.log('🔍 [REAL-AUTH] Tentative d\'acceptation du cas:', caseId);
-      console.log('👨⚖️ [REAL-AUTH] ID Avocat:', body.lawyerId);
+
+      // Extraire l'ID de l'avocat depuis le token d'autorisation
+      let lawyerIdFromToken = null;
+      const authHeader = request.headers?.authorization;
+
+      if (authHeader && authHeader.startsWith('Bearer ')) {
+        const token = authHeader.replace('Bearer ', '');
+        // Token format: lawyer_${lawyer.id}_${Date.now()}
+        const parts = token.split('_');
+        if (parts.length >= 2 && parts[0] === 'lawyer') {
+          lawyerIdFromToken = parts[1];
+          console.log('🔑 [REAL-AUTH] ID Avocat extrait du token:', lawyerIdFromToken);
+        }
+      }
+
+      // Utiliser l'ID du token en priorité, sinon celui du body
+      const effectiveLawyerId = lawyerIdFromToken || body.lawyerId;
+      console.log('👨‍⚖️ [REAL-AUTH] ID Avocat effectif:', effectiveLawyerId);
 
       const caseToUpdate = await this.caseRepository.findOne({
         where: { _id: new ObjectId(caseId) }
@@ -359,16 +386,57 @@ export class RealAuthController {
         return { success: false, message: 'Ce cas a déjà été pris en charge' };
       }
 
+      // Récupérer les informations de l'avocat depuis la BD
+      let lawyer = null;
+      if (effectiveLawyerId && effectiveLawyerId !== 'demo-lawyer') {
+        try {
+          lawyer = await this.lawyerRepository.findOne({
+            where: { _id: new ObjectId(effectiveLawyerId) }
+          });
+          console.log('👨‍⚖️ [REAL-AUTH] Avocat trouvé dans BD:', lawyer?.name);
+        } catch (e) {
+          console.log('⚠️ Recherche avocat par ObjectId échouée');
+        }
+      }
+
+      // Mettre à jour le cas
       caseToUpdate.status = 'accepted';
-      caseToUpdate.lawyerId = body.lawyerId;
+      caseToUpdate.lawyerId = effectiveLawyerId;
+      caseToUpdate.lawyerName = lawyer?.name || 'Avocat Xaali';
       caseToUpdate.acceptedAt = new Date();
 
       await this.caseRepository.save(caseToUpdate);
 
       console.log('✅ [REAL-AUTH] Cas accepté avec succès:', caseId);
+      console.log('👨‍⚖️ [REAL-AUTH] Avocat assigné:', lawyer?.name || effectiveLawyerId);
 
-      // Notifier que le cas a été accepté
-      await this.notificationService.notifyCaseAccepted(caseId, body.lawyerId);
+      // Notifier les autres avocats que le cas n'est plus disponible
+      await this.notificationService.notifyCaseAccepted(caseId, effectiveLawyerId);
+
+      // Envoyer notification au citoyen directement via son email sur le cas
+      if (caseToUpdate.citizenEmail && caseToUpdate.trackingCode && caseToUpdate.trackingToken) {
+        console.log('📧 [REAL-AUTH] Envoi notification au citoyen:', caseToUpdate.citizenEmail);
+        const trackingLink = `https://xaali.net/suivi/${caseToUpdate.trackingToken}`;
+
+        try {
+          await this.emailService.sendCitizenLawyerAssignedNotification(
+            caseToUpdate.citizenEmail,
+            caseToUpdate.trackingCode,
+            trackingLink,
+            {
+              name: lawyer?.name || 'Avocat Xaali',
+              specialty: lawyer?.specialty || caseToUpdate.category,
+              email: lawyer?.email,
+              phone: lawyer?.phone
+            }
+          );
+          console.log('✅ [REAL-AUTH] Notification citoyen envoyée');
+        } catch (emailError) {
+          console.error('❌ [REAL-AUTH] Erreur envoi email citoyen:', emailError);
+        }
+      } else {
+        console.log('⚠️ [REAL-AUTH] Pas d\'email citoyen ou tracking manquant');
+      }
 
       return {
         success: true,
@@ -446,6 +514,18 @@ export class RealAuthController {
     try {
       console.log('🔍 [REAL-AUTH] Recherche cas acceptés pour avocat:', lawyerId);
 
+      // D'abord, récupérer TOUS les cas acceptés pour debug
+      const allAccepted = await this.caseRepository.find({
+        where: { status: 'accepted' }
+      });
+      console.log('📊 [DEBUG] Total cas acceptés dans la BD:', allAccepted.length);
+      console.log('📊 [DEBUG] LawyerIds des cas acceptés:', allAccepted.map(c => ({
+        caseId: c._id?.toString() || c.id,
+        lawyerId: c.lawyerId,
+        lawyerIdType: typeof c.lawyerId
+      })));
+
+      // Maintenant filtrer par lawyerId
       const acceptedCases = await this.caseRepository.find({
         where: {
           status: 'accepted',
@@ -455,6 +535,21 @@ export class RealAuthController {
       });
 
       console.log('📋 [REAL-AUTH] Cas acceptés trouvés pour avocat', lawyerId, ':', acceptedCases.length);
+
+      // Si aucun cas trouvé mais il y en a dans la BD, essayer de matcher manuellement
+      if (acceptedCases.length === 0 && allAccepted.length > 0) {
+        console.log('⚠️ [DEBUG] Aucun match exact, essai de match flexible...');
+        const manualMatch = allAccepted.filter(c =>
+          c.lawyerId === lawyerId ||
+          c.lawyerId?.toString() === lawyerId ||
+          c.lawyerId === lawyerId?.toString()
+        );
+        console.log('📋 [DEBUG] Match flexible trouvé:', manualMatch.length);
+
+        if (manualMatch.length > 0) {
+          return { success: true, cases: manualMatch };
+        }
+      }
 
       return {
         success: true,
@@ -897,5 +992,36 @@ export class RealAuthController {
     if (questionLower.includes('terrain')) return 'Conflit de bornage entre voisins';
 
     return titles[Math.floor(Math.random() * titles.length)];
+  }
+
+  // Endpoint to fix data inconsistencies (isPaid=true but status='unpaid')
+  @Post('fix-status-inconsistencies')
+  async fixStatusInconsistencies() {
+    try {
+      console.log('🔧 [REAL-AUTH] Fixing status inconsistencies...');
+
+      // Find all cases where isPaid is true but status is 'unpaid'
+      const allCases = await this.caseRepository.find();
+      const inconsistentCases = allCases.filter(c => c.isPaid === true && c.status === 'unpaid');
+
+      console.log(`📋 Found ${inconsistentCases.length} inconsistent cases`);
+
+      let fixedCount = 0;
+      for (const caseItem of inconsistentCases) {
+        caseItem.status = 'pending';
+        await this.caseRepository.save(caseItem);
+        fixedCount++;
+        console.log(`✅ Fixed case ${caseItem.id}: status changed from 'unpaid' to 'pending'`);
+      }
+
+      return {
+        success: true,
+        message: `Fixed ${fixedCount} cases with inconsistent status`,
+        fixedCases: inconsistentCases.map(c => ({ id: c.id, trackingCode: c.trackingCode }))
+      };
+    } catch (error) {
+      console.error('❌ Error fixing status inconsistencies:', error);
+      return { success: false, message: 'Error: ' + error.message };
+    }
   }
 }
