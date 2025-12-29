@@ -1,0 +1,33 @@
+{
+  "totalCases": 129,
+  "paidCases": 48,
+  "pendingPaid": 13,
+  "acceptedPaid": 34,
+  "unpaidStatusPaid": 1,
+  "noPaymentId": 5,
+  "noPaidAt": 48,
+  "visibleInDashboard": 8,
+  "missingFromDashboardCount": 5,
+  "missingCases": [
+    {
+      "id": "6900f4891b0a3741ce12d2b9",
+      "email": null
+    },
+    {
+      "id": "6900f8cf1b0a3741ce12d2ba",
+      "email": null
+    },
+    {
+      "id": "690f769772d1fa5c0d609fc3",
+      "email": "kismatandia0@gmail.com"
+    },
+    {
+      "id": "690f77e71a123b5f1a311913",
+      "email": "kismart1107@gmail.com"
+    },
+    {
+      "id": "6910d74c6f6180d45a8ffaff",
+      "email": null
+    }
+  ]
+}

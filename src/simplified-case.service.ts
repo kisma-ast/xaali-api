@@ -61,6 +61,7 @@ export class SimplifiedCaseService {
         existingCase.citizenEmail = data.citizenEmail || existingCase.citizenEmail;
         existingCase.paymentAmount = data.paymentAmount;
         existingCase.isPaid = true;
+        existingCase.paidAt = new Date(); // Set payment date
         existingCase.status = 'pending';
 
         console.log('📝 Mise à jour avec vraies données:', {
@@ -108,6 +109,7 @@ export class SimplifiedCaseService {
         aiResponse: data.aiResponse,
         paymentAmount: data.paymentAmount,
         isPaid: true,
+        paidAt: new Date(),
         createdAt: new Date()
       });
 
@@ -304,6 +306,7 @@ export class SimplifiedCaseService {
       aiResponse: data.aiResponse,
       paymentAmount: data.paymentAmount,
       isPaid: data.isPaid,
+      paidAt: data.isPaid ? new Date() : undefined,
       createdAt: new Date(),
       creationIp: data.ip,
       creationUserAgent: data.userAgent

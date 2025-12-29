@@ -26,6 +26,49 @@ export class RealAuthController {
     private emailService: EmailService,
   ) { }
 
+  @Get('profile')
+  async getProfile(@Req() request: any) {
+    console.log('🔍 [REAL-AUTH] Récupération profil via token');
+
+    try {
+      const authHeader = request.headers?.authorization;
+      if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        return { success: false, message: 'Token manquant' };
+      }
+
+      const token = authHeader.replace('Bearer ', '');
+      const parts = token.split('_');
+
+      if (parts.length < 2) {
+        return { success: false, message: 'Format de token invalide' };
+      }
+
+      const userType = parts[0];
+      const userId = parts[1];
+
+      console.log(`👤 [REAL-AUTH] Type: ${userType}, ID: ${userId}`);
+
+      if (userType === 'lawyer' || userType === 'notary' || userType === 'bailiff') {
+        const lawyer = await this.lawyerRepository.findOne({
+          where: { _id: new ObjectId(userId) }
+        });
+
+        if (!lawyer) {
+          return { success: false, message: 'Utilisateur non trouvé' };
+        }
+
+        const { password, ...lawyerData } = lawyer;
+        // Retourne lawyerData sous clé "lawyer" (attendu par App.tsx) et "user" pour compatibilité
+        return { success: true, user: { ...lawyerData, role: 'avocat' }, lawyer: lawyerData, type: userType };
+      }
+
+      return { success: false, message: 'Type utilisateur non géré pour ce endpoint' };
+    } catch (error) {
+      console.error('❌ [REAL-AUTH] Erreur récupération profil:', error);
+      return { success: false, message: 'Erreur serveur: ' + error.message };
+    }
+  }
+
   @Post('register')
   async registerLawyer(@Body() registerDto: any) {
     console.log('🔍 [REAL-AUTH] Tentative d\'inscription avocat');
@@ -309,7 +352,9 @@ export class RealAuthController {
         paymentId: paymentData.paymentId,
         paymentAmount: paymentData.amount,
         aiResponse: aiResponse,
-        clientQuestion: paymentData.clientQuestion || 'Question non spécifiée'
+        clientQuestion: paymentData.clientQuestion || 'Question non spécifiée',
+        paidAt: new Date(), // Set payment date for new paid case
+        isPaid: true
       };
 
       return await this.createCase(caseData);
@@ -327,7 +372,7 @@ export class RealAuthController {
         where: {
           status: 'pending'
         },
-        order: { createdAt: 'DESC' }
+        order: { paidAt: 'DESC', createdAt: 'DESC' }
       });
 
       // Filtrer les cas payés uniquement (exclure isPaid:false et status:unpaid)
