@@ -1,0 +1,51 @@
+--- DEBUG START ---
+Total Accepted Cases: 33
+Case ID: 68e6e39d50defa886a82031c, LawyerID: demo-lawyer (Type: string), Title: Consultation juridique payée, AcceptedAt: Tue Oct 14 2025 20:27:45 GMT+0000 (heure moyenne de Greenwich)
+Case ID: 68fea8141b0a3741ce12d2b3, LawyerID: demo-lawyer (Type: string), Title: Consultation juridique générale, AcceptedAt: Wed Oct 29 2025 21:05:11 GMT+0000 (heure moyenne de Greenwich)
+Case ID: 690a1d0a7649e6a7d6957071, LawyerID: demo-lawyer (Type: string), Title: Consultation juridique générale, AcceptedAt: Wed Dec 24 2025 20:38:50 GMT+0000 (heure moyenne de Greenwich)
+Case ID: 690dfca1458294526e59d471, LawyerID: demo-lawyer (Type: string), Title: Consultation juridique générale, AcceptedAt: Mon Dec 22 2025 21:26:41 GMT+0000 (heure moyenne de Greenwich)
+Case ID: 690e2b97458294526e59d472, LawyerID: demo-lawyer (Type: string), Title: Consultation juridique générale, AcceptedAt: Thu Dec 25 2025 16:41:02 GMT+0000 (heure moyenne de Greenwich)
+Case ID: 690f7b1adab02a75124e48e3, LawyerID: demo-lawyer (Type: string), Title: Consultation juridique générale, AcceptedAt: Thu Dec 25 2025 17:25:26 GMT+0000 (heure moyenne de Greenwich)
+Case ID: 6910eb94fdcd64d63849a275, LawyerID: demo-lawyer (Type: string), Title: Consultation juridique générale, AcceptedAt: Wed Dec 24 2025 20:38:40 GMT+0000 (heure moyenne de Greenwich)
+Case ID: 69124ee4fdcd64d63849a277, LawyerID: demo-lawyer (Type: string), Title: Consultation juridique générale, AcceptedAt: Thu Dec 25 2025 17:06:48 GMT+0000 (heure moyenne de Greenwich)
+Case ID: 6914eb04fdcd64d63849a279, LawyerID: demo-lawyer (Type: string), Title: Consultation juridique générale, AcceptedAt: Thu Dec 25 2025 16:39:17 GMT+0000 (heure moyenne de Greenwich)
+Case ID: 6914eeef40f713287079262b, LawyerID: demo-lawyer (Type: string), Title: Consultation juridique générale, AcceptedAt: Thu Dec 25 2025 16:37:24 GMT+0000 (heure moyenne de Greenwich)
+Case ID: 6915062eb4744e1d1766af64, LawyerID: demo-lawyer (Type: string), Title: Consultation juridique générale, AcceptedAt: Thu Nov 27 2025 00:29:14 GMT+0000 (heure moyenne de Greenwich)
+Case ID: 691636d1b82a8b36bac93d58, LawyerID: demo-lawyer (Type: string), Title: Consultation juridique générale, AcceptedAt: Wed Dec 24 2025 20:38:17 GMT+0000 (heure moyenne de Greenwich)
+Case ID: 69163c5f4722b2f6d2f087ae, LawyerID: demo-lawyer (Type: string), Title: Consultation juridique générale, AcceptedAt: Tue Nov 25 2025 14:23:04 GMT+0000 (heure moyenne de Greenwich)
+Case ID: 691b653d4722b2f6d2f087b3, LawyerID: demo-lawyer (Type: string), Title: Consultation juridique générale, AcceptedAt: Sat Dec 13 2025 10:46:18 GMT+0000 (heure moyenne de Greenwich)
+Case ID: 691fac28ed5037a87c68bca6, LawyerID: demo-lawyer (Type: string), Title: Consultation juridique générale, AcceptedAt: Sun Nov 23 2025 16:12:45 GMT+0000 (heure moyenne de Greenwich)
+Case ID: 6920d7035163f4644842bfb3, LawyerID: 694daddbcb52cf13d0773109 (Type: string), Title: Un migrant a t'il besoin des soins de base, AcceptedAt: Thu Dec 25 2025 22:05:32 GMT+0000 (heure moyenne de Greenwich)
+Case ID: 6924522c839acdcb7bc1a0da, LawyerID: demo-lawyer (Type: string), Title: UN Internaute m'insulte sur twitter, AcceptedAt: Thu Dec 25 2025 22:03:14 GMT+0000 (heure moyenne de Greenwich)
+Case ID: 69247dfa2fddcdd5a945783d, LawyerID: demo-lawyer (Type: string), Title: Consultation juridique générale, AcceptedAt: Tue Nov 25 2025 14:22:52 GMT+0000 (heure moyenne de Greenwich)
+Case ID: 692485243c6b82e1b43e0561, LawyerID: 68e56e5eeffc99d55738f9ca (Type: string), Title: je suis une fille de 16 ans et on veut me forcer a me marie, AcceptedAt: Thu Dec 25 2025 21:02:46 GMT+0000 (heure moyenne de Greenwich)
+Case ID: 69249cb852a959a084087229, LawyerID: null (Type: object), Title: je suis une fille de 16 ans et on veut me forcer a me marié, AcceptedAt: Thu Dec 25 2025 20:54:36 GMT+0000 (heure moyenne de Greenwich)
+Case ID: 6924a3d0f736176af565bb01, LawyerID: demo-lawyer (Type: string), Title: je suis une fille de 16 ans et on veut me forcer a me marié , AcceptedAt: Thu Dec 25 2025 18:03:50 GMT+0000 (heure moyenne de Greenwich)
+Case ID: 6931f78e246f093c55b5f295, LawyerID: demo-lawyer (Type: string), Title: je me suis fait volercomment reglé le probleme , AcceptedAt: Thu Dec 25 2025 20:51:08 GMT+0000 (heure moyenne de Greenwich)
+Case ID: 6931ff762f648e4a2a54dca5, LawyerID: demo-lawyer (Type: string), Title: on m accuse d avoir viole quelqu un, AcceptedAt: Thu Dec 25 2025 22:03:00 GMT+0000 (heure moyenne de Greenwich)
+Case ID: 693211633ba3a58725729cc9, LawyerID: demo-lawyer (Type: string), Title: une autre entreprise a repris notre nom , AcceptedAt: Thu Dec 25 2025 20:44:01 GMT+0000 (heure moyenne de Greenwich)
+Case ID: 69321c97b2199a5f95b7ef76, LawyerID: demo-lawyer (Type: string), Title: je veux securise les droits de mon entreprise , AcceptedAt: Thu Dec 25 2025 20:36:44 GMT+0000 (heure moyenne de Greenwich)
+Case ID: 69322099f3de620d42b41ad7, LawyerID: 68e56e5eeffc99d55738f9ca (Type: string), Title: j'ai un probleme avec mon proprietaire , AcceptedAt: Thu Dec 25 2025 19:50:41 GMT+0000 (heure moyenne de Greenwich)
+Case ID: 693d40a9b8af3de138a62d04, LawyerID: 68e56e5eeffc99d55738f9ca (Type: string), Title: Mon entreprise me menace de me virer pour cause de récession. Quels sont mes options? , AcceptedAt: Thu Dec 25 2025 19:50:16 GMT+0000 (heure moyenne de Greenwich)
+Case ID: 693d611302f0bdaa83cba1e3, LawyerID: demo-lawyer (Type: string), Title: j'ai un problème avec mon fournisseur commerciale , AcceptedAt: Thu Dec 25 2025 19:27:06 GMT+0000 (heure moyenne de Greenwich)
+Case ID: 693d68476db7da41521713e5, LawyerID: demo-lawyer (Type: string), Title: il y'a eu une sequestration dans notre quartier , AcceptedAt: Thu Dec 25 2025 19:19:26 GMT+0000 (heure moyenne de Greenwich)
+Case ID: 693d6bbf0aa2e2a63815bb9f, LawyerID: demo-lawyer (Type: string), Title: J’ai un problème Avec mon bailleur , AcceptedAt: Thu Dec 25 2025 19:13:36 GMT+0000 (heure moyenne de Greenwich)
+Case ID: 693d71d2f6130c760c100f9d, LawyerID: demo-lawyer (Type: string), Title: J’ai un problème avec mon bailleur que ce que la loi en pense, AcceptedAt: Thu Dec 25 2025 18:49:53 GMT+0000 (heure moyenne de Greenwich)
+Case ID: 69498facdf9fecb53fdc225c, LawyerID: demo-lawyer (Type: string), Title: Quelles sont les conditions pour un mariage valide ?", AcceptedAt: Thu Dec 25 2025 18:19:55 GMT+0000 (heure moyenne de Greenwich)
+Case ID: 6949ba5f538f57908ae3e638, LawyerID: demo-lawyer (Type: string), Title: Qu’est-ce que dit la loi sénégalaise sur le détournement de mineur ?, AcceptedAt: Thu Dec 25 2025 18:42:36 GMT+0000 (heure moyenne de Greenwich)
+Total Lawyers: 14
+Lawyer ID: 68d0491be80471adeeeef600 (String: 68d0491be80471adeeeef600), Email: ft@xaali.sn, Name: kissima Tandia
+Lawyer ID: 68e3f6f5544afcc0863cb507 (String: 68e3f6f5544afcc0863cb507), Email: test1@xaali.sn, Name: test test 
+Lawyer ID: 68e56e5eeffc99d55738f9ca (String: 68e56e5eeffc99d55738f9ca), Email: test2@xaali.sn, Name: test1 test1 
+Lawyer ID: 691d8a93eb65afee7ddecfbb (String: 691d8a93eb65afee7ddecfbb), Email: test3@xaali.sn, Name: test 3
+Lawyer ID: 691d8ce6c3b30b191c9d2b07 (String: 691d8ce6c3b30b191c9d2b07), Email: test4@xaali.sn, Name: test4
+Lawyer ID: 691d9018c3b30b191c9d2b08 (String: 691d9018c3b30b191c9d2b08), Email: test5@xaali.sn, Name: test5
+Lawyer ID: 691d9143b37ca434e3b14f70 (String: 691d9143b37ca434e3b14f70), Email: test6@xaali.sn, Name: test6
+Lawyer ID: 691ed378ed5037a87c68bca4 (String: 691ed378ed5037a87c68bca4), Email: test6@xaali.net, Name: Test6
+Lawyer ID: 691ee3d1d21200c31a225804 (String: 691ee3d1d21200c31a225804), Email: kismart1107@gmail.com, Name: fatou Tandia
+Lawyer ID: 691f78492168e6ac85aba4ab (String: 691f78492168e6ac85aba4ab), Email: test8@xaali.sn, Name: test8
+Lawyer ID: 6921e3e35015c6dfb8dce7de (String: 6921e3e35015c6dfb8dce7de), Email: kismatandia0@gmail.com, Name: kissima Abdou Salam Tandia
+Lawyer ID: 6949b77c538f57908ae3e636 (String: 6949b77c538f57908ae3e636), Email: moisawade@gmail.com, Name: Moussa WADE
+Lawyer ID: 694d566e807acf9a106fa434 (String: 694d566e807acf9a106fa434), Email: kismart07@gmail.com, Name: kissima Abdou Salam Tandia
+Lawyer ID: 694daddbcb52cf13d0773109 (String: 694daddbcb52cf13d0773109), Email: kismart.dev@gmail.com, Name: Kissima Tandia
+--- DEBUG END ---
