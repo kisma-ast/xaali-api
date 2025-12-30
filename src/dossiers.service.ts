@@ -83,7 +83,7 @@ export class DossiersService {
     if (caseData.citizenEmail && !caseData.citizenEmail.includes('@xaali.temp') && caseData.trackingCode && caseData.trackingToken) {
       try {
         this.logger.log(`📧 Envoi email de suivi à: ${caseData.citizenEmail}`);
-        const trackingLink = `${process.env.FRONTEND_URL || 'https://xaali.net'}/suivi/${caseData.trackingToken}`;
+        const trackingLink = `${'https://xaali.net'}/suivi/${caseData.trackingToken}`;
 
         const emailSent = await this.emailService.sendTrackingNotification(
           caseData.citizenEmail,

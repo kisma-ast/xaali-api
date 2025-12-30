@@ -50,7 +50,7 @@ export class UnifiedPaymentController {
 
       // URLs de callback dynamiques
       const backendUrl = process.env.BACKEND_URL || 'https://xaali-api.onrender.com';
-      const frontendUrl = process.env.FRONTEND_URL || 'https://xaali.net';
+      const frontendUrl = 'https://xaali.net';
 
       const paymentRequest: PaymentRequest = {
         amount: body.amount,
@@ -156,11 +156,11 @@ export class UnifiedPaymentController {
     @Res() res: Response
   ) {
     try {
-      const frontendUrl = `${process.env.FRONTEND_URL || 'https://xaali.net'}/payment/success?provider=${provider}&transaction_id=${transactionId || ''}`;
+      const frontendUrl = `${'https://xaali.net'}/payment/success?provider=${provider}&transaction_id=${transactionId || ''}`;
       return res.redirect(frontendUrl);
     } catch (error) {
       this.logger.error(`Erreur redirection succès ${provider}: ${error.message}`);
-      return res.redirect(`${process.env.FRONTEND_URL || 'https://xaali.net'}/payment/error`);
+      return res.redirect(`${'https://xaali.net'}/payment/error`);
     }
   }
 
@@ -171,11 +171,11 @@ export class UnifiedPaymentController {
     @Res() res: Response
   ) {
     try {
-      const frontendUrl = `${process.env.FRONTEND_URL || 'https://xaali.net'}/payment/cancel?provider=${provider}&transaction_id=${transactionId || ''}`;
+      const frontendUrl = `${'https://xaali.net'}/payment/cancel?provider=${provider}&transaction_id=${transactionId || ''}`;
       return res.redirect(frontendUrl);
     } catch (error) {
       this.logger.error(`Erreur redirection annulation ${provider}: ${error.message}`);
-      return res.redirect(`${process.env.FRONTEND_URL || 'https://xaali.net'}/payment/error`);
+      return res.redirect(`${'https://xaali.net'}/payment/error`);
     }
   }
 }

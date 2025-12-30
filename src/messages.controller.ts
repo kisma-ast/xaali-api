@@ -23,13 +23,13 @@ export class MessagesController {
     private citizenRepository: Repository<Citizen>,
     private emailService: EmailService,
     private notificationService: NotificationService,
-  ) {}
+  ) { }
 
   @Get(':caseId')
   async getMessages(@Param('caseId') caseId: string) {
     try {
       console.log('📨 Récupération messages pour cas:', caseId);
-      
+
       // Essayer d'abord avec la requête normale
       let messages = await this.messageRepository.find({
         where: { caseId },
@@ -37,17 +37,17 @@ export class MessagesController {
       });
 
       console.log('🔍 Messages avec caseId exact:', messages.length);
-      
+
       // Si aucun message trouvé, essayer une recherche plus large
       if (messages.length === 0) {
         console.log('🔍 Recherche alternative...');
         const allMessages = await this.messageRepository.find();
         console.log('📊 Total messages en base:', allMessages.length);
-        
+
         // Filtrer manuellement
         messages = allMessages.filter(msg => msg.caseId === caseId);
         console.log('🎯 Messages filtrés manuellement:', messages.length);
-        
+
         // Afficher quelques exemples pour debug
         if (allMessages.length > 0) {
           console.log('📋 Exemple de caseId en base:', allMessages[0].caseId);
@@ -95,13 +95,43 @@ export class MessagesController {
       });
 
       const savedMessage = await this.messageRepository.save(message);
-      
+
       console.log('✅ Message sauvegardé:', savedMessage.id);
 
       // Récupérer le cas pour les notifications
       const case_ = await this.caseRepository.findOne({
         where: { _id: messageData.caseId as any }
       });
+
+      if (!case_) {
+        return { success: false, message: 'Dossier non trouvé' };
+      }
+
+      // Check for exchange status and expiration
+      if (case_.exchangeStatus === 'closed') {
+        return { success: false, message: 'Ce dossier est clôturé. Vous ne pouvez plus envoyer de messages.' };
+      }
+
+      if (case_.status === 'accepted' && case_.acceptedAt) {
+        const now = new Date();
+        const acceptedAt = new Date(case_.acceptedAt);
+        const hoursDiff = (now.getTime() - acceptedAt.getTime()) / (1000 * 60 * 60);
+        const maxDuration = case_.maxExchangeDurationHours || 5;
+
+        // Allow a small buffer or strictly enforce? Strictly enforce.
+        if (hoursDiff > maxDuration) {
+          console.log(`⏳ Dossier ${case_.trackingCode} expiré lors de l'envoi de message (${hoursDiff.toFixed(1)}h). Clôture.`);
+
+          case_.exchangeStatus = 'closed';
+          case_.exchangeClosedAt = now;
+          await this.caseRepository.save(case_);
+
+          return {
+            success: false,
+            message: 'Le délai de 5 heures pour les échanges est écoulé. Le dossier est désormais clos.'
+          };
+        }
+      }
 
       if (case_) {
         // Notifier le destinataire selon le type d'expéditeur
@@ -145,7 +175,7 @@ export class MessagesController {
   async getUnreadCount(@Param('caseId') caseId: string, @Param('userType') userType: 'citizen' | 'lawyer') {
     try {
       const otherUserType = userType === 'citizen' ? 'lawyer' : 'citizen';
-      
+
       const unreadCount = await this.messageRepository.count({
         where: {
           caseId,
@@ -168,7 +198,7 @@ export class MessagesController {
   async markMessagesAsRead(@Param('caseId') caseId: string, @Param('userType') userType: 'citizen' | 'lawyer') {
     try {
       const otherUserType = userType === 'citizen' ? 'lawyer' : 'citizen';
-      
+
       await this.messageRepository.update(
         {
           caseId,
@@ -208,7 +238,7 @@ export class MessagesController {
           const citizen = await this.citizenRepository.findOne({
             where: { _id: case_.citizenId as any }
           });
-          
+
           if (citizen?.email) {
             await this.emailService.sendNewMessageNotification(
               citizen.email,
@@ -225,7 +255,7 @@ export class MessagesController {
           const lawyer = await this.lawyerRepository.findOne({
             where: { _id: case_.lawyerId as any }
           });
-          
+
           if (lawyer?.email) {
             await this.emailService.sendNewMessageNotification(
               lawyer.email,

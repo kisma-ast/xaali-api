@@ -366,7 +366,7 @@ export class PayTechController {
           trackingCode: case_.trackingCode,
           trackingToken: case_.trackingToken,
           trackingLink: case_.trackingToken
-            ? `${process.env.FRONTEND_URL || 'https://xaali.net'}/suivi/${case_.trackingToken}`
+            ? `${'https://xaali.net'}/suivi/${case_.trackingToken}`
             : null,
           clientName: case_.citizenName,
           clientPhone: case_.citizenPhone,
@@ -464,7 +464,7 @@ export class PayTechController {
         case: {
           ...baseData,
           trackingToken: case_.trackingToken,
-          trackingLink: `${process.env.FRONTEND_URL || 'https://xaali.net'}/suivi/${case_.trackingToken}`,
+          trackingLink: `${'https://xaali.net'}/suivi/${case_.trackingToken}`,
           clientName: case_.citizenName,
           clientPhone: case_.citizenPhone,
           clientEmail: case_.citizenEmail,

@@ -16,7 +16,7 @@ export class CasesService {
     private notificationService: NotificationService,
     // @InjectRepository(LawyerNotification)
     // private notificationsRepository: Repository<LawyerNotification>,
-  ) {}
+  ) { }
 
   findAll(): Promise<Case[]> {
     return this.casesRepository.find({
@@ -39,10 +39,10 @@ export class CasesService {
   async create(caseData: Partial<Case>): Promise<Case> {
     const newCase = this.casesRepository.create(caseData);
     const savedCase = await this.casesRepository.save(newCase);
-    
+
     // Notifier tous les avocats du nouveau cas
     await this.notifyAllLawyers(savedCase.id);
-    
+
     return savedCase;
   }
 
@@ -111,17 +111,18 @@ export class CasesService {
       case_.lawyerName = lawyer.name;
       case_.status = 'accepted';
       case_.acceptedAt = new Date();
-      
+      case_.exchangeStatus = 'active';
+
       const savedCase = await this.casesRepository.save(case_);
-      
+
       // Notifier le citoyen qu'un avocat a accepté son dossier
       await this.notificationService.notifyCitizenLawyerAssigned(savedCase, lawyer);
-      
+
       // Notifier l'avocat qu'un cas lui a été assigné
       await this.notificationService.notifyLawyerCaseAssigned(savedCase, lawyer);
-      
+
       console.log(`✅ Avocat ${lawyerId} assigné au cas ${caseId} - Notifications envoyées`);
-      
+
       return savedCase;
     } catch (error) {
       console.error('Erreur assignLawyer:', error);
@@ -132,19 +133,19 @@ export class CasesService {
   async createBeforePayment(caseData: Partial<Case>): Promise<Case> {
     console.log('💾 [CASES-SERVICE] Création cas avant paiement');
     console.log('📋 [CASES-SERVICE] Données:', JSON.stringify(caseData, null, 2));
-    
+
     const newCase = this.casesRepository.create({
       ...caseData,
       isPaid: false,
       status: 'pending'
     });
-    
+
     console.log('💾 [CASES-SERVICE] Entité créée:', JSON.stringify(newCase, null, 2));
-    
+
     const savedCase = await this.casesRepository.save(newCase);
-    
+
     console.log('✅ [CASES-SERVICE] Cas sauvegardé avec ID:', savedCase.id);
-    
+
     return savedCase;
   }
 
@@ -162,15 +163,15 @@ export class CasesService {
       case_.paymentId = paymentData.paymentId;
       case_.paymentAmount = paymentData.paymentAmount;
       case_.isPaid = paymentData.isPaid;
-      
+
       const updatedCase = await this.casesRepository.save(case_);
-      
+
       // Si le paiement est confirmé, notifier les avocats
       if (paymentData.isPaid) {
         await this.notifyAllLawyers(updatedCase.id);
         console.log(`✅ Cas payé: ${updatedCase.trackingCode}`);
       }
-      
+
       return updatedCase;
     } catch (error) {
       console.error('Erreur updatePaymentStatus:', error);
@@ -207,5 +208,32 @@ export class CasesService {
       console.error('Erreur findByPhoneNumber:', error);
       return null;
     }
+  }
+  async closeExchange(caseId: string): Promise<Case> {
+    const case_ = await this.findOne(caseId);
+    if (!case_) throw new Error('Case not found');
+
+    case_.exchangeStatus = 'closed';
+    case_.exchangeClosedAt = new Date();
+
+    return this.casesRepository.save(case_);
+  }
+
+  async checkExchangeStatus(case_: Case): Promise<Case> {
+    if (case_.status === 'accepted' && case_.exchangeStatus === 'active' && case_.acceptedAt) {
+      const now = new Date();
+      const acceptedAt = new Date(case_.acceptedAt);
+      const hoursDiff = (now.getTime() - acceptedAt.getTime()) / (1000 * 60 * 60);
+
+      const maxDuration = case_.maxExchangeDurationHours || 5;
+
+      if (hoursDiff >= maxDuration) {
+        console.log(`⏳ Dossier ${case_.trackingCode} expiré (${hoursDiff.toFixed(1)}h > ${maxDuration}h). Clôture automatique.`);
+        case_.exchangeStatus = 'closed';
+        case_.exchangeClosedAt = now;
+        return this.casesRepository.save(case_);
+      }
+    }
+    return case_;
   }
 } 

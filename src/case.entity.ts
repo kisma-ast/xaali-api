@@ -114,4 +114,13 @@ export class Case {
   @ManyToOne(() => Lawyer, lawyer => lawyer.cases)
   @JoinColumn({ name: 'lawyerId' })
   lawyer: Lawyer;
+
+  @Column({ default: 'pending' })
+  exchangeStatus: 'pending' | 'active' | 'closed';
+
+  @Column({ nullable: true })
+  exchangeClosedAt: Date;
+
+  @Column({ default: 5 })
+  maxExchangeDurationHours: number;
 } 

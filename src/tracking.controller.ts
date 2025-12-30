@@ -29,7 +29,7 @@ export class TrackingController {
       const trackingToken = uuidv4();
 
       // Créer le lien de suivi
-      const baseUrl = process.env.FRONTEND_URL || 'https://xaali.net';
+      const baseUrl = 'https://xaali.net';
       const trackingLink = `${baseUrl}/suivi/${trackingToken}`;
 
       // Mettre à jour le cas avec les informations de suivi
