@@ -4,6 +4,7 @@ import { Repository } from 'typeorm';
 import { ObjectId } from 'mongodb';
 import { Lawyer } from './lawyer.entity';
 import { Case } from './case.entity';
+import { Dossier } from './dossier.entity';
 import { Citizen } from './citizen.entity';
 import { NotificationService } from './notification.service';
 import { FineTuningService } from './fine-tuning.service';
@@ -21,6 +22,8 @@ export class RealAuthController {
     private caseRepository: Repository<Case>,
     @InjectRepository(Citizen)
     private citizenRepository: Repository<Citizen>,
+    @InjectRepository(Dossier)
+    private dossierRepository: Repository<Dossier>,
     private notificationService: NotificationService,
     private fineTuningService: FineTuningService,
     private emailService: EmailService,
@@ -375,16 +378,63 @@ export class RealAuthController {
         order: { paidAt: 'DESC', createdAt: 'DESC' }
       });
 
-      // Filtrer les cas payés uniquement (exclure isPaid:false et status:unpaid)
+      // Filtrer les cas payés ou ayant un ID de paiement valide
       const paidCases = cases.filter(c =>
-        c.paymentId != null &&
-        c.isPaid !== false &&
-        c.status !== 'unpaid'
-      );
+        c.isPaid === true ||
+        c.status === 'paid' ||
+        c.status === 'pending' ||
+        (c.paymentId && c.paymentId.length > 5) // Inclure si paymentId présent (même si unpaid)
+      ).map(c => ({
+        ...c,
+        id: c._id?.toString(), // FIX: Garantir que l'ID est une string
+        _id: c._id?.toString(), // FIX: Garantir que l'ID est une string
+        // Assurer qu'il y a un paymentId pour passer le filtre frontend
+        paymentId: c.paymentId || `manual_${c.id?.toString().substring(0, 8)}`,
+        // Si status est unpaid mais on l'affiche, on le présente comme pending
+        status: c.status === 'unpaid' ? 'pending' : c.status
+      }));
+
+      // Récupérer aussi les dossiers simplifiés payés
+      const dossiers = await this.dossierRepository.find({
+        where: {
+          status: 'paid'
+        },
+        order: { createdAt: 'DESC' }
+      });
+
+      // Mapper les dossiers pour qu'ils ressemblent aux cas
+      const formattedDossiers = dossiers.map(d => {
+        // Sécurisation de l'ID
+        const safeId = d.id || (d as any)._id?.toString();
+
+        return {
+          ...d,
+          id: safeId,
+          _id: safeId,
+          isPaid: true,
+          paymentId: d.trackingToken || 'simplified_payment',
+          status: 'pending',
+          description: d.clientQuestion,
+          category: d.problemCategory,
+          citizenName: d.clientName,
+          citizenPhone: d.clientPhone,
+          clientQuestion: d.clientQuestion,
+          title: d.problemCategory || 'Dossier Xaali',
+          type: 'dossier_simplified',
+          paidAt: d.createdAt
+        };
+      });
+
+      // Fusionner et trier
+      const allCases = [...paidCases, ...formattedDossiers].sort((a, b) => {
+        const dateA = new Date(a.paidAt || a.createdAt).getTime();
+        const dateB = new Date(b.paidAt || b.createdAt).getTime();
+        return dateB - dateA;
+      });
 
       return {
         success: true,
-        cases: paidCases
+        cases: allCases
       };
     } catch (error) {
       this.logger.error('Erreur récupération cas:', error);
@@ -419,16 +469,60 @@ export class RealAuthController {
       const effectiveLawyerId = lawyerIdFromToken || body.lawyerId;
       console.log('👨‍⚖️ [REAL-AUTH] ID Avocat effectif:', effectiveLawyerId);
 
-      const caseToUpdate = await this.caseRepository.findOne({
-        where: { _id: new ObjectId(caseId) }
-      });
+      let caseToUpdate: any = null;
+      let isSimplifiedDossier = false;
 
-      if (!caseToUpdate) {
-        return { success: false, message: 'Cas non trouvé' };
+      // Essayer de trouver un Cas standard
+      try {
+        caseToUpdate = await this.caseRepository.findOne({
+          where: { _id: new ObjectId(caseId) }
+        });
+      } catch (e) {
+        console.log('ℹ️ [REAL-AUTH] ID non conforme ObjectId, vérification UUID Dossier...');
       }
 
-      if (caseToUpdate.status !== 'pending') {
-        return { success: false, message: 'Ce cas a déjà été pris en charge' };
+      // Si pas trouvé, essayer de trouver un Dossier simplifié
+      if (!caseToUpdate) {
+        try {
+          caseToUpdate = await this.dossierRepository.findOne({
+            where: { id: caseId }
+          });
+          if (caseToUpdate) {
+            isSimplifiedDossier = true;
+            console.log('✅ [REAL-AUTH] Dossier simplifié trouvé:', caseId);
+          }
+        } catch (e) {
+          console.log('❌ [REAL-AUTH] Erreur recherche dossier:', e);
+        }
+      }
+
+      if (!caseToUpdate) {
+        return { success: false, message: 'Cas ou Dossier non trouvé' };
+      }
+
+      // Vérifier le statut (pending, paid ou unpaid+isPaid ou unpaid+paymentId)
+      if (isSimplifiedDossier) {
+        if (caseToUpdate.status !== 'pending' && caseToUpdate.status !== 'paid' && caseToUpdate.isPaid !== true) {
+          return { success: false, message: 'Ce dossier a déjà été pris en charge ou est invalide' };
+        }
+      } else {
+        // Pour les cas standards, on accepte si:
+        // 1. Status est 'pending'
+        // 2. OU isPaid est true (source de vérité ultime selon l'utilisateur)
+        // 3. OU paymentId existe (cas limite)
+        // ET que lawyerId est null (pas déjà pris)
+
+        const isPaidValid = caseToUpdate.isPaid === true || !!caseToUpdate.paymentId;
+        const isStatusValid = caseToUpdate.status === 'pending' || caseToUpdate.status === 'paid' || caseToUpdate.status === 'unpaid';
+        const isNotTaken = !caseToUpdate.lawyerId;
+
+        if (!isNotTaken) {
+          return { success: false, message: 'Ce cas a déjà été accepté par un autre avocat' };
+        }
+
+        if (!isPaidValid && caseToUpdate.status !== 'pending') {
+          return { success: false, message: 'Ce cas n\'est pas éligible (non payé)' };
+        }
       }
 
       // Récupérer les informations de l'avocat depuis la BD
@@ -444,19 +538,48 @@ export class RealAuthController {
         }
       }
 
-      // Mettre à jour le cas
-      caseToUpdate.status = 'accepted';
-      caseToUpdate.lawyerId = effectiveLawyerId;
-      caseToUpdate.lawyerName = lawyer?.name || 'Avocat Xaali';
-      caseToUpdate.acceptedAt = new Date();
+      const assignedLawyerName = lawyer?.name || 'Avocat Xaali';
 
-      await this.caseRepository.save(caseToUpdate);
+      // Mettre à jour le cas ou le dossier
+      if (isSimplifiedDossier) {
+        // Mise à jour Dossier
+        caseToUpdate.status = 'accepted';
+        // Dossier stocke assignedLawyer en JSON
+        caseToUpdate.assignedLawyer = {
+          id: effectiveLawyerId,
+          name: assignedLawyerName,
+          specialty: lawyer?.specialty || caseToUpdate.problemCategory,
+          phone: lawyer?.phone
+        };
+        // Ajouter champs pour compatibilité Dashboard
+        caseToUpdate.lawyerId = effectiveLawyerId; // Si nécessaire pour requêtes futures
+        caseToUpdate.acceptedAt = new Date();
 
-      console.log('✅ [REAL-AUTH] Cas accepté avec succès:', caseId);
-      console.log('👨‍⚖️ [REAL-AUTH] Avocat assigné:', lawyer?.name || effectiveLawyerId);
+        await this.dossierRepository.save(caseToUpdate);
+
+        // Champs pour notification
+        caseToUpdate.citizenEmail = caseToUpdate.clientEmail;
+        caseToUpdate.category = caseToUpdate.problemCategory;
+
+      } else {
+        // Mise à jour Cas standard
+        caseToUpdate.status = 'accepted';
+        caseToUpdate.lawyerId = effectiveLawyerId;
+        caseToUpdate.lawyerName = assignedLawyerName;
+        caseToUpdate.acceptedAt = new Date();
+
+        await this.caseRepository.save(caseToUpdate);
+      }
+
+      console.log('✅ [REAL-AUTH] Cas/Dossier accepté avec succès:', caseId);
+      console.log('👨‍⚖️ [REAL-AUTH] Avocat assigné:', assignedLawyerName);
 
       // Notifier les autres avocats que le cas n'est plus disponible
-      await this.notificationService.notifyCaseAccepted(caseId, effectiveLawyerId);
+      try {
+        await this.notificationService.notifyCaseAccepted(caseId, effectiveLawyerId);
+      } catch (e) {
+        console.warn('⚠️ Erreur notification push:', e);
+      }
 
       // Envoyer notification au citoyen directement via son email sur le cas
       if (caseToUpdate.citizenEmail && caseToUpdate.trackingCode && caseToUpdate.trackingToken) {
@@ -469,7 +592,7 @@ export class RealAuthController {
             caseToUpdate.trackingCode,
             trackingLink,
             {
-              name: lawyer?.name || 'Avocat Xaali',
+              name: assignedLawyerName,
               specialty: lawyer?.specialty || caseToUpdate.category,
               email: lawyer?.email,
               phone: lawyer?.phone
