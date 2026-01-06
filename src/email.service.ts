@@ -44,7 +44,7 @@ export class EmailService {
         html: `
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
             <h2 style="color: #16a34a;">Paiement confirmé !</h2>
-            <p>Votre paiement de <strong>${amount} FCFA</strong> a été traité avec succès.</p>
+            <p>Votre paiement a été traité avec succès.</p>
             
             <div style="background-color: #f0f9ff; padding: 20px; border-radius: 8px; margin: 20px 0; text-align: center;">
               <h3 style="margin: 0 0 10px 0; color: #1e40af;">Code de suivi</h3>
@@ -227,7 +227,7 @@ export class EmailService {
             
             <h2 style="color: #1f2937;">Votre dossier est prêt !</h2>
             <p>Bonjour <strong>${caseData.clientName}</strong>,</p>
-            <p>Votre consultation juridique concernant <strong>${caseData.problemCategory}</strong> a été traitée avec succès.</p>
+            <p>Votre consultation juridique a été traitée avec succès.</p>
             
             <div style="background: linear-gradient(135deg, #2563eb, #3b82f6); color: white; padding: 25px; border-radius: 12px; margin: 25px 0; text-align: center;">
               <h3 style="margin: 0 0 15px 0;">Accédez à votre dossier</h3>
