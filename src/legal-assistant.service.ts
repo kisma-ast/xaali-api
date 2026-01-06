@@ -59,30 +59,42 @@ export class LegalAssistantService {
       let content = "";
       let confidence = 'Moyen';
       let processingMode = 'RAG';
+      let title = "Réponse Xaali";
+      let summary = "";
+      let nextSteps = [];
 
       if (ragResult.foundContext) {
         content = ragResult.content || "";
         processingMode = 'RAG';
+        confidence = 'Élevé';
+        summary = "Réponse basée sur vos documents juridiques.";
+        nextSteps = [
+          'Préparer les documents nécessaires',
+          'Contacter les autorités compétentes si nécessaire',
+          'Consulter un avocat spécialisé pour un conseil personnalisé'
+        ];
       } else {
-        this.logger.log(`⚠️ Aucun document RAG trouvé pour "${legalQuery.query}" -> Fallback sur Fine-Tuning`);
+        this.logger.log(`⚠️ Aucun document RAG trouvé pour "${legalQuery.query}" -> Fallback sur Fine-Tuning/OpenAI`);
 
-        // Fallback to Fine-Tuning
+        // Fallback to Fine-Tuning/OpenAI
         const ftResponse = await this.fineTuningService.processFineTunedQuery({
           question: legalQuery.query,
           category: legalQuery.category
         });
 
-        // Handle fine-tuning response structure (could be object or string)
-        if (typeof ftResponse.answer === 'string') {
-          content = ftResponse.answer;
-        } else if (ftResponse.answer.content) {
-          content = ftResponse.answer.content;
+        // Extract structured data from fine-tuning response
+        const answer = ftResponse.answer;
+        if (typeof answer === 'string') {
+          content = answer;
         } else {
-          content = JSON.stringify(ftResponse.answer);
+          content = answer.content || JSON.stringify(answer);
+          title = answer.title || title;
+          summary = answer.summary || "";
+          confidence = answer.confidence || 'Moyen';
+          nextSteps = answer.nextSteps || [];
         }
 
-        processingMode = 'FALLBACK_FINE_TUNING';
-        confidence = 'Moyen';
+        processingMode = 'FALLBACK_AI';
       }
 
       const result = {
@@ -90,17 +102,17 @@ export class LegalAssistantService {
         relevantDocuments: [],
 
         formattedResponse: {
-          title: "Réponse Xaali",
+          title: title,
           content: content,
           articles: [],
-          summary: "",
+          summary: summary,
           disclaimer: "",
           confidence: confidence as any,
-          nextSteps: [],
+          nextSteps: nextSteps,
           relatedTopics: [],
           ragMetadata: {
-            poweredBy: 'Xaali-MongoDB',
-            systemVersion: '1.0',
+            poweredBy: 'Xaali-AI',
+            systemVersion: '1.1',
             processingMode: processingMode as any,
             timestamp: new Date().toISOString(),
           }

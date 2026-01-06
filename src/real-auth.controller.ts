@@ -345,7 +345,7 @@ export class RealAuthController {
       // Créer le cas avec les informations du paiement
       const caseData = {
         title: explicitTitle,
-        description: `Question du client: ${paymentData.clientQuestion || 'Le client souhaite une consultation juridique spécialisée.'}\n\nCatégorie: ${paymentData.category || 'consultation-generale'}\nMontant payé: ${paymentData.amount || '10000'} FCFA`,
+        description: paymentData.clientQuestion || 'Le client souhaite une consultation juridique spécialisée.',
         category: paymentData.category || 'consultation-generale',
         citizenName: paymentData.clientName || null,
         citizenPhone: paymentData.clientPhone || null,

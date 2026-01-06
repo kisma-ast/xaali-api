@@ -87,7 +87,7 @@ export class EmailService {
       const mailOptions = {
         from: process.env.EMAIL_FROM || process.env.EMAIL_USER,
         to: email,
-        subject: `Nouveau dossier disponible - ${caseData.category}`,
+        subject: `Nouveau dossier disponible`,
         html: `
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
             <h2 style="color: #2563eb;">Nouveau dossier disponible</h2>
@@ -96,10 +96,8 @@ export class EmailService {
             
             <div style="background-color: #f3f4f6; padding: 20px; border-radius: 8px; margin: 20px 0;">
               <h3 style="margin: 0 0 10px 0; color: #1f2937;">Détails du dossier</h3>
-              <p><strong>Catégorie:</strong> ${caseData.category}</p>
-              <p><strong>Titre:</strong> ${caseData.title}</p>
-              <p><strong>Description:</strong> ${caseData.description ? caseData.description.substring(0, 150) + '...' : 'Non spécifiée'}</p>
-              <p><strong>Montant:</strong> ${caseData.paymentAmount || 'Standard'} FCFA</p>
+              <p style="margin: 5px 0;"><strong>Titre:</strong> ${caseData.title}</p>
+              <p style="margin: 5px 0;"><strong>Description:</strong> ${caseData.description ? (caseData.description.includes('Question du client:') ? caseData.description.split('Question du client:')[1].split('Catégorie:')[0].trim() : caseData.description.substring(0, 150)) : 'Non spécifiée'}</p>
             </div>
             
             <div style="text-align: center; margin: 30px 0;">
@@ -137,7 +135,6 @@ export class EmailService {
             <div style="background-color: #f0f9ff; padding: 20px; border-radius: 8px; margin: 20px 0;">
               <h3 style="margin: 0 0 10px 0; color: #1e40af;">Récapitulatif</h3>
               <p><strong>Client:</strong> ${caseData.citizenName || 'Client Xaali'}</p>
-              <p><strong>Catégorie:</strong> ${caseData.category}</p>
               <p><strong>Date:</strong> ${new Date().toLocaleDateString()}</p>
             </div>
             

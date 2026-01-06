@@ -64,7 +64,7 @@ export class FineTuningService {
 
       // Adapter le prompt selon le contexte
       let userPrompt = '';
-      
+
       if (query.context === 'title_generation') {
         // Prompt spécifique pour la génération de titres
         userPrompt = `Génère un titre juridique court et précis (maximum 8 mots) pour cette consultation: "${query.question}"
@@ -84,27 +84,25 @@ Réponds uniquement avec le titre, sans guillemets ni ponctuation finale.`;
         userPrompt = `Question: ${query.question}
 Catégorie: ${query.category || 'Droit général'}
 
-Tu DOIS répondre à cette question en trouvant l'angle juridique sénégalais. RÈGLE ABSOLUE: CHAQUE loi/article cité DOIT être immédiatement suivi de son extrait textuel entre guillemets. Format JSON STRICT:
+Tu es Xaali, l'expert du droit sénégalais. 
+IMPORTANT: Si tu n'as pas de documents spécifiques fournis en contexte, utilise ta connaissance approfondie du droit sénégalais pour répondre. Ne dis JAMAIS que tu n'as pas assez d'informations ou que le contexte est manquant.
+
+Tu DOIS répondre à cette question en trouvant l'angle juridique sénégalais. RÈME ABSOLUE: CHAQUE loi/article cité DOIT être immédiatement suivi de son extrait textuel entre guillemets. Format JSON STRICT:
 {
   "title": "Titre juridique précis",
   "content": "Réponse OBLIGATOIREMENT structurée: 1) Citation précise (ex: Article 310 du Code de la Famille sénégalais), 2) IMMÉDIATEMENT après: extrait textuel exact entre guillemets (ex: : \"Il est interdit de marier une personne âgée de moins de 16 ans\"), 3) Explication de cette disposition, 4) Application à la situation, 5) Conséquences pratiques. OBLIGATOIRE: Terminer par 'Pour une analyse approfondie de votre situation spécifique, nous vous recommandons vivement de consulter un avocat qualifié.'",
-  "summary": "Résumé des droits et obligations en 2 phrases",
+  "summary": "Résumé des droits et obligations en 2 sentences",
   "nextSteps": ["Préparer les documents nécessaires", "Contacter les autorités compétentes si nécessaire", "Consulter un avocat spécialisé pour un conseil personnalisé"],
   "confidence": "Élevé/Moyen/Faible"
 }
 
 FORMAT OBLIGATOIRE pour CHAQUE loi citée:
 "En vertu de l'Article [NUMÉRO] du [CODE/LOI] : \"[EXTRAIT EXACT DE LA LOI]\". Cette disposition..."
-
-EXEMPLES CONFORMES:
-- "Selon l'Article 279 du Code de la Famille : \"L'âge minimum pour le mariage est fixé à 18 ans\". Cela signifie..."
-- "L'Article 320 du Code pénal dispose : \"Est puni d'emprisonnement quiconque force au mariage\". Cette sanction..."
-
-ATTENTION: ZÉRO EXCEPTION - Chaque référence légale = extrait immédiat entre guillemets.`;
+`;
       }
 
       this.logger.log(`🤖 Appel à l'API OpenAI avec le modèle fine-tuned: ${AI_CONFIG.MODELS.OPENAI}`);
-      
+
       const response = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
         headers: {
@@ -148,14 +146,14 @@ ATTENTION: ZÉRO EXCEPTION - Chaque référence légale = extrait immédiat entr
         // Parser la réponse JSON pour les réponses complètes
         try {
           const parsedResponse = JSON.parse(responseText);
-          
+
           // TOUJOURS forcer les nextSteps
           parsedResponse.nextSteps = [
             'Préparer les documents nécessaires',
             'Contacter les autorités compétentes si nécessaire',
             'Consulter un avocat spécialisé pour un conseil personnalisé'
           ];
-          
+
           return parsedResponse;
         } catch (parseError) {
           this.logger.error('Error parsing OpenAI response:', parseError);

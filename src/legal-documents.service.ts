@@ -141,7 +141,11 @@ Langue: Français.`
         "ne peux pas répondre",
         "ne trouve pas dans le contexte",
         "pas d'informations spécifiques",
-        "contexte fourni ne mentionne pas"
+        "contexte fourni ne mentionne pas",
+        "désolé, mais je ne peux",
+        "aucune information n'est fournie",
+        "il n'est pas possible de répondre",
+        "je n'ai pas accès à ces informations"
       ];
 
       const isRefusal = refusalPatterns.some(pattern => content.toLowerCase().includes(pattern));
