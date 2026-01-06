@@ -123,4 +123,13 @@ export class Case {
 
   @Column({ default: 5 })
   maxExchangeDurationHours: number;
-} 
+
+  @Column({ default: false })
+  clientFeedbackCompleted: boolean;
+
+  @Column({ default: false })
+  lawyerFeedbackCompleted: boolean;
+
+  @Column({ nullable: true })
+  closureType: 'manual' | 'automatic';
+}

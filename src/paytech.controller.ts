@@ -662,7 +662,8 @@ export class PayTechController {
     amount: number;
   }) {
     try {
-      const response = await fetch(`${process.env.BACKEND_URL || 'http://localhost:3000'}/consultation/save-after-payment`, {
+      const backendUrl = process.env.BACKEND_URL || 'http://localhost:3000';
+      const response = await fetch(`${backendUrl}/consultation/save-after-payment`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

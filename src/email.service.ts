@@ -20,7 +20,7 @@ export class EmailService {
       logger: true // Loguer dans la console
     });
 
-    this.logger.log('📧 Service Email configuré avec:', {
+    this.logger.log('Service Email configuré avec:', {
       host: process.env.EMAIL_HOST,
       port: process.env.EMAIL_PORT,
       user: process.env.EMAIL_USER,
@@ -35,7 +35,7 @@ export class EmailService {
     amount: number
   ) {
     try {
-      this.logger.log(`🚀 Tentative d'envoi email à: ${email}`);
+      this.logger.log(`Tentative d'envoi email à: ${email}`);
 
       const mailOptions = {
         from: process.env.EMAIL_FROM || process.env.EMAIL_USER,
@@ -43,7 +43,7 @@ export class EmailService {
         subject: `Paiement confirmé - Code de suivi ${trackingCode}`,
         html: `
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-            <h2 style="color: #16a34a;">🎉 Paiement confirmé !</h2>
+            <h2 style="color: #16a34a;">Paiement confirmé !</h2>
             <p>Votre paiement de <strong>${amount} FCFA</strong> a été traité avec succès.</p>
             
             <div style="background-color: #f0f9ff; padding: 20px; border-radius: 8px; margin: 20px 0; text-align: center;">
@@ -56,7 +56,7 @@ export class EmailService {
             <div style="text-align: center; margin: 30px 0;">
               <a href="${trackingLink}" 
                  style="background-color: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block; font-weight: bold;">
-                🔍 Suivre mon dossier
+                Suivre mon dossier
               </a>
             </div>
             
@@ -69,10 +69,10 @@ export class EmailService {
       };
 
       const result = await this.transporter.sendMail(mailOptions);
-      this.logger.log(`✅ Email de suivi envoyé avec succès à ${email}`);
+      this.logger.log(`Email de suivi envoyé avec succès à ${email}`);
       return true;
     } catch (error) {
-      this.logger.error(`❌ Erreur envoi email suivi à ${email}: ${error.message}`);
+      this.logger.error(`Erreur envoi email suivi à ${email}: ${error.message}`);
       if (error.code) this.logger.error(`Code erreur: ${error.code}`);
       if (error.command) this.logger.error(`Commande: ${error.command}`);
       if (error.response) this.logger.error(`Réponse SMTP: ${error.response}`);
@@ -82,7 +82,7 @@ export class EmailService {
 
   async sendNewCaseNotificationToLawyers(email: string, name: string, caseData: any): Promise<boolean> {
     try {
-      this.logger.log(`📧 Envoi notification nouveau cas à l'avocat: ${email}`);
+      this.logger.log(`Envoi notification nouveau cas à l'avocat: ${email}`);
 
       const mailOptions = {
         from: process.env.EMAIL_FROM || process.env.EMAIL_USER,
@@ -115,14 +115,14 @@ export class EmailService {
       await this.transporter.sendMail(mailOptions);
       return true;
     } catch (error) {
-      this.logger.error(`❌ Erreur notification avocat (${email}):`, error);
+      this.logger.error(`Erreur notification avocat (${email}):`, error);
       return false;
     }
   }
 
   async sendCaseAssignedNotificationToLawyer(email: string, name: string, caseData: any): Promise<boolean> {
     try {
-      this.logger.log(`📧 Envoi confirmation assignation à l'avocat: ${email}`);
+      this.logger.log(`Envoi confirmation assignation à l'avocat: ${email}`);
 
       const mailOptions = {
         from: process.env.EMAIL_FROM || process.env.EMAIL_USER,
@@ -156,7 +156,7 @@ export class EmailService {
       await this.transporter.sendMail(mailOptions);
       return true;
     } catch (error) {
-      this.logger.error(`❌ Erreur notification assignation avocat (${email}):`, error);
+      this.logger.error(`Erreur notification assignation avocat (${email}):`, error);
       return false;
     }
   }
@@ -168,15 +168,15 @@ export class EmailService {
     lawyer: any
   ): Promise<boolean> {
     try {
-      this.logger.log(`📧 Envoi notification avocat assigné au citoyen: ${email}`);
+      this.logger.log(`Envoi notification avocat assigné au citoyen: ${email}`);
 
       const mailOptions = {
         from: process.env.EMAIL_FROM || process.env.EMAIL_USER,
         to: email,
-        subject: `✅ Avocat assigné - Dossier ${trackingCode}`,
+        subject: `Avocat assigné - Dossier ${trackingCode}`,
         html: `
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-            <h2 style="color: #16a34a;">✅ Votre dossier a été accepté !</h2>
+            <h2 style="color: #16a34a;">Votre dossier a été accepté !</h2>
             <p>Bonjour,</p>
             <p>Un avocat a accepté de prendre en charge votre dossier <strong>${trackingCode}</strong>.</p>
             
@@ -184,8 +184,8 @@ export class EmailService {
               <h3 style="margin: 0 0 10px 0; color: #1e40af;">Votre avocat</h3>
               <p style="margin: 5px 0;"><strong>${lawyer.name}</strong></p>
               <p style="margin: 5px 0;">${lawyer.specialty || 'Spécialiste juridique'}</p>
-              ${lawyer.email ? `<p style="margin: 5px 0;">📧 ${lawyer.email}</p>` : ''}
-              ${lawyer.phone ? `<p style="margin: 5px 0;">📞 ${lawyer.phone}</p>` : ''}
+              ${lawyer.email ? `<p style="margin: 5px 0;">Email: ${lawyer.email}</p>` : ''}
+              ${lawyer.phone ? `<p style="margin: 5px 0;">Téléphone: ${lawyer.phone}</p>` : ''}
             </div>
             
             <p>Vous pouvez maintenant communiquer avec votre avocat via la plateforme.</p>
@@ -193,7 +193,7 @@ export class EmailService {
             <div style="text-align: center; margin: 30px 0;">
               <a href="${trackingLink}" 
                  style="background-color: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block; font-weight: bold;">
-                📋 Accéder à mon dossier
+                Accéder à mon dossier
               </a>
             </div>
             
@@ -207,7 +207,7 @@ export class EmailService {
       await this.transporter.sendMail(mailOptions);
       return true;
     } catch (error) {
-      this.logger.error(`❌ Erreur notification citoyen avocat assigné (${email}):`, error);
+      this.logger.error(`Erreur notification citoyen avocat assigné (${email}):`, error);
       return false;
     }
   }
@@ -263,10 +263,10 @@ export class EmailService {
       };
 
       await this.transporter.sendMail(mailOptions);
-      this.logger.log(`✅ Email avec lien de suivi envoyé à ${customerEmail}`);
+      this.logger.log(`Email avec lien de suivi envoyé à ${customerEmail}`);
       return true;
     } catch (error) {
-      this.logger.error(`❌ Erreur envoi email suivi:`, error);
+      this.logger.error(`Erreur envoi email suivi:`, error);
       return false;
     }
   }
@@ -313,7 +313,7 @@ export class EmailService {
 
   async sendLawyerWelcomeEmail(email: string, name: string): Promise<boolean> {
     try {
-      this.logger.log(`📧 Envoi email de bienvenue avocat à: ${email}`);
+      this.logger.log(`Envoi email de bienvenue avocat à: ${email}`);
 
       // Log transporter config (safe)
       this.logger.debug(`Configuration SMTP: Host=${process.env.EMAIL_HOST}, Port=${process.env.EMAIL_PORT}, User=${process.env.EMAIL_USER ? 'Défini' : 'Non défini'}`);
@@ -364,10 +364,10 @@ export class EmailService {
       };
 
       const info = await this.transporter.sendMail(mailOptions);
-      this.logger.log(`✅ Email de bienvenue envoyé avec succès à ${email}. MessageId: ${info.messageId}`);
+      this.logger.log(`Email de bienvenue envoyé avec succès à ${email}. MessageId: ${info.messageId}`);
       return true;
     } catch (error) {
-      this.logger.error(`❌ Erreur envoi email bienvenue avocat à ${email}:`, error);
+      this.logger.error(`Erreur envoi email bienvenue avocat à ${email}:`, error);
       if (error.response) {
         this.logger.error(`Détails erreur SMTP: ${JSON.stringify(error.response)}`);
       }

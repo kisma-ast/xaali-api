@@ -66,7 +66,10 @@ export class CasesService {
 
   async getPendingCases(): Promise<Case[]> {
     return this.casesRepository.find({
-      where: { status: 'pending' },
+      where: {
+        status: 'pending',
+        lawyerId: IsNull()
+      },
       relations: ['citizen'],
       order: { createdAt: 'DESC' },
     });
@@ -74,14 +77,17 @@ export class CasesService {
 
   async getPaidAndAvailableCases(): Promise<Case[]> {
     // Récupérer les cas payés ET non assignés (disponibles pour les avocats)
-    return this.casesRepository.find({
+    const cases = await this.casesRepository.find({
       where: [
-        { isPaid: true, lawyerId: IsNull() }, // Cas payés sans avocat assigné
-        { status: 'paid', lawyerId: IsNull() } // Cas avec status paid sans avocat
+        { isPaid: true }, // Cas payés
+        { status: 'paid' } // Cas avec status paid
       ],
       relations: ['citizen'],
       order: { createdAt: 'DESC' },
     });
+
+    // Filtrer en mémoire pour être sûr de ne pas inclure les cas assignés (MongoDB compatibility)
+    return cases.filter(c => !c.lawyerId);
   }
 
   async getCasesByLawyer(lawyerId: string): Promise<Case[]> {
@@ -121,7 +127,7 @@ export class CasesService {
       // Notifier l'avocat qu'un cas lui a été assigné
       await this.notificationService.notifyLawyerCaseAssigned(savedCase, lawyer);
 
-      console.log(`✅ Avocat ${lawyerId} assigné au cas ${caseId} - Notifications envoyées`);
+      console.log(`Avocat ${lawyerId} assigné au cas ${caseId} - Notifications envoyées`);
 
       return savedCase;
     } catch (error) {
@@ -140,11 +146,11 @@ export class CasesService {
       status: 'pending'
     });
 
-    console.log('💾 [CASES-SERVICE] Entité créée:', JSON.stringify(newCase, null, 2));
+    console.log('[CASES-SERVICE] Entité créée:', JSON.stringify(newCase, null, 2));
 
     const savedCase = await this.casesRepository.save(newCase);
 
-    console.log('✅ [CASES-SERVICE] Cas sauvegardé avec ID:', savedCase.id);
+    console.log(`Cas sauvegardé avec ID: ${savedCase.id}`);
 
     return savedCase;
   }
@@ -169,7 +175,7 @@ export class CasesService {
       // Si le paiement est confirmé, notifier les avocats
       if (paymentData.isPaid) {
         await this.notifyAllLawyers(updatedCase.id);
-        console.log(`✅ Cas payé: ${updatedCase.trackingCode}`);
+        console.log(`Cas payé: ${updatedCase.trackingCode}`);
       }
 
       return updatedCase;
@@ -228,12 +234,13 @@ export class CasesService {
       const maxDuration = case_.maxExchangeDurationHours || 5;
 
       if (hoursDiff >= maxDuration) {
-        console.log(`⏳ Dossier ${case_.trackingCode} expiré (${hoursDiff.toFixed(1)}h > ${maxDuration}h). Clôture automatique.`);
+        console.log(`Dossier ${case_.trackingCode} expiré (${hoursDiff.toFixed(1)}h > ${maxDuration}h). Clôture automatique.`);
         case_.exchangeStatus = 'closed';
         case_.exchangeClosedAt = now;
+        case_.closureType = 'automatic';
         return this.casesRepository.save(case_);
       }
     }
     return case_;
   }
-} 
+}

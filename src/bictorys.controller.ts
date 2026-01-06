@@ -7,7 +7,7 @@ import axios from 'axios';
 export class BictorysController {
   private readonly logger = new Logger(BictorysController.name);
 
-  constructor(private readonly bictorysService: BictorysService) {}
+  constructor(private readonly bictorysService: BictorysService) { }
 
   private getPaymentType(provider: string): string {
     const paymentTypes: { [key: string]: string } = {
@@ -24,7 +24,7 @@ export class BictorysController {
   async initiatePayment(@Body() body: { amount: number; phoneNumber: string; provider: string; description?: string }) {
     try {
       const { amount, phoneNumber, provider, description } = body;
-      
+
       if (!amount || amount <= 0) {
         return { success: false, message: 'Montant invalide' };
       }
@@ -48,13 +48,13 @@ export class BictorysController {
 
       // Configuration Bictorys
       const config = process.env.NODE_ENV === 'production' ? BICTORYS_CONFIG.PRODUCTION : BICTORYS_CONFIG.SANDBOX;
-      
+
       // Vérifier si les clés sont configurées et fonctionnelles
       if (!config.MERCHANT_ID || config.MERCHANT_ID === 'test_merchant_id' || config.MERCHANT_ID === 'your_real_merchant_id_here') {
         this.logger.warn('Clés Bictorys non configurées - Mode simulation');
         // Mode démo avec interface de paiement simulée
-        const demoUrl = `http://localhost:3001/payment/demo?amount=${amount}&provider=${provider}&phone=${encodeURIComponent(formattedPhone)}&reference=${reference}&transaction=${transactionId}`;
-        
+        const demoUrl = `https://xaali.net/payment/demo?amount=${amount}&provider=${provider}&phone=${encodeURIComponent(formattedPhone)}&reference=${reference}&transaction=${transactionId}`;
+
         return {
           success: true,
           data: {
@@ -76,15 +76,15 @@ export class BictorysController {
         // Direct API pour Mobile Money (Orange Money, Wave)
         const paymentType = this.getPaymentType(provider);
         const endpoint = `${config.API_URL}/charges?payment_type=${paymentType}`;
-        
+
         const chargesData = {
           amount,
           currency: 'XOF',
           phone: formattedPhone,
           paymentReference: reference,
           merchantReference: transactionId,
-          successRedirectUrl: `${process.env.FRONTEND_URL || 'http://localhost:3001'}/?payment=success&transaction=${transactionId}`,
-          errorRedirectUrl: `${process.env.FRONTEND_URL || 'http://localhost:3001'}/?payment=cancelled&transaction=${transactionId}`,
+          successRedirectUrl: `${process.env.FRONTEND_URL || 'https://xaali.net'}/?payment=success&transaction=${transactionId}`,
+          errorRedirectUrl: `${process.env.FRONTEND_URL || 'https://xaali.net'}/?payment=cancelled&transaction=${transactionId}`,
           customerObject: {
             name: 'Client Xaali',
             phone: formattedPhone,
@@ -98,7 +98,7 @@ export class BictorysController {
 
         this.logger.log(`Appel Direct API Bictorys: ${endpoint}`);
         this.logger.log(`Type de paiement: ${paymentType}`);
-        
+
         const bictorysResponse = await axios.post(endpoint, chargesData, {
           headers: {
             'Content-Type': 'application/json',
@@ -131,17 +131,17 @@ export class BictorysController {
         };
       } catch (bictorysError) {
         this.logger.error('Erreur API Bictorys:', bictorysError.response?.data || bictorysError.message);
-        
+
         this.logger.error('API Bictorys Charges inaccessible:', {
           status: bictorysError.response?.status,
           endpoint: `${config.API_URL}/charges`,
           apiKey: config.API_KEY?.substring(0, 20) + '...'
         });
-        
+
         // Fallback: Mode démo avec simulation Direct API
         const fallbackPaymentType = this.getPaymentType(provider);
-        const demoUrl = `http://localhost:3001/payment/demo?amount=${amount}&provider=${provider}&phone=${encodeURIComponent(formattedPhone)}&reference=${reference}&transaction=${transactionId}&payment_type=${fallbackPaymentType}`;
-        
+        const demoUrl = `https://xaali.net/payment/demo?amount=${amount}&provider=${provider}&phone=${encodeURIComponent(formattedPhone)}&reference=${reference}&transaction=${transactionId}&payment_type=${fallbackPaymentType}`;
+
         return {
           success: true,
           data: {
@@ -209,12 +209,12 @@ export class BictorysController {
       }
 
       const config = process.env.NODE_ENV === 'production' ? BICTORYS_CONFIG.PRODUCTION : BICTORYS_CONFIG.SANDBOX;
-      
+
       // Si les clés ne sont pas configurées, retourner un statut simulé
       if (!config.MERCHANT_ID || config.MERCHANT_ID === 'test_merchant_id' || config.MERCHANT_ID === 'your_real_merchant_id_here') {
         // Simuler un paiement réussi après 10 secondes
         const isOld = transactionId.includes('TXN_') && (Date.now() - parseInt(transactionId.split('_')[1])) > 10000;
-        
+
         return {
           success: true,
           data: {
@@ -244,7 +244,7 @@ export class BictorysController {
         };
       } catch (apiError) {
         this.logger.error('Erreur API Bictorys status:', apiError.response?.data || apiError.message);
-        
+
         return {
           success: true,
           data: {
@@ -266,11 +266,11 @@ export class BictorysController {
     const phoneNumber = body.phoneNumber || '';
     const cleanPhone = phoneNumber.replace(/[\s\-\(\)]/g, '').replace(/^(\+221|221)/, '');
     const formattedNumber = cleanPhone.startsWith('+221') ? cleanPhone : `+221${cleanPhone}`;
-    
+
     // Détecter l'opérateur ou utiliser Orange par défaut
     const prefix = cleanPhone.substring(0, 2);
     let provider = 'orange_money';
-    
+
     if (['77', '78'].includes(prefix)) provider = 'orange_money';
     else if (['70', '75', '76'].includes(prefix)) provider = 'mtn_mobile_money';
     else if (['60', '61'].includes(prefix)) provider = 'moov_money';
@@ -292,15 +292,15 @@ export class BictorysController {
   async handleCallback(@Body() body: any) {
     try {
       this.logger.log('Callback Bictorys reçu:', JSON.stringify(body, null, 2));
-      
+
       // Traiter le callback de Bictorys
       const { transaction_id, status, amount, phone_number } = body;
-      
+
       this.logger.log(`Transaction ${transaction_id}: ${status}`);
-      
+
       // Ici vous pouvez mettre à jour votre base de données
       // ou notifier votre frontend via WebSocket
-      
+
       return {
         success: true,
         message: 'Callback traité avec succès'

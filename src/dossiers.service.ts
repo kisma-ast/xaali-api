@@ -71,10 +71,12 @@ export class DossiersService {
 
     if (caseData.lawyerName) {
       dossier.assignedLawyer = {
+        id: (caseData as any).lawyerId || 'demo-lawyer',
         name: caseData.lawyerName,
         specialty: caseData.category || '',
         phone: ''
       };
+      dossier.lawyerId = (caseData as any).lawyerId || 'demo-lawyer';
     }
 
     const savedDossier = await this.dossierRepository.save(dossier);
@@ -167,6 +169,17 @@ export class DossiersService {
     dossier.status = caseData.isPaid ? 'paid' : 'pending';
     dossier.paymentAmount = caseData.paymentAmount || dossier.paymentAmount;
     dossier.isPaid = caseData.isPaid;
+
+    // Synchroniser l'avocat si assigné
+    if (caseData.lawyerName) {
+      dossier.assignedLawyer = {
+        id: (caseData as any).lawyerId || 'demo-lawyer',
+        name: caseData.lawyerName,
+        specialty: caseData.category || dossier.problemCategory,
+        phone: ''
+      };
+      dossier.lawyerId = (caseData as any).lawyerId || 'demo-lawyer';
+    }
 
     return this.dossierRepository.save(dossier);
   }

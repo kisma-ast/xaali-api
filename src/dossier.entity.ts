@@ -51,10 +51,17 @@ export class Dossier {
 
   @Column('json', { nullable: true })
   assignedLawyer: {
+    id: string;
     name: string;
     specialty: string;
     phone: string;
   };
+
+  @Column({ nullable: true })
+  lawyerId: string;
+
+  @Column({ nullable: true })
+  acceptedAt: Date;
 
   @Column({ default: true })
   isPaid: boolean;

@@ -46,6 +46,10 @@ import { DossiersModule } from './dossiers.module';
 import { Dossier } from './dossier.entity';
 import { LegalDocument } from './legal-document.entity';
 import { LegalDocChunk } from './legal-doc-chunk.entity';
+import { Feedback } from './feedback.entity';
+import { FeedbackModule } from './feedback.module';
+
+import { MemoryAuthController } from './memory-auth.controller';
 
 @Module({
   imports: [
@@ -57,7 +61,7 @@ import { LegalDocChunk } from './legal-doc-chunk.entity';
         url: configService.get<string>('MONGODB_URI'),
         useNewUrlParser: true,
         useUnifiedTopology: true,
-        entities: [Lawyer, Case, Citizen, Consultation, Message, Tracking, Dossier, LegalDocument, LegalDocChunk],
+        entities: [Lawyer, Case, Citizen, Consultation, Message, Tracking, Dossier, LegalDocument, LegalDocChunk, Feedback],
         synchronize: true,
         ssl: true,
         tlsAllowInvalidCertificates: true,
@@ -80,9 +84,19 @@ import { LegalDocChunk } from './legal-doc-chunk.entity';
     PaymentModule,
     MessagesModule,
     DossiersModule,
-    TypeOrmModule.forFeature([Lawyer, Case, Citizen, Consultation, Message, Tracking, Dossier, LegalDocument, LegalDocChunk]),
+    FeedbackModule,
+    TypeOrmModule.forFeature([Lawyer, Case, Citizen, Consultation, Message, Tracking, Dossier, LegalDocument, LegalDocChunk, Feedback]),
   ],
-  controllers: [AppController, RealAuthController, CitizenAuthController, MessagesController, LegalDocumentsController, SimplifiedCaseController, TrackingController],
+  controllers: [
+    AppController,
+    RealAuthController,
+    CitizenAuthController,
+    MessagesController,
+    LegalDocumentsController,
+    SimplifiedCaseController,
+    TrackingController,
+    MemoryAuthController,
+  ],
   providers: [
     GoogleAuthService, AppService, WebRTCSignalingGateway, FineTuningService, LegalDocumentsService, VectorStoreService, EmailService, SimplifiedCaseService, TrackingService],
 })

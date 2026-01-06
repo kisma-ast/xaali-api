@@ -1,6 +1,6 @@
 import { Controller, Post, Body, Logger, Get, Param, Req } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, IsNull } from 'typeorm';
 import { ObjectId } from 'mongodb';
 import { Lawyer } from './lawyer.entity';
 import { Case } from './case.entity';
@@ -31,7 +31,7 @@ export class RealAuthController {
 
   @Get('profile')
   async getProfile(@Req() request: any) {
-    console.log('🔍 [REAL-AUTH] Récupération profil via token');
+    console.log('[REAL-AUTH] Récupération profil via token');
 
     try {
       const authHeader = request.headers?.authorization;
@@ -49,7 +49,7 @@ export class RealAuthController {
       const userType = parts[0];
       const userId = parts[1];
 
-      console.log(`👤 [REAL-AUTH] Type: ${userType}, ID: ${userId}`);
+      console.log(`[REAL-AUTH] Type: ${userType}, ID: ${userId}`);
 
       if (userType === 'lawyer' || userType === 'notary' || userType === 'bailiff') {
         const lawyer = await this.lawyerRepository.findOne({
@@ -67,15 +67,15 @@ export class RealAuthController {
 
       return { success: false, message: 'Type utilisateur non géré pour ce endpoint' };
     } catch (error) {
-      console.error('❌ [REAL-AUTH] Erreur récupération profil:', error);
-      return { success: false, message: 'Erreur serveur: ' + error.message };
+      console.error('[REAL-AUTH] Erreur récupération profil:', error);
+      return { success: false, message: 'Token manquant' };
     }
   }
 
   @Post('register')
   async registerLawyer(@Body() registerDto: any) {
-    console.log('🔍 [REAL-AUTH] Tentative d\'inscription avocat');
-    console.log('📋 [REAL-AUTH] Données reçues:', JSON.stringify(registerDto, null, 2));
+    console.log('[REAL-AUTH] Tentative d\'inscription avocat');
+    console.log('[REAL-AUTH] Données reçues:', JSON.stringify(registerDto, null, 2));
 
     try {
       const existingLawyer = await this.lawyerRepository.findOne({
@@ -89,7 +89,7 @@ export class RealAuthController {
       // Utiliser le même salt rounds que auth.service.ts pour cohérence
       const saltRounds = 12;
       const hashedPassword = await bcrypt.hash(registerDto.password, saltRounds);
-      console.log(`🔐 [REAL-AUTH] Hashage mot de passe pour ${registerDto.email}:`, {
+      console.log(`[REAL-AUTH] Hashage mot de passe pour ${registerDto.email}:`, {
         original: registerDto.password,
         hashed: hashedPassword,
         saltRounds
@@ -111,14 +111,14 @@ export class RealAuthController {
       const savedLawyer = await this.lawyerRepository.save(lawyer);
       const { password, ...lawyerData } = savedLawyer;
 
-      console.log('✅ [REAL-AUTH] Avocat créé avec succès:', savedLawyer.id);
-      console.log('📄 [REAL-AUTH] Données sauvegardées:', JSON.stringify(lawyerData, null, 2));
+      console.log('[REAL-AUTH] Avocat créé avec succès:', savedLawyer.id);
+      console.log('[REAL-AUTH] Données sauvegardées:', JSON.stringify(lawyerData, null, 2));
 
       // Envoyer l'email de bienvenue
       try {
         await this.emailService.sendLawyerWelcomeEmail(savedLawyer.email, savedLawyer.name);
       } catch (emailError) {
-        console.error('⚠️ [REAL-AUTH] Erreur envoi email bienvenue:', emailError);
+        console.error('[REAL-AUTH] Erreur envoi email bienvenue:', emailError);
         // Ne pas bloquer l'inscription si l'email échoue
       }
 
@@ -128,7 +128,7 @@ export class RealAuthController {
         token: `lawyer_${savedLawyer.id}_${Date.now()}`
       };
     } catch (error) {
-      console.error('❌ [REAL-AUTH] Erreur inscription avocat:', error);
+      console.error('[REAL-AUTH] Erreur inscription avocat:', error);
       this.logger.error('Erreur inscription avocat:', error);
       return { success: false, message: 'Erreur lors de l\'inscription: ' + error.message };
     }
@@ -136,8 +136,8 @@ export class RealAuthController {
 
   @Post('login')
   async loginLawyer(@Body() loginDto: { email: string; password: string }) {
-    console.log('🔍 [REAL-AUTH] Tentative de connexion avocat');
-    console.log('📧 [REAL-AUTH] Email:', loginDto.email);
+    console.log('[REAL-AUTH] Tentative de connexion avocat');
+    console.log('[REAL-AUTH] Email:', loginDto.email);
 
     try {
       const lawyer = await this.lawyerRepository.findOne({
@@ -148,20 +148,20 @@ export class RealAuthController {
         return { success: false, message: 'Email ou mot de passe incorrect' };
       }
 
-      console.log(`🔑 [REAL-AUTH] Vérification mot de passe pour ${loginDto.email}:`, {
+      console.log(`[REAL-AUTH] Vérification mot de passe pour ${loginDto.email}:`, {
         provided: loginDto.password,
         stored: lawyer.password
       });
 
       const isPasswordValid = await bcrypt.compare(loginDto.password, lawyer.password);
-      console.log(`🔑 [REAL-AUTH] Résultat vérification: ${isPasswordValid}`);
+      console.log(`[REAL-AUTH] Résultat vérification: ${isPasswordValid}`);
 
       if (!isPasswordValid) {
-        console.log(`❌ [REAL-AUTH] Mot de passe incorrect pour: ${loginDto.email}`);
+        console.log(`[REAL-AUTH] Mot de passe incorrect pour: ${loginDto.email}`);
         return { success: false, message: 'Email ou mot de passe incorrect' };
       }
 
-      console.log(`✅ [REAL-AUTH] Connexion réussie pour: ${loginDto.email}`);
+      console.log(`[REAL-AUTH] Connexion réussie pour: ${loginDto.email}`);
 
       const { password, ...lawyerData } = lawyer;
 
@@ -171,7 +171,7 @@ export class RealAuthController {
         id: lawyer.id || lawyer._id?.toString()
       };
 
-      console.log('✅ [REAL-AUTH] Connexion avocat réussie:', lawyerResponse.id);
+      console.log('[REAL-AUTH] Connexion avocat réussie:', lawyerResponse.id);
 
       return {
         success: true,
@@ -179,7 +179,7 @@ export class RealAuthController {
         token: `lawyer_${lawyer.id}_${Date.now()}`
       };
     } catch (error) {
-      console.error('❌ [REAL-AUTH] Erreur connexion avocat:', error);
+      console.error('[REAL-AUTH] Erreur connexion avocat:', error);
       this.logger.error('Erreur connexion avocat:', error);
       return { success: false, message: 'Erreur de connexion: ' + error.message };
     }
@@ -252,8 +252,8 @@ export class RealAuthController {
 
   @Post('case-create')
   async createCase(@Body() caseDto: any) {
-    console.log('🆕 [REAL-AUTH] Création d\'un nouveau cas');
-    console.log('📋 [REAL-AUTH] Données du cas:', JSON.stringify(caseDto, null, 2));
+    console.log('[REAL-AUTH] Création d\'un nouveau cas');
+    console.log('[REAL-AUTH] Données du cas:', JSON.stringify(caseDto, null, 2));
 
     try {
       const newCase = this.caseRepository.create({
@@ -270,11 +270,11 @@ export class RealAuthController {
       });
 
       const savedCase = await this.caseRepository.save(newCase);
-      console.log('✅ [REAL-AUTH] Cas sauvegardé:', savedCase.id);
+      console.log('[REAL-AUTH] Cas sauvegardé:', savedCase.id);
 
       // Notifier tous les avocats actifs via le service de notification
       const notificationResult = await this.notificationService.notifyNewCase(savedCase);
-      console.log('📢 [REAL-AUTH] Notification envoyée à', notificationResult.notifiedLawyers, 'avocats');
+      console.log('[REAL-AUTH] Notification envoyée à', notificationResult.notifiedLawyers, 'avocats');
 
       this.logger.log(`Nouveau cas créé: ${savedCase.id}`);
 
@@ -284,7 +284,7 @@ export class RealAuthController {
         notificationResult: notificationResult
       };
     } catch (error) {
-      console.error('❌ [REAL-AUTH] Erreur création cas:', error);
+      console.error('[REAL-AUTH] Erreur création cas:', error);
       this.logger.error('Erreur création cas:', error);
       return { success: false, message: 'Erreur lors de la création du cas: ' + error.message };
     }
@@ -293,14 +293,14 @@ export class RealAuthController {
   // Endpoint spécial pour créer un cas après paiement réussi
   @Post('case-create-after-payment')
   async createCaseAfterPayment(@Body() paymentData: any) {
-    console.log('💳 [REAL-AUTH] Création de cas après paiement réussi');
-    console.log('💰 [REAL-AUTH] Données de paiement:', JSON.stringify(paymentData, null, 2));
+    console.log('[REAL-AUTH] Création de cas après paiement réussi');
+    console.log('[REAL-AUTH] Données de paiement:', JSON.stringify(paymentData, null, 2));
 
     try {
       // Générer un titre intelligent avec l'IA fine-tunée
       const generateAITitle = async (question: string, category: string): Promise<string> => {
         try {
-          console.log('🤖 [REAL-AUTH] Génération de titre IA pour:', question);
+          console.log('[REAL-AUTH] Génération de titre IA pour:', question);
 
           const titleResponse = await this.fineTuningService.processFineTunedQuery({
             question: `Génère un titre court et précis (maximum 8 mots) pour cette consultation juridique: "${question}". Catégorie: ${category}. Le titre doit être professionnel et indiquer clairement le type de problème juridique.`,
@@ -319,11 +319,11 @@ export class RealAuthController {
             aiTitle = aiTitle.substring(0, 77) + '...';
           }
 
-          console.log('✅ [REAL-AUTH] Titre IA généré:', aiTitle);
+          console.log('[REAL-AUTH] Titre IA généré:', aiTitle);
           return aiTitle || this.getFallbackTitle(question, category);
 
         } catch (error) {
-          console.error('❌ [REAL-AUTH] Erreur génération titre IA:', error);
+          console.error('[REAL-AUTH] Erreur génération titre IA:', error);
           return this.getFallbackTitle(question, category);
         }
       };
@@ -362,7 +362,7 @@ export class RealAuthController {
 
       return await this.createCase(caseData);
     } catch (error) {
-      console.error('❌ [REAL-AUTH] Erreur création cas après paiement:', error);
+      console.error('[REAL-AUTH] Erreur création cas après paiement:', error);
       return { success: false, message: 'Erreur lors de la création du cas après paiement: ' + error.message };
     }
   }
@@ -370,63 +370,78 @@ export class RealAuthController {
   @Get('cases/pending')
   async getPendingCases() {
     try {
-      // Récupérer uniquement les cas payés et en attente
+      // 1. Récupérer TOUS les cas potentiels (élargir la recherche pour la fusion)
       const cases = await this.caseRepository.find({
-        where: {
-          status: 'pending'
-        },
         order: { paidAt: 'DESC', createdAt: 'DESC' }
       });
 
-      // Filtrer les cas payés ou ayant un ID de paiement valide
-      const paidCases = cases.filter(c =>
-        c.isPaid === true ||
-        c.status === 'paid' ||
-        c.status === 'pending' ||
-        (c.paymentId && c.paymentId.length > 5) // Inclure si paymentId présent (même si unpaid)
-      ).map(c => ({
-        ...c,
-        id: c._id?.toString(), // FIX: Garantir que l'ID est une string
-        _id: c._id?.toString(), // FIX: Garantir que l'ID est une string
-        // Assurer qu'il y a un paymentId pour passer le filtre frontend
-        paymentId: c.paymentId || `manual_${c.id?.toString().substring(0, 8)}`,
-        // Si status est unpaid mais on l'affiche, on le présente comme pending
-        status: c.status === 'unpaid' ? 'pending' : c.status
-      }));
-
-      // Récupérer aussi les dossiers simplifiés payés
+      // 2. Récupérer TOUS les dossiers potentiels
       const dossiers = await this.dossierRepository.find({
-        where: {
-          status: 'paid'
-        },
         order: { createdAt: 'DESC' }
       });
 
-      // Mapper les dossiers pour qu'ils ressemblent aux cas
-      const formattedDossiers = dossiers.map(d => {
-        // Sécurisation de l'ID
-        const safeId = d.id || (d as any)._id?.toString();
+      console.log(`[REAL-AUTH] Bruts: ${cases.length} cas, ${dossiers.length} dossiers`);
 
-        return {
-          ...d,
-          id: safeId,
-          _id: safeId,
-          isPaid: true,
-          paymentId: d.trackingToken || 'simplified_payment',
-          status: 'pending',
-          description: d.clientQuestion,
-          category: d.problemCategory,
-          citizenName: d.clientName,
-          citizenPhone: d.clientPhone,
-          clientQuestion: d.clientQuestion,
-          title: d.problemCategory || 'Dossier Xaali',
-          type: 'dossier_simplified',
-          paidAt: d.createdAt
-        };
+      // 3. FUSION INTELLIGENTE (clé unique: trackingToken ou ID)
+      const consultationMap = new Map<string, { case?: any, dossier?: any }>();
+
+      cases.forEach(c => {
+        const key = c.trackingToken || (c._id || c.id)?.toString();
+        if (key) {
+          consultationMap.set(key, { ...consultationMap.get(key), case: c });
+        }
       });
 
-      // Fusionner et trier
-      const allCases = [...paidCases, ...formattedDossiers].sort((a, b) => {
+      dossiers.forEach(d => {
+        const key = d.trackingToken || d.id || (d as any)._id?.toString();
+        if (key) {
+          consultationMap.set(key, { ...consultationMap.get(key), dossier: d });
+        }
+      });
+
+      // 4. FILTRAGE ABSOLU
+      const finalCases = [];
+
+      for (const [key, data] of consultationMap.entries()) {
+        const c = data.case;
+        const d = data.dossier;
+
+        // Déterminer les états combinés
+        const isActuallyAccepted =
+          (c && (c.status === 'accepted' || c.lawyerId || c.lawyerName)) ||
+          (d && (d.status === 'accepted' || d.lawyerId || d.assignedLawyer));
+
+        const isActuallyPaid =
+          (c && (c.isPaid === true || c.status === 'paid' || c.status === 'pending' || (c.paymentId && c.paymentId.length > 5))) ||
+          (d && (d.isPaid === true || d.status === 'paid' || d.status === 'pending'));
+
+        // Ne garder que ce qui est PAYÉ (ou en attente) et NON ACCEPTÉ
+        if (isActuallyPaid && !isActuallyAccepted) {
+          // Préférer les données du dossier s'il existe (souvent plus complet)
+          const base = d || c;
+
+          finalCases.push({
+            ...base,
+            id: ((base as any)._id || (base as any).id)?.toString(),
+            _id: ((base as any)._id || (base as any).id)?.toString(),
+            paymentId: base.paymentId || base.trackingToken || `manual_${(base._id || base.id)?.toString().substring(0, 8)}`,
+            status: 'pending',
+            isPaid: true,
+            description: base.clientQuestion || base.description,
+            category: base.problemCategory || base.category,
+            citizenName: base.clientName || base.citizenName,
+            citizenPhone: base.clientPhone || base.citizenPhone,
+            title: base.problemCategory || base.category || 'Consultation Xaali',
+            type: d ? 'dossier_simplified' : 'standard',
+            paidAt: base.paidAt || base.createdAt
+          });
+        }
+      }
+
+      console.log(`[REAL-AUTH] Total final après filtrage: ${finalCases.length}`);
+
+      // 5. Tri final par date
+      const allCases = finalCases.sort((a, b) => {
         const dateA = new Date(a.paidAt || a.createdAt).getTime();
         const dateB = new Date(b.paidAt || b.createdAt).getTime();
         return dateB - dateA;
@@ -449,7 +464,7 @@ export class RealAuthController {
     @Req() request: any
   ) {
     try {
-      console.log('🔍 [REAL-AUTH] Tentative d\'acceptation du cas:', caseId);
+      console.log('[REAL-AUTH] Tentative d\'acceptation du cas:', caseId);
 
       // Extraire l'ID de l'avocat depuis le token d'autorisation
       let lawyerIdFromToken = null;
@@ -489,10 +504,10 @@ export class RealAuthController {
           });
           if (caseToUpdate) {
             isSimplifiedDossier = true;
-            console.log('✅ [REAL-AUTH] Dossier simplifié trouvé:', caseId);
+            console.log('[REAL-AUTH] Dossier simplifié trouvé:', caseId);
           }
         } catch (e) {
-          console.log('❌ [REAL-AUTH] Erreur recherche dossier:', e);
+          console.log('[REAL-AUTH] Erreur recherche dossier:', e);
         }
       }
 
@@ -532,9 +547,9 @@ export class RealAuthController {
           lawyer = await this.lawyerRepository.findOne({
             where: { _id: new ObjectId(effectiveLawyerId) }
           });
-          console.log('👨‍⚖️ [REAL-AUTH] Avocat trouvé dans BD:', lawyer?.name);
+          console.log('[REAL-AUTH] Avocat trouvé dans BD:', lawyer?.name);
         } catch (e) {
-          console.log('⚠️ Recherche avocat par ObjectId échouée');
+          console.log('Recherche avocat par ObjectId échouée');
         }
       }
 
@@ -569,21 +584,62 @@ export class RealAuthController {
         caseToUpdate.acceptedAt = new Date();
 
         await this.caseRepository.save(caseToUpdate);
+
+        // SYNC: Chercher si un Dossier existe aussi pour ce Cas et le mettre à jour
+        try {
+          const matchingDossier = await this.dossierRepository.findOne({
+            where: { trackingToken: caseToUpdate.trackingToken }
+          });
+          if (matchingDossier && matchingDossier.status === 'pending') {
+            matchingDossier.status = 'accepted';
+            matchingDossier.assignedLawyer = {
+              id: effectiveLawyerId,
+              name: assignedLawyerName,
+              specialty: lawyer?.specialty || caseToUpdate.category || 'Avocat',
+              phone: lawyer?.phone || ''
+            };
+            matchingDossier.lawyerId = effectiveLawyerId;
+            matchingDossier.acceptedAt = new Date();
+            await this.dossierRepository.save(matchingDossier);
+            console.log('[REAL-AUTH] SYNC: Dossier correspondant mis à jour');
+          }
+        } catch (syncError) {
+          console.error('[REAL-AUTH] Erreur synchronisation Dossier:', syncError);
+        }
       }
 
-      console.log('✅ [REAL-AUTH] Cas/Dossier accepté avec succès:', caseId);
-      console.log('👨‍⚖️ [REAL-AUTH] Avocat assigné:', assignedLawyerName);
+      // SYNC INVERSE: Si on a mis à jour un Dossier, chercher le Cas correspondant
+      if (isSimplifiedDossier) {
+        try {
+          const matchingCase = await this.caseRepository.findOne({
+            where: { trackingToken: caseToUpdate.trackingToken }
+          });
+          if (matchingCase && matchingCase.status !== 'accepted') {
+            matchingCase.status = 'accepted';
+            matchingCase.lawyerId = effectiveLawyerId;
+            matchingCase.lawyerName = assignedLawyerName;
+            matchingCase.acceptedAt = new Date();
+            await this.caseRepository.save(matchingCase);
+            console.log('[REAL-AUTH] SYNC: Cas correspondant mis à jour');
+          }
+        } catch (syncError) {
+          console.error('[REAL-AUTH] Erreur synchronisation Cas:', syncError);
+        }
+      }
+
+      console.log('[REAL-AUTH] Cas/Dossier accepté avec succès:', caseId);
+      console.log('[REAL-AUTH] Avocat assigné:', assignedLawyerName);
 
       // Notifier les autres avocats que le cas n'est plus disponible
       try {
         await this.notificationService.notifyCaseAccepted(caseId, effectiveLawyerId);
       } catch (e) {
-        console.warn('⚠️ Erreur notification push:', e);
+        console.warn('Erreur notification push:', e);
       }
 
       // Envoyer notification au citoyen directement via son email sur le cas
       if (caseToUpdate.citizenEmail && caseToUpdate.trackingCode && caseToUpdate.trackingToken) {
-        console.log('📧 [REAL-AUTH] Envoi notification au citoyen:', caseToUpdate.citizenEmail);
+        console.log('[REAL-AUTH] Envoi notification au citoyen:', caseToUpdate.citizenEmail);
         const trackingLink = `https://xaali.net/suivi/${caseToUpdate.trackingToken}`;
 
         try {
@@ -598,12 +654,12 @@ export class RealAuthController {
               phone: lawyer?.phone
             }
           );
-          console.log('✅ [REAL-AUTH] Notification citoyen envoyée');
+          console.log('[REAL-AUTH] Notification citoyen envoyée');
         } catch (emailError) {
-          console.error('❌ [REAL-AUTH] Erreur envoi email citoyen:', emailError);
+          console.error('[REAL-AUTH] Erreur envoi email citoyen:', emailError);
         }
       } else {
-        console.log('⚠️ [REAL-AUTH] Pas d\'email citoyen ou tracking manquant');
+        console.log('[REAL-AUTH] Pas d\'email citoyen ou tracking manquant');
       }
 
       return {
@@ -619,7 +675,7 @@ export class RealAuthController {
   @Post('case-close/:id')
   async closeCase(@Param('id') caseId: string, @Req() request: any) {
     try {
-      console.log('🔒 [REAL-AUTH] Clôture manuelle du dossier:', caseId);
+      console.log('[REAL-AUTH] Clôture manuelle du dossier:', caseId);
 
       const caseToClose = await this.caseRepository.findOne({
         where: { _id: new ObjectId(caseId) }
@@ -634,14 +690,15 @@ export class RealAuthController {
 
       caseToClose.exchangeStatus = 'closed';
       caseToClose.exchangeClosedAt = new Date();
+      caseToClose.closureType = 'manual';
 
       await this.caseRepository.save(caseToClose);
 
-      console.log('✅ [REAL-AUTH] Dossier clôturé:', caseId);
+      console.log('[REAL-AUTH] Dossier clôturé:', caseId);
 
       return { success: true, case: caseToClose };
     } catch (error) {
-      console.error('❌ [REAL-AUTH] Erreur clôture dossier:', error);
+      console.error('[REAL-AUTH] Erreur clôture dossier:', error);
       return { success: false, message: 'Erreur lors de la clôture du dossier' };
     }
   }
@@ -694,8 +751,8 @@ export class RealAuthController {
         order: { acceptedAt: 'DESC' }
       });
 
-      console.log('📋 [REAL-AUTH] Cas acceptés trouvés:', acceptedCases.length);
-      console.log('📋 [REAL-AUTH] Détails des cas:', acceptedCases.map(c => ({ id: c.id, _id: c._id, lawyerId: c.lawyerId, status: c.status })));
+      console.log('[REAL-AUTH] Cas acceptés trouvés:', acceptedCases.length);
+      console.log('[REAL-AUTH] Détails des cas:', acceptedCases.map(c => ({ id: c.id, _id: c._id, lawyerId: c.lawyerId, status: c.status })));
 
       return {
         success: true,
@@ -710,14 +767,14 @@ export class RealAuthController {
   @Get('cases/accepted/:lawyerId')
   async getAcceptedCasesByLawyer(@Param('lawyerId') lawyerId: string) {
     try {
-      console.log('🔍 [REAL-AUTH] Recherche cas acceptés pour avocat:', lawyerId);
+      console.log('[REAL-AUTH] Recherche cas acceptés pour avocat:', lawyerId);
 
       // D'abord, récupérer TOUS les cas acceptés pour debug
       const allAccepted = await this.caseRepository.find({
         where: { status: 'accepted' }
       });
-      console.log('📊 [DEBUG] Total cas acceptés dans la BD:', allAccepted.length);
-      console.log('📊 [DEBUG] LawyerIds des cas acceptés:', allAccepted.map(c => ({
+      console.log('[DEBUG] Total cas acceptés dans la BD:', allAccepted.length);
+      console.log('[DEBUG] LawyerIds des cas acceptés:', allAccepted.map(c => ({
         caseId: c._id?.toString() || c.id,
         lawyerId: c.lawyerId,
         lawyerIdType: typeof c.lawyerId
@@ -732,17 +789,17 @@ export class RealAuthController {
         order: { acceptedAt: 'DESC' }
       });
 
-      console.log('📋 [REAL-AUTH] Cas acceptés trouvés pour avocat', lawyerId, ':', acceptedCases.length);
+      console.log('[REAL-AUTH] Cas acceptés trouvés pour avocat', lawyerId, ':', acceptedCases.length);
 
       // Si aucun cas trouvé mais il y en a dans la BD, essayer de matcher manuellement
       if (acceptedCases.length === 0 && allAccepted.length > 0) {
-        console.log('⚠️ [DEBUG] Aucun match exact, essai de match flexible...');
+        console.log('[DEBUG] Aucun match exact, essai de match flexible...');
         const manualMatch = allAccepted.filter(c =>
           c.lawyerId === lawyerId ||
           c.lawyerId?.toString() === lawyerId ||
           c.lawyerId === lawyerId?.toString()
         );
-        console.log('📋 [DEBUG] Match flexible trouvé:', manualMatch.length);
+        console.log('[DEBUG] Match flexible trouvé:', manualMatch.length);
 
         if (manualMatch.length > 0) {
           return { success: true, cases: manualMatch };

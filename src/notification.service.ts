@@ -150,18 +150,18 @@ export class NotificationService {
           `${'https://xaali.net'}/suivi/${case_.trackingToken}`,
           case_.paymentAmount || 10000
         );
-        this.logger.log(`📧 Email dossier créé envoyé à ${citizen.email}`);
+        this.logger.log(`Email dossier créé envoyé à ${citizen.email}`);
       }
 
       // SMS (simulation - à intégrer avec vraie API)
       if (citizen.phone) {
-        this.logger.log(`📱 SMS dossier créé envoyé à ${citizen.phone}`);
+        this.logger.log(`SMS dossier créé envoyé à ${citizen.phone}`);
         // TODO: Intégrer API SMS (Twilio, etc.)
       }
 
-      this.logger.log(`✅ Citoyen ${citizen.id} notifié de la création du dossier ${case_.id}`);
+      this.logger.log(`Citoyen ${citizen.id} notifié de la création du dossier ${case_.id}`);
     } catch (error) {
-      this.logger.error(`❌ Erreur notification citoyen dossier créé: ${error.message}`);
+      this.logger.error(`Erreur notification citoyen dossier créé: ${error.message}`);
     }
   }
 
@@ -191,21 +191,21 @@ export class NotificationService {
             trackingLink,
             lawyer
           );
-          this.logger.log(`📧 Email avocat assigné envoyé à ${citizen.email}`);
+          this.logger.log(`Email avocat assigné envoyé à ${citizen.email}`);
         } catch (error) {
-          this.logger.error(`❌ Erreur envoi email avocat assigné: ${error.message}`);
+          this.logger.error(`Erreur envoi email avocat assigné: ${error.message}`);
         }
       }
 
       // SMS
       if (citizen.phone) {
-        this.logger.log(`📱 SMS avocat assigné envoyé à ${citizen.phone}`);
+        this.logger.log(`SMS avocat assigné envoyé à ${citizen.phone}`);
         // TODO: Intégrer API SMS
       }
 
-      this.logger.log(`✅ Citoyen ${citizen.id} notifié de l'assignation de l'avocat ${lawyer.id}`);
+      this.logger.log(`Citoyen ${citizen.id} notifié de l'assignation de l'avocat ${lawyer.id}`);
     } catch (error) {
-      this.logger.error(`❌ Erreur notification citoyen avocat assigné: ${error.message}`);
+      this.logger.error(`Erreur notification citoyen avocat assigné: ${error.message}`);
     }
   }
 
@@ -222,19 +222,19 @@ export class NotificationService {
 
       // Email
       if (citizen.email && !citizen.email.includes('@xaali.temp')) {
-        this.logger.log(`📧 Email nouveau message envoyé à ${citizen.email}`);
+        this.logger.log(`Email nouveau message envoyé à ${citizen.email}`);
         // TODO: Envoyer email avec le contenu du message
       }
 
       // SMS
       if (citizen.phone) {
-        this.logger.log(`📱 SMS nouveau message envoyé à ${citizen.phone}`);
+        this.logger.log(`SMS nouveau message envoyé à ${citizen.phone}`);
         // TODO: Intégrer API SMS
       }
 
-      this.logger.log(`✅ Citoyen ${citizen.id} notifié d'un nouveau message`);
+      this.logger.log(`Citoyen ${citizen.id} notifié d'un nouveau message`);
     } catch (error) {
-      this.logger.error(`❌ Erreur notification citoyen nouveau message: ${error.message}`);
+      this.logger.error(`Erreur notification citoyen nouveau message: ${error.message}`);
     }
   }
 
@@ -273,20 +273,20 @@ export class NotificationService {
 
         // Email
         if (lawyer.email) {
-          this.logger.log(`📧 Email nouveau cas envoyé à ${lawyer.email}`);
+          this.logger.log(`Email nouveau cas envoyé à ${lawyer.email}`);
           await this.emailService.sendNewCaseNotificationToLawyers(lawyer.email, lawyer.name, {
             ...case_,
             paymentAmount: case_.paymentAmount
           });
         }
 
-        this.logger.log(`✅ Avocat ${lawyerId} notifié du nouveau cas ${case_.id}`);
+        this.logger.log(`Avocat ${lawyerId} notifié du nouveau cas ${case_.id}`);
       } else {
         // Notifier tous les avocats actifs (méthode existante)
         await this.notifyNewCase(case_);
       }
     } catch (error) {
-      this.logger.error(`❌ Erreur notification avocat nouveau cas: ${error.message}`);
+      this.logger.error(`Erreur notification avocat nouveau cas: ${error.message}`);
     }
   }
 
@@ -313,13 +313,13 @@ export class NotificationService {
 
       // Email
       if (lawyer.email) {
-        this.logger.log(`📧 Email cas assigné envoyé à ${lawyer.email}`);
+        this.logger.log(`Email cas assigné envoyé à ${lawyer.email}`);
         await this.emailService.sendCaseAssignedNotificationToLawyer(lawyer.email, lawyer.name, case_);
       }
 
-      this.logger.log(`✅ Avocat ${lawyer.id} notifié de l'assignation du cas ${case_.id}`);
+      this.logger.log(`Avocat ${lawyer.id} notifié de l'assignation du cas ${case_.id}`);
     } catch (error) {
-      this.logger.error(`❌ Erreur notification avocat cas assigné: ${error.message}`);
+      this.logger.error(`Erreur notification avocat cas assigné: ${error.message}`);
     }
   }
 
@@ -351,13 +351,13 @@ export class NotificationService {
 
       // Email
       if (lawyer.email) {
-        this.logger.log(`📧 Email nouveau message envoyé à ${lawyer.email}`);
+        this.logger.log(`Email nouveau message envoyé à ${lawyer.email}`);
         // TODO: Envoyer email
       }
 
-      this.logger.log(`✅ Avocat ${lawyer.id} notifié d'un nouveau message`);
+      this.logger.log(`Avocat ${lawyer.id} notifié d'un nouveau message`);
     } catch (error) {
-      this.logger.error(`❌ Erreur notification avocat nouveau message: ${error.message}`);
+      this.logger.error(`Erreur notification avocat nouveau message: ${error.message}`);
     }
   }
 
@@ -387,13 +387,13 @@ export class NotificationService {
 
       // Email
       if (lawyer.email) {
-        this.logger.log(`📧 Email paiement reçu envoyé à ${lawyer.email}`);
+        this.logger.log(`Email paiement reçu envoyé à ${lawyer.email}`);
         // TODO: Envoyer email
       }
 
-      this.logger.log(`✅ Avocat ${lawyer.id} notifié du paiement du cas ${case_.id}`);
+      this.logger.log(`Avocat ${lawyer.id} notifié du paiement du cas ${case_.id}`);
     } catch (error) {
-      this.logger.error(`❌ Erreur notification avocat paiement: ${error.message}`);
+      this.logger.error(`Erreur notification avocat paiement: ${error.message}`);
     }
   }
 }
