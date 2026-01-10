@@ -220,6 +220,7 @@ export class CasesService {
     if (!case_) throw new Error('Case not found');
 
     case_.exchangeStatus = 'closed';
+    case_.status = 'completed';
     case_.exchangeClosedAt = new Date();
 
     return this.casesRepository.save(case_);
@@ -236,6 +237,7 @@ export class CasesService {
       if (hoursDiff >= maxDuration) {
         console.log(`Dossier ${case_.trackingCode} expiré (${hoursDiff.toFixed(1)}h > ${maxDuration}h). Clôture automatique.`);
         case_.exchangeStatus = 'closed';
+        case_.status = 'completed';
         case_.exchangeClosedAt = now;
         case_.closureType = 'automatic';
         return this.casesRepository.save(case_);

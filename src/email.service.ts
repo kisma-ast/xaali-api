@@ -51,7 +51,7 @@ export class EmailService {
               <div style="font-size: 24px; font-weight: bold; color: #2563eb; letter-spacing: 2px;">${trackingCode}</div>
             </div>
             
-            <p>Un avocat va bientôt prendre en charge votre dossier. Vous recevrez une notification dès qu'un avocat acceptera votre cas.</p>
+            <p>En attente de prise en charge par un avocat.</p>
             
             <div style="text-align: center; margin: 30px 0;">
               <a href="${trackingLink}" 

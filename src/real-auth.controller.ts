@@ -689,10 +689,25 @@ export class RealAuthController {
       // For now, assuming auth middleware or token check handled elsewhere or implicitly via restricted access to this button
 
       caseToClose.exchangeStatus = 'closed';
+      caseToClose.status = 'completed';
       caseToClose.exchangeClosedAt = new Date();
       caseToClose.closureType = 'manual';
 
       await this.caseRepository.save(caseToClose);
+
+      // SYNC: Chercher si un Dossier existe aussi pour ce Cas et le mettre à jour
+      try {
+        const matchingDossier = await this.dossierRepository.findOne({
+          where: { trackingToken: caseToClose.trackingToken }
+        });
+        if (matchingDossier) {
+          matchingDossier.status = 'completed';
+          await this.dossierRepository.save(matchingDossier);
+          console.log('[REAL-AUTH] SYNC: Dossier correspondant clôturé');
+        }
+      } catch (syncError) {
+        console.error('[REAL-AUTH] Erreur synchronisation clôture Dossier:', syncError);
+      }
 
       console.log('[REAL-AUTH] Dossier clôturé:', caseId);
 
